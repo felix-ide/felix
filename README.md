@@ -31,15 +31,32 @@ A multi-package workspace that provides:
    This starts the full stack (server on port 9000 + UI) with hot reload and ensures the Python sidecar is ready on first run.
 
 3. **Connect to Claude Code:**
+
+   **Option A: Using CLI (recommended)**
    ```bash
-   claude mcp add felix --transport http http://localhost:9000 --scope user
+   claude mcp add felix --transport http http://localhost:9000/mcp --scope user
    ```
 
-   Or manually add to your Claude Code config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+   **Option B: Manual config** - Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
+
+   For HTTP Streaming (recommended):
    ```json
    {
      "mcpServers": {
        "felix": {
+         "type": "http",
+         "url": "http://localhost:9000/mcp"
+       }
+     }
+   }
+   ```
+
+   For SSE (legacy):
+   ```json
+   {
+     "mcpServers": {
+       "felix": {
+         "type": "sse",
          "url": "http://localhost:9000"
        }
      }
