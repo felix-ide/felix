@@ -123,6 +123,7 @@ class SetupValidator {
     }
 
     await this.checkNodeVersion();
+    await this.fixWindowsRollup();
     await this.checkNpmPackages();
     await this.checkTreeSitterGrammars();
     await this.checkTextMateScanner();
@@ -227,6 +228,23 @@ class SetupValidator {
       }
     } catch (error) {
       this.error('Could not determine Node.js version');
+    }
+  }
+
+  async fixWindowsRollup() {
+    // Fix Windows Rollup optionalDependencies bug
+    if (process.platform === 'win32') {
+      this.header('Windows Rollup Fix');
+      const spinner = ora('Installing Rollup Windows binary...').start();
+
+      try {
+        execSync('npm install @rollup/rollup-win32-x64-msvc', { stdio: 'ignore' });
+        spinner.succeed('Installed Rollup Windows binary');
+        this.success('Fixed Windows Rollup dependency');
+      } catch (error) {
+        spinner.fail('Failed to install Rollup Windows binary');
+        this.warning('You may need to manually run: npm install @rollup/rollup-win32-x64-msvc');
+      }
     }
   }
 

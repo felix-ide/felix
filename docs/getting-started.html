@@ -202,6 +202,13 @@ MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2</code></pre>
         </div>
         <div class="info-grid">
           <div class="info-card">
+            <h3>Windows: Rollup module not found</h3>
+            <p>If you see <code class="inline-code">Cannot find module @rollup/rollup-win32-x64-msvc</code>, manually install the Windows binary:</p>
+            <pre style="font-size: 0.85rem; padding: 0.5rem; background: rgba(0,0,0,0.1); border-radius: 4px; margin-top: 0.5rem;"><code class="language-bash">npm install @rollup/rollup-win32-x64-msvc
+npm install</code></pre>
+            <p style="margin-top: 0.5rem;">This is a known npm bug with optionalDependencies on Windows.</p>
+          </div>
+          <div class="info-card">
             <h3>Python sidecar fails</h3>
             <p>Check Python version and run <code class="inline-code">pip install -r python-sidecar/requirements.txt</code>.</p>
           </div>
