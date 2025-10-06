@@ -5,7 +5,8 @@
 
 # Configuration
 FELIX_SERVER_URL="${FELIX_SERVER_URL:-http://localhost:9000}"
-FELIX_PROJECT_PATH="${FELIX_PROJECT_PATH:-/Users/epoplive/aigent-smith-clean/code-indexer}"
+# Use Claude Code's project directory environment variable
+FELIX_PROJECT_PATH="${FELIX_PROJECT_PATH:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
 DEBUG_MODE="${DEBUG_MODE:-false}"
 
 # Colors for debug output

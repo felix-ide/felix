@@ -49,8 +49,8 @@ Set these in your shell profile or before running Claude:
 # Felix server URL (default: http://localhost:3000)
 export FELIX_SERVER_URL="http://localhost:3000"
 
-# Project path for Felix
-export FELIX_PROJECT_PATH="/Users/epoplive/aigent-smith-clean/code-indexer"
+# Project path for Felix (change to your project path)
+export FELIX_PROJECT_PATH="/path/to/your/project"
 
 # Enable debug logging
 export DEBUG_MODE="true"
@@ -58,10 +58,10 @@ export DEBUG_MODE="true"
 
 ### Prerequisites
 
-1. **Felix Server Running**: The code-indexer server must be running:
+1. **Felix Server Running**: The Felix server must be running:
    ```bash
-   cd /Users/epoplive/aigent-smith-clean/code-indexer
-   npm run server
+   cd /path/to/felix
+   npm run dev
    ```
 
 2. **Rules Configured**: Add rules using Felix MCP tools:
