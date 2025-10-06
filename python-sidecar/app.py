@@ -81,10 +81,12 @@ def load_backend():
             _dimensions = int(vec.shape[1])
             _backend = "sentence-transformers"
             return
-        except Exception:
+        except Exception as e:
             if not ALLOW_MOCK:
-                raise
+                raise RuntimeError(f"Failed to load embedding model '{MODEL_NAME}' and SIDECAR_ALLOW_MOCK is not enabled. Error: {e}")
     # mock fallback
+    if not ALLOW_MOCK and not _TORCH_AVAILABLE:
+        raise RuntimeError("PyTorch/sentence-transformers not available and SIDECAR_ALLOW_MOCK is not enabled. Install torch/sentence-transformers or set SIDECAR_ALLOW_MOCK=true")
     _model = None
     _dimensions = 384
     _backend = "mock"
@@ -143,6 +145,19 @@ def embeddings(req: Request, body: EmbeddingRequest):
         inputs = [inputs]
     if not inputs or not all(isinstance(x, str) for x in inputs):
         raise HTTPException(status_code=400, detail="inputs must be string or string[]")
+
+    # Filter out non-string items and log warning
+    valid_inputs = []
+    for i, item in enumerate(inputs):
+        if isinstance(item, str):
+            valid_inputs.append(item)
+        else:
+            print(f"WARNING: Skipping non-string input at index {i}: {type(item)} = {repr(item)[:100]}")
+
+    if not valid_inputs:
+        raise HTTPException(status_code=400, detail="No valid string inputs provided")
+
+    inputs = valid_inputs
 
     try:
         if _backend == "sentence-transformers" and _model is not None:

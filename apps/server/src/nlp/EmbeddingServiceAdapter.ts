@@ -37,24 +37,30 @@ export class EmbeddingService extends BaseEmbeddingService {
 
   async getEmbedding(text: string): Promise<EmbeddingResult> {
     if (this.engine === 'python-sidecar' && this.sidecar) {
-      try {
-        return await this.sidecar.getEmbedding(text);
-      } catch (err) {
-        console.warn('[Embeddings] sidecar failed, falling back to js-local:', err);
-        // fall through to local engine
-      }
+      return await this.sidecar.getEmbedding(text);
     }
     return super.getEmbedding(text);
   }
 
   async getEmbeddings(texts: string[]): Promise<EmbeddingResult[]> {
     if (this.engine === 'python-sidecar' && this.sidecar) {
-      try {
-        return await this.sidecar.getEmbeddings(texts);
-      } catch (err) {
-        console.warn('[Embeddings] sidecar batch failed, falling back to js-local:', err);
-        // fall through to local engine
+      // Process individually to isolate failures
+      const results: EmbeddingResult[] = [];
+      for (let i = 0; i < texts.length; i++) {
+        try {
+          const result = await this.sidecar.getEmbedding(texts[i]);
+          results.push(result);
+        } catch (err) {
+          console.error(`[Embeddings] Failed to embed item ${i}/${texts.length}:`, {
+            textPreview: texts[i]?.substring(0, 100),
+            error: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined
+          });
+          // Skip this item - don't switch engines
+          throw err; // Re-throw to fail the whole batch
+        }
       }
+      return results;
     }
     const results: EmbeddingResult[] = [];
     for (const t of texts) {
