@@ -32,7 +32,7 @@ export class TextConverters {
       code ? code.substring(0, 300) : ''
     ];
     
-    return parts.filter(Boolean).join(' ').trim();
+    return TextConverters.normalize(parts.filter(Boolean).join(' '));
   }
 
   /**
@@ -49,8 +49,8 @@ export class TextConverters {
       task.assigned_to || '',
       task.tags?.stable_tags?.join(' ') || ''
     ];
-    
-    return parts.filter(Boolean).join(' ').trim();
+
+    return TextConverters.normalize(parts.filter(Boolean).join(' '));
   }
 
   /**
@@ -66,8 +66,8 @@ export class TextConverters {
       note.entity_links?.map(link => `${link.entity_type}:${link.entity_id}`).join(' ') || '',
       note.tags?.stable_tags?.join(' ') || ''
     ];
-    
-    return parts.filter(Boolean).join(' ').trim();
+
+    return TextConverters.normalize(parts.filter(Boolean).join(' '));
   }
 
   /**
@@ -84,8 +84,8 @@ export class TextConverters {
       rule.code_template ? rule.code_template.substring(0, 500) : '',
       rule.validation_script ? rule.validation_script.substring(0, 200) : ''
     ];
-    
-    return parts.filter(Boolean).join(' ').trim();
+
+    return TextConverters.normalize(parts.filter(Boolean).join(' '));
   }
 
   /**
@@ -94,8 +94,10 @@ export class TextConverters {
    */
   static normalize(text: string): string {
     return text
-      .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
-      .replace(/\n+/g, ' ')  // Replace newlines with space
+      .replace(/\r\n/g, '\n')  // Normalize Windows line endings
+      .replace(/\r/g, '\n')    // Normalize old Mac line endings
+      .replace(/\s+/g, ' ')    // Replace multiple spaces with single space
+      .replace(/\n+/g, ' ')    // Replace newlines with space
       .trim();
   }
 
