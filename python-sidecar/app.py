@@ -1,12 +1,19 @@
 import os
+import sys
 import time
 import hashlib
+import re
 from typing import List, Optional, Union
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+
+# Fix Windows console encoding for emoji/unicode
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
 
 try:
     import torch  # type: ignore
@@ -35,6 +42,21 @@ def _bool_env(name: str, default: bool) -> bool:
     if v is None:
         return default
     return v.lower() in ("1", "true", "yes", "on")
+
+
+def sanitize_text(text: str) -> str:
+    """Ensure text is properly encoded and remove only truly invalid characters"""
+    # Ensure proper UTF-8 encoding by re-encoding
+    # This handles any encoding inconsistencies from Windows
+    try:
+        # Encode to UTF-8 bytes and back to ensure consistency
+        cleaned = text.encode('utf-8', errors='ignore').decode('utf-8', errors='ignore')
+        # Remove control characters except newlines, tabs, carriage returns
+        cleaned = ''.join(char for char in cleaned if char.isprintable() or char in '\n\t\r ')
+        return cleaned
+    except Exception:
+        # Fallback: remove non-ASCII if there's an encoding issue
+        return ''.join(char for char in text if ord(char) < 128)
 
 
 MODEL_NAME = os.getenv("MODEL_NAME", "sentence-transformers/all-MiniLM-L6-v2")
@@ -146,18 +168,38 @@ def embeddings(req: Request, body: EmbeddingRequest):
     if not inputs or not all(isinstance(x, str) for x in inputs):
         raise HTTPException(status_code=400, detail="inputs must be string or string[]")
 
-    # Filter out non-string items and log warning
+    # Filter out non-string items and invalid strings
     valid_inputs = []
     for i, item in enumerate(inputs):
-        if isinstance(item, str):
-            valid_inputs.append(item)
-        else:
-            print(f"WARNING: Skipping non-string input at index {i}: {type(item)} = {repr(item)[:100]}")
+        if not isinstance(item, str):
+            print(f"WARNING: Skipping non-string input at index {i}: {type(item)}")
+            continue
+        # Filter out empty or whitespace-only strings
+        if not item or not item.strip():
+            print(f"WARNING: Skipping empty/whitespace input at index {i}")
+            continue
+        # Clean the string: fix encoding issues and normalize whitespace
+        try:
+            # Sanitize encoding first
+            cleaned = sanitize_text(item)
+            # Normalize whitespace
+            cleaned = ' '.join(cleaned.split())
+            if cleaned:
+                valid_inputs.append(cleaned)
+            else:
+                print(f"WARNING: Input at index {i} became empty after cleaning")
+        except Exception as e:
+            print(f"WARNING: Failed to clean input at index {i}: {str(e)[:100]}")
 
     if not valid_inputs:
         raise HTTPException(status_code=400, detail="No valid string inputs provided")
 
     inputs = valid_inputs
+
+    # Debug: Log what we're about to encode (safe for Windows console)
+    print(f"DEBUG: About to encode {len(inputs)} inputs")
+    if inputs:
+        print(f"DEBUG: First input length: {len(inputs[0])}, starts with: {inputs[0][:50]}")
 
     try:
         if _backend == "sentence-transformers" and _model is not None:
@@ -167,12 +209,24 @@ def embeddings(req: Request, body: EmbeddingRequest):
             # On MPS, prefer float32 for stability unless explicitly overridden
             if _device == "mps":
                 kwargs.pop("dtype", None)
-            vecs = _model.encode(
-                inputs,
-                convert_to_numpy=True,
-                normalize_embeddings=body.normalize,
-                **kwargs,
-            )
+            try:
+                vecs = _model.encode(
+                    inputs,
+                    convert_to_numpy=True,
+                    normalize_embeddings=body.normalize,
+                    **kwargs,
+                )
+            except (TypeError, ValueError) as te:
+                # Handle invalid input types from sentence-transformers
+                print(f"ERROR: sentence-transformers rejected inputs. Error: {str(te)[:200]}")
+                print(f"ERROR: Input count: {len(inputs)}")
+                print(f"ERROR: All inputs are strings: {all(isinstance(x, str) for x in inputs)}")
+                if inputs:
+                    print(f"ERROR: First input length: {len(inputs[0])}")
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid input format for embedding model: {str(te)}"
+                )
         else:
             vecs = _mock_encode(inputs, normalize=body.normalize)
         elapsed_ms = int((time.perf_counter() - start) * 1000)
