@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "jsx": "react-jsx",
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": false,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "src/lib.ts",
+    "src/lib/plugin-system/**/*",
+    "src/components/sections/TasksSection.tsx",
+    "src/components/sections/NotesSection.tsx", 
+    "src/stores/**/*",
+    "src/services/felixService.ts",
+    "src/themes/CodeIndexerThemeProvider.tsx",
+    "src/components/ui/Button.tsx",
+    "src/components/ui/Card.tsx",
+    "src/components/ui/Input.tsx",
+    "src/types/api.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts", 
+    "**/*.spec.tsx",
+    "node_modules"
+  ]
+}

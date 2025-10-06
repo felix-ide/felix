@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{pageTitle}}</title>
+    <script>
+        function initApp() {
+            console.log('App initialized');
+            const config = {
+                debug: true,
+                version: '1.0.0'
+            };
+            return config;
+        }
+
+        window.addEventListener('load', initApp);
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 onclick="alert('Hello!')">{{heading}}</h1>
+        <p style="color: red; font-weight: bold;">Welcome, {{user.name}}!</p>
+
+        <button onclick="
+            const now = new Date();
+            console.log('Button clicked at:', now);
+            alert('Current time: ' + now.toLocaleTimeString());
+        ">Click Me</button>
+
+        {{#if showForm}}
+        <form onsubmit="return validateForm(this)">
+            <input type="text" onchange="updatePreview(this.value)" />
+            <input type="submit" value="Submit" />
+        </form>
+        {{/if}}
+    </div>
+</body>
+</html>

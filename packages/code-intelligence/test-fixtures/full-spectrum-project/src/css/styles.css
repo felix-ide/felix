@@ -1,0 +1,33 @@
+@import url('./reset.css');
+
+:root {
+  --background: #10121a;
+  --foreground: #f5f7ff;
+}
+
+canvas[data-layout="force"] {
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(32,34,54,0.9), rgba(12,14,24,1));
+  cursor: grab;
+}
+
+canvas[data-layout="force"]:active {
+  cursor: grabbing;
+}
+
+@keyframes pulse {
+  from { opacity: 0.7; }
+  50% { opacity: 1; }
+  to { opacity: 0.7; }
+}
+
+.fixture-highlight {
+  animation: pulse 2s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fixture-highlight {
+    animation: none;
+  }
+}

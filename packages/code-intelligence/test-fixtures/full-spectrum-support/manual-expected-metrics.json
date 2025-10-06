@@ -1,0 +1,60 @@
+{
+  "componentsTotal": 132,
+  "relationshipsTotal": 109,
+  "componentsByFile": {
+    "src/javascript/component.ts": 18,
+    "src/javascript/main.js": 2,
+    "src/javascript/utilities.js": 5,
+    "src/javascript/widget.jsx": 3,
+    "src/python/app.py": 7,
+    "src/python/async_worker.py": 2,
+    "src/python/utils/graph.py": 7,
+    "src/python-bridge.js": 1,
+    "src/php/index.php": 2,
+    "src/php/services/EmailService.php": 2,
+    "src/php/services/NotifierInterface.php": 1,
+    "src/php/templates/dashboard.php": 1,
+    "src/html/index.html": 6,
+    "src/css/styles.css": 6,
+    "src/css/reset.css": 1,
+    "src/sql/schema.sql": 5,
+    "src/json/config.json": 5,
+    "src/java/src/app/Main.java": 5,
+    "src/java/src/app/GraphProcessor.java": 1,
+    "docs/architecture.md": 26,
+    "docs/runbook.md": 15,
+    "testdata/mixed.md": 11
+  },
+  "relationshipsByFile": {
+    "src/javascript/component.ts": 13,
+    "src/javascript/main.js": 4,
+    "src/javascript/utilities.js": 3,
+    "src/javascript/widget.jsx": 1,
+    "src/python/app.py": 7,
+    "src/python/async_worker.py": 0,
+    "src/python/utils/graph.py": 4,
+    "src/python-bridge.js": 1,
+    "src/php/index.php": 6,
+    "src/php/services/EmailService.php": 3,
+    "src/php/services/NotifierInterface.php": 0,
+    "src/php/templates/dashboard.php": 1,
+    "src/html/index.html": 2,
+    "src/css/styles.css": 1,
+    "src/css/reset.css": 0,
+    "src/sql/schema.sql": 4,
+    "src/json/config.json": 0,
+    "src/java/src/app/Main.java": 3,
+    "src/java/src/app/GraphProcessor.java": 0,
+    "docs/architecture.md": 33,
+    "docs/runbook.md": 16,
+    "testdata/mixed.md": 7
+  },
+  "notes": {
+    "ignoredFiles": [
+      "baseline-metrics.json",
+      "COVERAGE.md",
+      "README.md"
+    ],
+    "exclusions": "Counts focus on top-level declarations/sections intentionally authored; generated files and helper docs are excluded."
+  }
+}

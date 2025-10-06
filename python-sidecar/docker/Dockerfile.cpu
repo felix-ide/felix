@@ -1,0 +1,18 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    UVICORN_WORKERS=1 \
+    SIDECAR_BIND_HOST=0.0.0.0 \
+    SIDECAR_BIND_PORT=8088
+
+WORKDIR /app
+COPY requirements.txt /app/
+RUN python -m pip install --upgrade pip && pip install -r requirements.txt
+COPY app.py /app/
+
+EXPOSE 8088
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8088"]
+

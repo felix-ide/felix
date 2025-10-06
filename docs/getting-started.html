@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Felix - Getting Started</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="getting-started">
+  <div class="page-shell">
+    <header class="surface-card site-header">
+      <nav class="top-nav">
+        <a href="index.html" class="brand" aria-label="Felix home">
+          <span class="brand-mark">F</span>
+          Felix
+        </a>
+        <div class="nav-links">
+          <a class="nav-link" data-nav="overview" href="index.html">Overview</a>
+          <a class="nav-link" data-nav="explore" href="explore.html">Visualize</a>
+          <a class="nav-link" data-nav="notes" href="notes.html">Notes</a>
+          <a class="nav-link" data-nav="rules" href="rules.html">Rules</a>
+          <a class="nav-link" data-nav="tasks" href="tasks.html">Tasks</a>
+          <a class="nav-link" data-nav="workflows" href="workflows.html">Workflows</a>
+          <a class="nav-link" data-nav="getting-started" href="getting-started.html">Get Started</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="surface-card section">
+        <div class="section-header">
+          <h1 class="section-title">Install Felix and connect Claude Code</h1>
+          <p class="section-subtitle">Run Felix locally beside Claude Code to enforce workflow gates, inject rules, and maintain a RAG layer.</p>
+        </div>
+
+        <div class="feature-card" style="margin-bottom: 2rem;">
+          <h4>Prerequisites</h4>
+          <ul>
+            <li>Node.js 18+ and npm 9+</li>
+            <li>Python 3.8+ (for embedding service)</li>
+            <li>Git</li>
+            <li>8GB+ RAM recommended</li>
+          </ul>
+        </div>
+
+        <h3>1. Clone and install</h3>
+        <pre><code class="language-bash"># Clone the repository
+git clone https://github.com/yourusername/felix.git
+cd felix
+
+# Install dependencies (setup runs automatically via postinstall)
+npm install
+
+# The setup script will:
+# - Verify Node.js and Python versions
+# - Create Python virtual environment
+# - Install Python dependencies
+# - Download ~90MB embedding model (sentence-transformers/all-MiniLM-L6-v2)
+# - Download TextMate grammars for syntax highlighting
+# - Check Tree-sitter native parsers</code></pre>
+
+        <h3 style="margin-top: 2rem;">2. Start Felix</h3>
+        <pre><code class="language-bash"># Start the full stack (server + client + MCP)
+npm run dev
+
+# Server runs on http://localhost:9000
+# Open your browser to http://localhost:9000 to view the UI</code></pre>
+
+        <div class="info-grid" style="margin-top: 1.5rem;">
+          <div class="info-card">
+            <h4>Server (port 9000)</h4>
+            <p>API server with MCP endpoints, task management, workflow validation, and code indexing.</p>
+          </div>
+          <div class="info-card">
+            <h4>Client (port 9000)</h4>
+            <p>React UI for visualizations, task boards, Gantt charts, mind maps, and rule management.</p>
+          </div>
+          <div class="info-card">
+            <h4>Python sidecar (port 8088)</h4>
+            <p>Embedding service using sentence-transformers. Auto-starts when needed. Handles semantic search and RAG.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface-card section">
+        <div class="section-header">
+          <h2 class="section-title">3. Connect Claude Code</h2>
+          <p class="section-subtitle">Install Felix as an MCP server and configure hooks</p>
+        </div>
+
+        <h3>MCP Server Configuration</h3>
+        <p>Felix supports three MCP transport types. Choose one based on your needs:</p>
+
+        <h4 style="margin-top: 1.5rem;">Option 1: HTTP Streaming - Easiest setup (recommended)</h4>
+        <p>Start Felix with <code class="inline-code">npm run dev</code>, then add to your Claude Desktop MCP settings:</p>
+        <pre><code class="language-json">{
+  "mcpServers": {
+    "felix": {
+      "url": "http://localhost:9000/mcp"
+    }
+  }
+}</code></pre>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; margin-top: 1.5rem;">
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/claude-desktop-mcp-settings.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/claude-desktop-mcp-settings.png" alt="MCP settings in Claude Desktop" />
+            </a>
+            <figcaption>MCP server configuration in Claude Desktop</figcaption>
+          </figure>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/claude-desktop-using-felix.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/claude-desktop-using-felix.png" alt="Felix tools in Claude Desktop" />
+            </a>
+            <figcaption>Using Felix MCP tools in Claude Desktop</figcaption>
+          </figure>
+        </div>
+
+        <h4 style="margin-top: 1.5rem;">Option 2: HTTP + SSE - Legacy transport</h4>
+        <p>Start Felix with <code class="inline-code">npm run dev</code>, then add to settings:</p>
+        <pre><code class="language-json">{
+  "mcpServers": {
+    "felix": {
+      "url": "http://localhost:9000"
+    }
+  }
+}</code></pre>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--muted);">Note: SSE endpoint is at the root <code class="inline-code">/</code> or <code class="inline-code">/sse</code></p>
+
+        <h4 style="margin-top: 1.5rem;">Option 3: stdio (CLI) - Advanced setup</h4>
+        <p>For advanced users. Requires building the server first:</p>
+        <pre><code class="language-json">{
+  "mcpServers": {
+    "felix": {
+      "command": "/usr/bin/env",
+      "args": ["node", "<path-to-felix>/apps/server/dist/stdio.js"],
+      "env": {
+        "FORCE_STDERR_LOGS": "1",
+        "LOG_LEVEL": "error",
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    }
+  }
+}</code></pre>
+
+        <p style="margin-top: 1.5rem;">Restart Claude Code/Desktop. Felix MCP tools appear in the tool list. The AI can now search code, create tasks, manage workflows, and link documentation.</p>
+
+        <h3 style="margin-top: 2rem;">Hook Integration (Automatic Rule Injection)</h3>
+        <p>Run the installer to set up hooks that inject rules and validate workflows:</p>
+        <pre><code class="language-bash">cd integrations/claude-code
+bash install.sh
+
+# The installer will:
+# - Copy hook scripts to ~/.claude/hooks/
+# - Update ~/.claude/settings.json with hook configuration
+# - Prompt for your project path and server URL
+# - Create ~/.felix_claude_config with environment variables
+# - Test the connection to Felix server</code></pre>
+
+        <p style="margin-top: 1.5rem;">After installation, hooks run automatically when you use Claude Code:</p>
+
+        <div class="info-grid" style="margin-top: 1.5rem;">
+          <div class="info-card">
+            <h4>user_prompt_submit</h4>
+            <p>Runs when you submit a prompt. Searches for applicable rules based on semantic similarity and injects them into the conversation before the AI responds.</p>
+          </div>
+          <div class="info-card">
+            <h4>pre_tool_use</h4>
+            <p>Runs before Edit/Write operations. Validates workflow requirements. Blocks coding if task is not spec_ready. Returns guidance to the AI.</p>
+          </div>
+          <div class="info-card">
+            <h4>post_tool_use</h4>
+            <p>Runs after successful tool use. Tracks rule effectiveness, analyzes pattern compliance, and learns from successful patterns.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface-card section">
+        <div class="section-header">
+          <h2 class="section-title">Environment variables</h2>
+        </div>
+        <pre><code class="language-bash"># Server configuration
+PORT=9000
+FELIX_DATA_DIR=~/.felix
+LOG_LEVEL=info
+DISABLE_FILE_WATCHER=false
+
+# Python sidecar
+SIDECAR_BIND_HOST=127.0.0.1
+SIDECAR_BIND_PORT=8088
+SIDECAR_DEVICE=auto  # auto|cuda|mps|cpu
+SIDECAR_FP16=true
+SIDECAR_ALLOW_MOCK=false
+MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2</code></pre>
+      </section>
+
+      <section class="surface-card section">
+        <div class="section-header">
+          <h2 class="section-title">Troubleshooting</h2>
+        </div>
+        <div class="info-grid">
+          <div class="info-card">
+            <h3>Python sidecar fails</h3>
+            <p>Check Python version and run <code class="inline-code">pip install -r python-sidecar/requirements.txt</code>.</p>
+          </div>
+          <div class="info-card">
+            <h3>Parser errors</h3>
+            <p>Run <code class="inline-code">node scripts/setup.js</code> to verify native parsers.</p>
+          </div>
+          <div class="info-card">
+            <h3>Port conflicts</h3>
+            <p>Change <code class="inline-code">PORT</code> or <code class="inline-code">SIDECAR_BIND_PORT</code> in your environment.</p>
+          </div>
+          <div class="info-card">
+            <h3>Memory issues</h3>
+            <p>Increase Node memory with <code class="inline-code">NODE_OPTIONS="--max-old-space-size=4096"</code>.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Felix — Spec-driven development for AI pairing</p>
+    </footer>
+  </div>
+
+  <script src="assets/site.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+</body>
+</html>

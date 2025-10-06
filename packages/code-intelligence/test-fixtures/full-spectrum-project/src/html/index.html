@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Fixture Visualization</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+    <script type="module">
+      import { startVisualization } from '../javascript/main.js';
+
+      window.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('fixture-canvas');
+        window.__fixtureState = {
+          graph: {
+            nodes: [
+              { id: 'n1', label: 'Node 1' },
+              { id: 'n2', label: 'Node 2' }
+            ],
+            edges: [
+              { id: 'e1', source: 'n1', target: 'n2' }
+            ]
+          }
+        };
+        startVisualization(canvas);
+      });
+    </script>
+    <script nomodule>
+      document.addEventListener('DOMContentLoaded', function () {
+        console.warn('Legacy browser detected');
+      });
+    </script>
+  </head>
+  <body>
+    <canvas id="fixture-canvas" data-layout="force" data-theme="dark"></canvas>
+  </body>
+</html>

@@ -1,0 +1,352 @@
+# Language Detectors Configuration
+#
+# This file defines rules for detecting embedded languages and code blocks
+# within files when segmentation needs supplementation.
+#
+# Detection rules are processed in order of priority (higher first).
+# Each rule specifies patterns, confidence levels, and extraction methods.
+
+# Shebang-based detection (highest priority)
+shebangs:
+  - pattern: "^#!.*?/bin/bash"
+    language: "bash"
+    confidence: 0.95
+    priority: 100
+
+  - pattern: "^#!.*?/bin/sh"
+    language: "shell"
+    confidence: 0.95
+    priority: 100
+
+  - pattern: "^#!.*?/bin/zsh"
+    language: "zsh"
+    confidence: 0.95
+    priority: 100
+
+  - pattern: "^#!.*?/usr/bin/env\\s+(python3?|python)"
+    language: "python"
+    confidence: 0.95
+    priority: 100
+
+  - pattern: "^#!.*?/usr/bin/env\\s+(node|nodejs)"
+    language: "javascript"
+    confidence: 0.95
+    priority: 100
+
+  - pattern: "^#!.*?/usr/bin/env\\s+(ruby|rb)"
+    language: "ruby"
+    confidence: 0.95
+    priority: 100
+
+  - pattern: "^#!.*?/usr/bin/env\\s+(perl|perl5)"
+    language: "perl"
+    confidence: 0.95
+    priority: 100
+
+# Markdown/MDX fenced code blocks
+markdown_fences:
+  - pattern: "^```(\\w+)\\s*$"
+    language: "$1"  # Capture group reference
+    confidence: 0.90
+    priority: 90
+    block_start: "^```\\w+\\s*$"
+    block_end: "^```\\s*$"
+    extract_content: true
+    multiline: true
+
+  - pattern: "^~~~(\\w+)\\s*$"
+    language: "$1"
+    confidence: 0.90
+    priority: 90
+    block_start: "^~~~\\w+\\s*$"
+    block_end: "^~~~\\s*$"
+    extract_content: true
+    multiline: true
+
+# MDX-specific patterns
+mdx_blocks:
+  - pattern: "^```(jsx|tsx)\\s*$"
+    language: "javascript"
+    confidence: 0.95
+    priority: 95
+    block_start: "^```(jsx|tsx)\\s*$"
+    block_end: "^```\\s*$"
+    extract_content: true
+
+  - pattern: "<(\\w+)(?:\\s[^>]*)?>.*?</\\1>"
+    language: "javascript"  # JSX components in MDX
+    confidence: 0.80
+    priority: 80
+    multiline: true
+
+# HTML embedded languages
+html_scripts:
+  - pattern: "<script(?:\\s+[^>]*?type=[\"']text/javascript[\"'][^>]*?)?>([\\s\\S]*?)</script>"
+    language: "javascript"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 1
+
+  - pattern: "<script(?:\\s+[^>]*?type=[\"']module[\"'][^>]*?)?>([\\s\\S]*?)</script>"
+    language: "javascript"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 1
+
+  - pattern: "<script(?:\\s+[^>]*?lang=[\"'](typescript|ts)[\"'][^>]*?)?>([\\s\\S]*?)</script>"
+    language: "typescript"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 2
+
+  - pattern: "<script(?!\\s+[^>]*?src=)(?:\\s[^>]*?)?>([\\s\\S]*?)</script>"
+    language: "javascript"
+    confidence: 0.85
+    priority: 80
+    extract_content: true
+    content_group: 1
+
+html_styles:
+  - pattern: "<style(?:\\s+[^>]*?type=[\"']text/css[\"'][^>]*?)?>([\\s\\S]*?)</style>"
+    language: "css"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 1
+
+  - pattern: "<style(?:\\s+[^>]*?lang=[\"'](scss|sass|less)[\"'][^>]*?)?>([\\s\\S]*?)</style>"
+    language: "$1"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 2
+
+  - pattern: "<style(?:\\s[^>]*?)?>([\\s\\S]*?)</style>"
+    language: "css"
+    confidence: 0.85
+    priority: 80
+    extract_content: true
+    content_group: 1
+
+# Vue Single File Components
+vue_sfc:
+  - pattern: "<template(?:\\s[^>]*?)?>([\\s\\S]*?)</template>"
+    language: "html"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 1
+
+  - pattern: "<script(?:\\s+[^>]*?lang=[\"'](typescript|ts)[\"'][^>]*?)?>([\\s\\S]*?)</script>"
+    language: "typescript"
+    confidence: 0.95
+    priority: 90
+    extract_content: true
+    content_group: 2
+
+  - pattern: "<script(?:\\s[^>]*?)?>([\\s\\S]*?)</script>"
+    language: "javascript"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 1
+
+  - pattern: "<style(?:\\s+[^>]*?lang=[\"'](scss|sass|less|stylus)[\"'][^>]*?)?>([\\s\\S]*?)</style>"
+    language: "$1"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 2
+
+# PHP delimiters
+php_blocks:
+  - pattern: "<\\?php([\\s\\S]*?)\\?>"
+    language: "php"
+    confidence: 0.95
+    priority: 90
+    extract_content: true
+    content_group: 1
+
+  - pattern: "<\\?=([\\s\\S]*?)\\?>"
+    language: "php"
+    confidence: 0.95
+    priority: 90
+    extract_content: true
+    content_group: 1
+
+  - pattern: "<\\?([\\s\\S]*?)\\?>"
+    language: "php"
+    confidence: 0.85
+    priority: 80
+    extract_content: true
+    content_group: 1
+
+# SQL in heredocs and strings
+sql_heredocs:
+  - pattern: "<<[\"']?SQL[\"']?([\\s\\S]*?)SQL"
+    language: "sql"
+    confidence: 0.85
+    priority: 75
+    extract_content: true
+    content_group: 1
+
+  - pattern: "<<[\"']?QUERY[\"']?([\\s\\S]*?)QUERY"
+    language: "sql"
+    confidence: 0.80
+    priority: 70
+    extract_content: true
+    content_group: 1
+
+# Shell heredocs
+shell_heredocs:
+  - pattern: "<<[\"']?EOF[\"']?([\\s\\S]*?)EOF"
+    language: "text"
+    confidence: 0.60
+    priority: 60
+    extract_content: true
+    content_group: 1
+
+  - pattern: "<<[\"']?(SCRIPT|SHELL)[\"']?([\\s\\S]*?)\\1"
+    language: "bash"
+    confidence: 0.75
+    priority: 70
+    extract_content: true
+    content_group: 2
+
+# Templating systems
+templating:
+  # Handlebars
+  - pattern: "\\{\\{[\\s\\S]*?\\}\\}"
+    language: "handlebars"
+    confidence: 0.70
+    priority: 65
+
+  # Mustache
+  - pattern: "\\{\\{\\{[\\s\\S]*?\\}\\}\\}"
+    language: "mustache"
+    confidence: 0.70
+    priority: 65
+
+  # Jinja2/Twig
+  - pattern: "\\{%[\\s\\S]*?%\\}"
+    language: "jinja2"
+    confidence: 0.70
+    priority: 65
+
+  - pattern: "\\{\\{[\\s\\S]*?\\}\\}"
+    language: "jinja2"
+    confidence: 0.65
+    priority: 60
+
+  # Django templates
+  - pattern: "\\{%\\s+(load|extends|block|if|for|include)[\\s\\S]*?%\\}"
+    language: "django"
+    confidence: 0.80
+    priority: 75
+
+  # Liquid templates
+  - pattern: "\\{%[\\s\\S]*?%\\}"
+    language: "liquid"
+    confidence: 0.65
+    priority: 60
+
+  # ERB (Embedded Ruby)
+  - pattern: "<%[\\s\\S]*?%>"
+    language: "erb"
+    confidence: 0.75
+    priority: 70
+
+  # JSP
+  - pattern: "<%[\\s\\S]*?%>"
+    language: "jsp"
+    confidence: 0.70
+    priority: 65
+
+# CSS in JavaScript (CSS-in-JS)
+css_in_js:
+  - pattern: "styled\\.[a-zA-Z]+`([\\s\\S]*?)`"
+    language: "css"
+    confidence: 0.85
+    priority: 80
+    extract_content: true
+    content_group: 1
+
+  - pattern: "css`([\\s\\S]*?)`"
+    language: "css"
+    confidence: 0.85
+    priority: 80
+    extract_content: true
+    content_group: 1
+
+  - pattern: "createGlobalStyle`([\\s\\S]*?)`"
+    language: "css"
+    confidence: 0.85
+    priority: 80
+    extract_content: true
+    content_group: 1
+
+# GraphQL
+graphql_queries:
+  - pattern: "gql`([\\s\\S]*?)`"
+    language: "graphql"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 1
+
+  - pattern: "graphql`([\\s\\S]*?)`"
+    language: "graphql"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 1
+
+# YAML front matter
+yaml_frontmatter:
+  - pattern: "^---\\s*$([\\s\\S]*?)^---\\s*$"
+    language: "yaml"
+    confidence: 0.90
+    priority: 85
+    extract_content: true
+    content_group: 1
+    multiline: true
+
+# JSON in various contexts
+json_blocks:
+  - pattern: "(?:const|let|var)\\s+\\w+\\s*=\\s*(\\{[\\s\\S]*?\\})\\s*;"
+    language: "json"
+    confidence: 0.60
+    priority: 55
+    extract_content: true
+    content_group: 1
+
+# Configuration for multiline handling
+multiline_config:
+  max_lines: 1000  # Maximum lines to process in a single block
+  timeout_ms: 5000  # Timeout for regex operations
+
+# Confidence thresholds
+confidence_thresholds:
+  high: 0.85      # Use this detection with high confidence
+  medium: 0.70    # Use this detection but may need validation
+  low: 0.50       # Use only if no better option available
+
+# Language mappings (normalize language names)
+language_mappings:
+  js: "javascript"
+  ts: "typescript"
+  jsx: "javascript"
+  tsx: "typescript"
+  py: "python"
+  rb: "ruby"
+  sh: "shell"
+  bash: "shell"
+  zsh: "shell"
+  htm: "html"
+  css3: "css"
+  scss: "css"
+  sass: "css"
+  less: "css"

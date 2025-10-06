@@ -1,0 +1,27 @@
+#version 300 es
+precision highp float;
+
+in vec4 v_color;
+in vec2 v_uv;
+in float v_selected;
+
+out vec4 fragColor;
+
+void main() {
+  float dist = length(v_uv);
+  
+  // Discard pixels outside circle
+  if (dist > 1.0) discard;
+  
+  // Smooth circle edge
+  float alpha = 1.0 - smoothstep(0.8, 1.0, dist);
+  
+  // Selection highlight
+  vec3 finalColor = v_color.rgb;
+  if (v_selected > 0.5) {
+    finalColor = mix(finalColor, vec3(0.0, 0.5, 1.0), 0.3);
+    alpha *= 1.0 + 0.5 * (1.0 - dist); // Glow effect
+  }
+  
+  fragColor = vec4(finalColor, v_color.a * alpha);
+}

@@ -1,0 +1,12 @@
+{
+  "title": "Fixture Graph",
+  "layout": "force-directed",
+  "retry": {
+    "attempts": 3,
+    "strategy": "exponential"
+  },
+  "notifications": {
+    "email": ["ops@example.com"],
+    "slack": ["#fixture-alerts"]
+  }
+}

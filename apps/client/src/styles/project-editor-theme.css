@@ -1,0 +1,103 @@
+/* Project Editor Theme - Felix Integration */
+
+/* Theme variable definitions for both light and dark modes */
+:root {
+  --project-editor-bg-primary: hsl(0 0% 100%);
+  --project-editor-bg-secondary: hsl(240 4.8% 95.9%);
+  --project-editor-bg-tertiary: hsl(240 4.8% 95.9%);
+  --project-editor-fg-primary: hsl(240 10% 3.9%);
+  --project-editor-fg-secondary: hsl(240 3.8% 46.1%);
+  --project-editor-fg-muted: hsl(240 3.8% 46.1%);
+  --project-editor-border: hsl(240 5.9% 90%);
+  --project-editor-accent: hsl(240 5.9% 10%);
+  --project-editor-success: #16a34a;
+  --project-editor-warning: #ca8a04;
+  --project-editor-error: #dc2626;
+}
+
+.dark {
+  --project-editor-bg-primary: #171a1f !important;
+  --project-editor-bg-secondary: #252b33 !important;
+  --project-editor-bg-tertiary: #374151 !important;
+  --project-editor-fg-primary: #e2e8f0 !important;
+  --project-editor-fg-secondary: #98a1b3 !important;
+  --project-editor-fg-muted: #7c8491 !important;
+  --project-editor-border: #374151 !important;
+  --project-editor-accent: #3b82f6 !important;
+  --project-editor-success: #10b981 !important;
+  --project-editor-warning: #f59e0b !important;
+  --project-editor-error: #ef4444 !important;
+}
+
+/* Apply Felix's vscode-dark theme colors to project-editor variables */
+/* Use higher specificity and !important to ensure our overrides take precedence */
+/* Theme variables are already mapped in globals.css - no need to override here */
+
+/* Additional component-specific overrides for better integration */
+.project-editor {
+  /* Ensure the theme matches the Felix overall look */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  
+}
+
+.project-editor .editor-content {
+  /* Match Felix editor styling */
+  background: var(--project-editor-bg-primary);
+}
+
+.project-editor .file-tree {
+  /* File tree integration */
+  background: var(--project-editor-bg-secondary);
+  border-right: 1px solid var(--project-editor-border);
+}
+
+.project-editor .editor-tabs {
+  /* Tab styling to match Felix */
+  background: var(--project-editor-bg-secondary);
+  border-bottom: 1px solid var(--project-editor-border);
+}
+
+.project-editor .status-bar {
+  /* Status bar with Felix accent */
+  background: var(--project-editor-accent);
+  color: white;
+}
+
+/* Hover states */
+.project-editor .file-tree-item:hover {
+  background: rgba(59, 130, 246, 0.1); /* accent color with transparency */
+}
+
+.project-editor .editor-tab:hover {
+  background: var(--project-editor-bg-tertiary);
+}
+
+/* Selection states */
+.project-editor .file-tree-item.selected {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--project-editor-fg-primary);
+}
+
+.project-editor .editor-tab.active {
+  background: var(--project-editor-bg-primary);
+  border-bottom: 2px solid var(--project-editor-accent);
+}
+
+/* Scrollbars to match Felix */
+.project-editor ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.project-editor ::-webkit-scrollbar-track {
+  background: var(--project-editor-bg-secondary);
+}
+
+.project-editor ::-webkit-scrollbar-thumb {
+  background: var(--project-editor-fg-muted);
+  border-radius: 4px;
+}
+
+.project-editor ::-webkit-scrollbar-thumb:hover {
+  background: var(--project-editor-fg-secondary);
+}

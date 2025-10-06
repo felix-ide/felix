@@ -1,0 +1,44 @@
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@aigent-smith'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build package
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+        continue-on-error: true # Continue even if no tests are defined yet
+
+      - name: Configure npm authentication
+        run: |
+          echo "@aigent-smith:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

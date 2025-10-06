@@ -1,0 +1,10 @@
+# Ignore build outputs to keep indexer focused on source
+apps/client/dist/
+apps/client/coverage/
+apps/client/node_modules/
+
+# Any workspace dist directories produced by builds
+**/dist/
+
+# Parser verification fixtures (kept under code-intelligence)
+packages/code-intelligence/test-fixtures/

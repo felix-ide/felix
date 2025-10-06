@@ -1,0 +1,104 @@
+/**
+ * WorkflowConfiguration Entity
+ * TypeORM entity for the workflow_configurations table in metadata database
+ */
+
+import { 
+  Entity, 
+  PrimaryColumn, 
+  Column, 
+  CreateDateColumn, 
+  UpdateDateColumn,
+  Index
+} from 'typeorm';
+
+export interface RequiredSection {
+  name: string;
+  required: boolean;
+  validation?: string;
+}
+
+export interface ConditionalRequirement {
+  condition: string;
+  sections: string[];
+}
+
+export interface ValidationRule {
+  field: string;
+  rule: string;
+  message: string;
+}
+
+@Entity('workflow_configurations')
+@Index('idx_workflow_default', ['is_default'])
+@Index('idx_workflow_name', ['name'], { unique: true })
+export class WorkflowConfiguration {
+  @PrimaryColumn({ type: 'text' })
+  id!: string;
+
+  @Column({ type: 'text', unique: true })
+  name!: string;
+
+  @Column({ type: 'text' })
+  display_name!: string;
+
+  @Column({ type: 'text', nullable: true })
+  description?: string;
+
+  @Column({ type: 'boolean', default: false })
+  is_default!: boolean;
+
+  @Column({ 
+    type: 'simple-json',
+    transformer: {
+      to: (value: RequiredSection[] | string) => {
+        if (typeof value === 'string') return value;
+        return value ? JSON.stringify(value) : '[]';
+      },
+      from: (value: string) => {
+        try {
+          return typeof value === 'string' ? JSON.parse(value) : value;
+        } catch {
+          return [];
+        }
+      }
+    }
+  })
+  required_sections!: RequiredSection[] | string;
+
+  @Column({ 
+    type: 'simple-json', 
+    nullable: true,
+    transformer: {
+      to: (value: ConditionalRequirement[] | undefined) => value ? JSON.stringify(value) : null,
+      from: (value: string | null) => value ? JSON.parse(value) : null
+    }
+  })
+  conditional_requirements?: ConditionalRequirement[];
+
+  @Column({ 
+    type: 'simple-json', 
+    nullable: true,
+    transformer: {
+      to: (value: ValidationRule[] | undefined) => value ? JSON.stringify(value) : null,
+      from: (value: string | null) => value ? JSON.parse(value) : null
+    }
+  })
+  validation_rules?: ValidationRule[];
+
+  @Column({ 
+    type: 'simple-json', 
+    nullable: true,
+    transformer: {
+      to: (value: string[] | undefined) => value ? JSON.stringify(value) : null,
+      from: (value: string | null) => value ? JSON.parse(value) : null
+    }
+  })
+  use_cases?: string[];
+
+  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  created_at!: Date;
+
+  @UpdateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  updated_at!: Date;
+}

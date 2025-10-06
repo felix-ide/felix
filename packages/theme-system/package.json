@@ -1,0 +1,56 @@
+{
+  "name": "@felix/theme-system",
+  "version": "0.2.0",
+  "description": "Advanced theme system for AIgent Smith with custom theme support",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./themes": {
+      "import": "./dist/themes/index.js",
+      "types": "./dist/themes/index.d.ts"
+    },
+    "./editor": {
+      "import": "./dist/editor/index.js",
+      "types": "./dist/editor/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "prepublishOnly": "npm run build",
+    "test": "echo 'No tests for @felix/theme-system'"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "typescript": "^5.8.3"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/felix-ai/felix.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/felix-ai/felix/issues"
+  },
+  "homepage": "https://github.com/felix-ai/felix#readme"
+}

@@ -1,0 +1,21 @@
+services:
+  sidecar:
+    build:
+      context: ..
+      dockerfile: python-sidecar/docker/Dockerfile.gpu
+    ports:
+      - "8088:8088"
+    environment:
+      - MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
+      - SIDECAR_DEVICE=auto
+      - SIDECAR_FP16=true
+      - SIDECAR_BIND_HOST=0.0.0.0
+      - SIDECAR_BIND_PORT=8088
+      - SIDECAR_ALLOW_MOCK=false
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    runtime: nvidia
+

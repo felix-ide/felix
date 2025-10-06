@@ -1,0 +1,79 @@
+/* Workflow color scheme */
+.workflow-simple {
+  --workflow-bg: #F3F4F6;
+  --workflow-text: #374151;
+  --workflow-border: #D1D5DB;
+  --workflow-hover: #E5E7EB;
+}
+
+.workflow-feature_development {
+  --workflow-bg: #DBEAFE;
+  --workflow-text: #1E40AF;
+  --workflow-border: #93C5FD;
+  --workflow-hover: #BFDBFE;
+}
+
+.workflow-bugfix {
+  --workflow-bg: #FED7AA;
+  --workflow-text: #C2410C;
+  --workflow-border: #FB923C;
+  --workflow-hover: #FDBA74;
+}
+
+.workflow-research {
+  --workflow-bg: #E9D5FF;
+  --workflow-text: #6B21A8;
+  --workflow-border: #C084FC;
+  --workflow-hover: #D8B4FE;
+}
+
+/* Workflow badge styles */
+.workflow-badge {
+  background-color: var(--workflow-bg);
+  color: var(--workflow-text);
+  border-color: var(--workflow-border);
+}
+
+.workflow-badge:hover {
+  background-color: var(--workflow-hover);
+}
+
+/* Workflow progress bar colors */
+.workflow-progress-bar {
+  background-color: var(--workflow-border);
+}
+
+/* Workflow card border accent */
+.workflow-card {
+  border-left: 4px solid var(--workflow-border);
+}
+
+/* Status colors for validation */
+.validation-valid {
+  color: #10B981;
+}
+
+.validation-incomplete {
+  color: #F59E0B;
+}
+
+.validation-invalid {
+  color: #EF4444;
+}
+
+/* Progress indicator colors */
+.progress-complete {
+  background-color: #10B981;
+}
+
+.progress-high {
+  background-color: #3B82F6;
+}
+
+.progress-medium {
+  background-color: #F59E0B;
+}
+
+.progress-low {
+  background-color: #EF4444;
+}

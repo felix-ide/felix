@@ -1,0 +1,221 @@
+/**
+ * Core type definitions for code analysis systems
+ */
+/**
+ * Component types enum for type safety
+ */
+export var ComponentType;
+(function (ComponentType) {
+    ComponentType["FILE"] = "file";
+    ComponentType["DIRECTORY"] = "directory";
+    ComponentType["CLASS"] = "class";
+    ComponentType["ABSTRACT_CLASS"] = "abstract_class";
+    ComponentType["FUNCTION"] = "function";
+    ComponentType["METHOD"] = "method";
+    ComponentType["ABSTRACT_METHOD"] = "abstract_method";
+    ComponentType["STATIC_METHOD"] = "static_method";
+    ComponentType["PRIVATE_METHOD"] = "private_method";
+    ComponentType["PROTECTED_METHOD"] = "protected_method";
+    ComponentType["PUBLIC_METHOD"] = "public_method";
+    ComponentType["PROPERTY"] = "property";
+    ComponentType["STATIC_PROPERTY"] = "static_property";
+    ComponentType["PRIVATE_PROPERTY"] = "private_property";
+    ComponentType["PROTECTED_PROPERTY"] = "protected_property";
+    ComponentType["PUBLIC_PROPERTY"] = "public_property";
+    ComponentType["READONLY_PROPERTY"] = "readonly_property";
+    ComponentType["OPTIONAL_PROPERTY"] = "optional_property";
+    ComponentType["FIELD"] = "field";
+    ComponentType["VARIABLE"] = "variable";
+    ComponentType["MODULE"] = "module";
+    ComponentType["NAMESPACE"] = "namespace";
+    ComponentType["PACKAGE"] = "package";
+    ComponentType["INTERFACE"] = "interface";
+    ComponentType["ENUM"] = "enum";
+    ComponentType["TYPE"] = "type";
+    ComponentType["CONSTRUCTOR"] = "constructor";
+    ComponentType["ACCESSOR"] = "accessor";
+    ComponentType["GETTER"] = "getter";
+    ComponentType["SETTER"] = "setter";
+    ComponentType["DECORATOR"] = "decorator";
+    ComponentType["ANNOTATION"] = "annotation";
+    ComponentType["STRUCT"] = "struct";
+    ComponentType["UNION"] = "union";
+    ComponentType["UNION_TYPE"] = "union_type";
+    ComponentType["INTERSECTION_TYPE"] = "intersection_type";
+    ComponentType["TUPLE_TYPE"] = "tuple_type";
+    ComponentType["ARRAY_TYPE"] = "array_type";
+    ComponentType["PROMISE_TYPE"] = "promise_type";
+    ComponentType["LITERAL_TYPE"] = "literal_type";
+    ComponentType["CONDITIONAL_TYPE"] = "conditional_type";
+    ComponentType["MAPPED_TYPE"] = "mapped_type";
+    ComponentType["TEMPLATE_LITERAL_TYPE"] = "template_literal_type";
+    ComponentType["PROTOCOL"] = "protocol";
+    ComponentType["MIXIN"] = "mixin";
+    ComponentType["GENERIC"] = "generic";
+    ComponentType["LAMBDA"] = "lambda";
+    ComponentType["CLOSURE"] = "closure";
+    ComponentType["CALLBACK"] = "callback";
+    ComponentType["ARROW_FUNCTION"] = "arrow_function";
+    ComponentType["ASYNC_FUNCTION"] = "async_function";
+    ComponentType["GENERATOR_FUNCTION"] = "generator_function";
+    ComponentType["PARAMETER"] = "parameter";
+    ComponentType["TYPEDEF"] = "typedef";
+    ComponentType["TEMPLATE"] = "template";
+    ComponentType["RETURN"] = "return";
+    ComponentType["MACRO"] = "macro";
+    // PHP-specific
+    ComponentType["TRAIT"] = "trait";
+    // Documentation/Markdown-specific
+    ComponentType["SECTION"] = "section";
+    ComponentType["COMMENT"] = "comment";
+    ComponentType["CONSTANT"] = "constant";
+    ComponentType["IMPORT"] = "import";
+    ComponentType["EXPORT"] = "export";
+    ComponentType["INDEX_ENTRY"] = "index_entry";
+    ComponentType["BRACKET_REFERENCE"] = "bracket_reference";
+    ComponentType["DOC_SECTION"] = "doc_section";
+    // Architectural components
+    ComponentType["SYSTEM"] = "system";
+    ComponentType["PIPELINE"] = "pipeline";
+    ComponentType["ARCHITECTURE"] = "architecture";
+    ComponentType["CONTEXT_LINK"] = "context_link";
+    ComponentType["PATTERN"] = "pattern";
+    ComponentType["LAYER"] = "layer";
+    ComponentType["SERVICE"] = "service";
+    ComponentType["BOUNDARY"] = "boundary";
+    // Tracking components
+    ComponentType["USAGE"] = "usage";
+    ComponentType["EVENT"] = "event";
+    // Mixed-language components
+    ComponentType["UNKNOWN"] = "unknown";
+    ComponentType["EMBEDDED_SCRIPT"] = "embedded_script";
+    ComponentType["EMBEDDED_STYLE"] = "embedded_style";
+    ComponentType["EMBEDDED_TEMPLATE"] = "embedded_template";
+    ComponentType["EMBEDDED_CODE"] = "embedded_code"; // Generic embedded code
+})(ComponentType || (ComponentType = {}));
+/**
+ * Relationship types enum for type safety
+ */
+export var RelationshipType;
+(function (RelationshipType) {
+    // Basic relationships
+    RelationshipType["EXTENDS"] = "extends";
+    RelationshipType["IMPLEMENTS"] = "implements";
+    RelationshipType["IMPORTS"] = "imports";
+    RelationshipType["IMPORTS_FROM"] = "imports_from";
+    RelationshipType["EXPORTS"] = "exports";
+    RelationshipType["EXPORTS_FROM"] = "exports_from";
+    // Function/method relationships
+    RelationshipType["CALLS"] = "calls";
+    RelationshipType["CALLS_CONSTRUCTOR"] = "calls_constructor";
+    RelationshipType["OVERRIDES"] = "overrides";
+    // General usage relationships
+    RelationshipType["REFERENCES"] = "references";
+    RelationshipType["USES"] = "uses";
+    RelationshipType["CREATES"] = "creates";
+    RelationshipType["DEFINES"] = "defines";
+    // Exception handling
+    RelationshipType["THROWS"] = "throws";
+    RelationshipType["CATCHES"] = "catches";
+    // Structural relationships
+    RelationshipType["CONTAINS"] = "contains";
+    RelationshipType["BELONGS_TO"] = "belongs_to";
+    RelationshipType["DEPENDS_ON"] = "depends_on";
+    // Type relationships
+    RelationshipType["RETURNS"] = "returns";
+    RelationshipType["ACCEPTS"] = "accepts";
+    RelationshipType["HAS_TYPE"] = "has_type";
+    RelationshipType["IMPLEMENTS_TYPE"] = "implements_type";
+    // Member relationships
+    RelationshipType["HAS_METHOD"] = "has_method";
+    RelationshipType["HAS_PROPERTY"] = "has_property";
+    RelationshipType["HAS_PARAMETER"] = "has_parameter";
+    // Language-specific relationships
+    RelationshipType["EMBEDS"] = "embeds";
+    RelationshipType["COMPOSES"] = "composes";
+    RelationshipType["COMPOSED_OF"] = "composed_of";
+    RelationshipType["INHERITS_MULTIPLE"] = "inherits_multiple";
+    // Architectural relationships
+    RelationshipType["BELONGS_TO_SYSTEM"] = "belongs_to_system";
+    RelationshipType["PART_OF_PIPELINE"] = "part_of_pipeline";
+    RelationshipType["IMPLEMENTS_PATTERN"] = "implements_pattern";
+    RelationshipType["ARCHITECTURAL_DEPENDENCY"] = "architectural_dependency";
+    RelationshipType["DOCUMENTED_BY"] = "documented_by";
+    RelationshipType["ANNOTATED_BY"] = "annotated_by";
+    RelationshipType["FLOWS_TO"] = "flows_to";
+    RelationshipType["COMMUNICATES_WITH"] = "communicates_with";
+    RelationshipType["PUBLISHES"] = "publishes";
+    RelationshipType["PUBLISHES_TO"] = "publishes_to";
+    RelationshipType["SUBSCRIBES_TO"] = "subscribes_to";
+    RelationshipType["EMITS"] = "emits";
+    RelationshipType["AGGREGATES"] = "aggregates";
+    RelationshipType["BOUNDED_CONTEXT"] = "bounded_context";
+    RelationshipType["CONSUMES"] = "consumes";
+    RelationshipType["PRODUCES"] = "produces";
+    RelationshipType["MIXES_IN"] = "mixes_in";
+    RelationshipType["FRIEND_OF"] = "friend_of";
+    RelationshipType["SPECIALIZES"] = "specializes";
+    RelationshipType["PROTOCOL_CONFORMS"] = "protocol_conforms";
+    RelationshipType["DECORATES"] = "decorates";
+    RelationshipType["ANNOTATES"] = "annotates";
+    RelationshipType["IMPLEMENTS_ABSTRACT"] = "implements_abstract";
+    RelationshipType["YIELDS_TO"] = "yields_to";
+    RelationshipType["SENDS_TO"] = "sends_to";
+    RelationshipType["DEFERS"] = "defers";
+    RelationshipType["LISTENS_TO"] = "listens_to";
+    RelationshipType["ACCESSES"] = "accesses";
+    RelationshipType["MODIFIES"] = "modifies";
+    RelationshipType["OBSERVES"] = "observes";
+    RelationshipType["INCLUDES"] = "includes";
+    RelationshipType["DELEGATES_TO"] = "delegates_to";
+    RelationshipType["FACTORY_FOR"] = "factory_for";
+    RelationshipType["CONFIGURES"] = "configures";
+    RelationshipType["VALIDATES"] = "validates";
+    RelationshipType["TRANSFORMS"] = "transforms";
+    RelationshipType["SERIALIZES"] = "serializes";
+    RelationshipType["DESERIALIZES"] = "deserializes";
+    RelationshipType["ENCRYPTS"] = "encrypts";
+    RelationshipType["DECRYPTS"] = "decrypts";
+    RelationshipType["COMPRESSES"] = "compresses";
+    RelationshipType["DECOMPRESSES"] = "decompresses";
+    // PHP-specific relationships
+    RelationshipType["USES_TRAIT"] = "uses_trait";
+    RelationshipType["IN_NAMESPACE"] = "in_namespace";
+    // Additional relationships
+    RelationshipType["ASSOCIATES"] = "associates";
+    RelationshipType["INSTANTIATES"] = "instantiates";
+    RelationshipType["WRAPS"] = "wraps";
+    RelationshipType["INHERITS"] = "inherits";
+    RelationshipType["INHERITS_FROM"] = "inherits_from";
+    RelationshipType["READS"] = "reads";
+    RelationshipType["WRITES"] = "writes";
+    // Inverse relationships
+    RelationshipType["EXTENDED_BY"] = "extended_by";
+    RelationshipType["IMPLEMENTED_BY"] = "implemented_by";
+    RelationshipType["IMPORTED_BY"] = "imported_by";
+    RelationshipType["EXPORTED_BY"] = "exported_by";
+    RelationshipType["INSTANTIATED_BY"] = "instantiated_by";
+    RelationshipType["CALLED_BY"] = "called_by";
+    RelationshipType["USED_BY"] = "used_by";
+    RelationshipType["DECORATED_BY"] = "decorated_by";
+    RelationshipType["REFERENCED_BY"] = "referenced_by";
+    RelationshipType["TRAIT_USED_BY"] = "trait_used_by";
+    RelationshipType["NAMESPACE_CONTAINS"] = "namespace_contains";
+    // Language boundary relationships
+    RelationshipType["LANGUAGE_BOUNDARY"] = "language_boundary";
+    RelationshipType["EMBEDDED_IN_SCOPE"] = "embedded_in_scope";
+    // Cross-language reference relationships  
+    RelationshipType["CROSS_LANGUAGE_REF"] = "cross_language_ref";
+    RelationshipType["TEMPLATE_VAR_USAGE"] = "template_var_usage";
+    RelationshipType["STRING_EMBEDDED_LANG"] = "string_embedded_lang";
+    // Template relationships
+    RelationshipType["TEMPLATE_EXTENDS"] = "template_extends";
+    RelationshipType["TEMPLATE_INCLUDES"] = "template_includes";
+    RelationshipType["TEMPLATE_BLOCK_OVERRIDE"] = "template_block_override";
+    // Mixed-file relationships
+    RelationshipType["RENDERS_TEMPLATE"] = "renders_template";
+    RelationshipType["SCRIPT_IN_CONTEXT"] = "script_in_context";
+    // Unknown relationship
+    RelationshipType["UNKNOWN"] = "unknown"; // Unknown relationship type
+})(RelationshipType || (RelationshipType = {}));
+//# sourceMappingURL=core-types.js.map

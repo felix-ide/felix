@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        .button {
+            background: #007cba;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .button:hover {
+            background: #005a87;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Test Page</h1>
+            <nav>
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section id="home">
+                <h2>Welcome</h2>
+                <p>This is a basic test page for HTML parsing validation.</p>
+                <button class="button" onclick="showMessage()">Click Me</button>
+            </section>
+
+            <section id="about">
+                <h2>About</h2>
+                <p>This page contains various HTML elements for comprehensive testing.</p>
+                <form id="test-form">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required>
+
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+
+                    <button type="submit">Submit</button>
+                </form>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 Test Page. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        function showMessage() {
+            alert('Button clicked! Parser should detect this function.');
+        }
+
+        document.getElementById('test-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+
+            if (name && email) {
+                console.log(`Form submitted: ${name} - ${email}`);
+            }
+        });
+
+        // Class definition in script
+        class FormHandler {
+            constructor(formId) {
+                this.form = document.getElementById(formId);
+                this.setupEvents();
+            }
+
+            setupEvents() {
+                this.form.addEventListener('submit', this.handleSubmit.bind(this));
+            }
+
+            handleSubmit(event) {
+                event.preventDefault();
+                console.log('Form handled by class');
+            }
+        }
+
+        const handler = new FormHandler('test-form');
+    </script>
+</body>
+</html>

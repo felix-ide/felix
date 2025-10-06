@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+        }
+    </style>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Welcome</h1>
+            <p>This is a test page with embedded styles and scripts</p>
+        </header>
+
+        <main id="content">
+            <section class="features">
+                <h2>Features</h2>
+                <ul id="feature-list"></ul>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Embedded JavaScript
+        class FeatureManager {
+            constructor(containerId) {
+                this.container = document.getElementById(containerId);
+                this.features = [];
+            }
+
+            addFeature(name, description) {
+                this.features.push({ name, description });
+                this.render();
+            }
+
+            render() {
+                const list = this.container;
+                list.innerHTML = '';
+
+                this.features.forEach(feature => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<strong>${feature.name}</strong>: ${feature.description}`;
+                    list.appendChild(li);
+                });
+            }
+        }
+
+        const manager = new FeatureManager('feature-list');
+        manager.addFeature('Fast', 'Lightning fast performance');
+        manager.addFeature('Secure', 'Enterprise-grade security');
+        manager.addFeature('Scalable', 'Scales with your needs');
+    </script>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Felix - Rules Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="rules">
+  <div class="page-shell">
+    <header class="surface-card site-header">
+      <nav class="top-nav">
+        <a href="index.html" class="brand" aria-label="Felix home">
+          <span class="brand-mark">F</span>
+          Felix
+        </a>
+        <div class="nav-links">
+          <a class="nav-link" data-nav="overview" href="index.html">Overview</a>
+          <a class="nav-link" data-nav="explore" href="explore.html">Visualize</a>
+          <a class="nav-link" data-nav="notes" href="notes.html">Notes</a>
+          <a class="nav-link" data-nav="rules" href="rules.html">Rules</a>
+          <a class="nav-link" data-nav="tasks" href="tasks.html">Tasks</a>
+          <a class="nav-link" data-nav="workflows" href="workflows.html">Workflows</a>
+          <a class="btn btn-primary" href="getting-started.html">Get started</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="surface-card hero">
+        <div class="hero-content">
+          <figure class="screenshot">
+            <a href="assets/screenshots/rules-cards.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/rules-cards.png" alt="Rules catalog" />
+            </a>
+            <figcaption>Rules catalog</figcaption>
+          </figure>
+        </div>
+        <div class="hero-content">
+          <span class="hero-eyebrow">Smart rules engine</span>
+          <h1>More advanced than .cursorrules</h1>
+          <p>
+            Rules trigger based on semantic context, file patterns, and component types. Track effectiveness with analytics. Auto-degrade when code changes. Integrate with Claude Code via hooks.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="getting-started.html">Get started</a>
+            <a class="btn btn-secondary" href="#analytics">See analytics →</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface-card section" id="analytics">
+        <div class="section-header">
+          <h2 class="section-title">Usage analytics and auto-degradation</h2>
+          <p class="section-subtitle">Track effectiveness, auto-degrade unused rules</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+          <article class="card" style="margin: 0;">
+            <h3>Semantic matching</h3>
+            <p>Rules match based on semantic similarity. Embeddings handle discovery—no manual glob patterns required.</p>
+          </article>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/rule-analytics.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/rule-analytics.png" alt="Rule analytics" />
+            </a>
+            <figcaption>Analytics dashboard</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>4 rule types</h3>
+            <p>Pattern (coding standards), Constraint (validation), Semantic (context-aware guidance), Automation (code generation).</p>
+          </article>
+
+          <article class="card" style="margin: 0;">
+            <h3>Usage tracking</h3>
+            <p>Felix tracks which rules the AI applied, accepted, modified, or rejected. Effectiveness scores guide auto-degradation.</p>
+          </article>
+
+          <article class="card" style="margin: 0;">
+            <h3>Auto-degradation</h3>
+            <p>When linked code is deleted or rules go unused for 30+ days, Felix marks them inactive. Catalog stays fresh without manual cleanup.</p>
+          </article>
+
+          <article class="card" style="margin: 0;">
+            <h3>Claude Code hooks</h3>
+            <p>Felix injects applicable rules via user_prompt_submit hook. Rules appear in the conversation before the AI responds.</p>
+          </article>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/rule-conflicts.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/rule-conflicts.png" alt="Rule conflicts detection" />
+            </a>
+            <figcaption>Automatic conflict detection between rules</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>Conflict detection</h3>
+            <p>Felix automatically detects when rules have overlapping or conflicting guidance, helping maintain a consistent rule catalog.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="callout">
+        <h2>Next: Task management</h2>
+        <p>Multiple views: hierarchical cards, Gantt charts, Kanban boards, dependency graphs.</p>
+        <div class="hero-actions" style="justify-content: center;">
+          <a class="btn btn-primary" href="tasks.html">Explore tasks →</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Felix — Spec-driven development for AI pairing</p>
+    </footer>
+  </div>
+
+  <div class="lightbox-backdrop" aria-hidden="true">
+    <div class="lightbox-content">
+      <button class="lightbox-close" type="button" aria-label="Close screenshot">✕</button>
+      <img src="" alt="" />
+      <div class="lightbox-caption"></div>
+    </div>
+  </div>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+{
+  "name": "@felix/code-intelligence",
+  "version": "1.0.0",
+  "description": "The all-knowing AIgent - Unified content intelligence for parsing, understanding, and connecting any structured content",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./parser": {
+      "import": "./dist/code-parser/index.js",
+      "types": "./dist/code-parser/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/code-analysis-types/index.js",
+      "types": "./dist/code-analysis-types/index.d.ts"
+    },
+    "./nlp": {
+      "import": "./dist/semantic-intelligence/index.js",
+      "types": "./dist/semantic-intelligence/index.d.ts"
+    },
+    "./semantic-intelligence": {
+      "import": "./dist/semantic-intelligence/index.js",
+      "types": "./dist/semantic-intelligence/index.d.ts"
+    },
+    "./intelligence": {
+      "import": "./dist/architecture-intelligence/index.js",
+      "types": "./dist/architecture-intelligence/index.d.ts"
+    },
+    "./graph": {
+      "import": "./dist/knowledge-graph/index.js",
+      "types": "./dist/knowledge-graph/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "clean": "rimraf dist",
+    "prepare": "npm run clean && npm run build",
+    "test": "npm run test:jest",
+    "test:jest": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
+    "test:parser": "vitest run --config vitest.config.parser.ts",
+    "test:harness": "node dist/code-parser/__tests__/harness/cli.js",
+    "test:harness:validation": "npm run test:harness -- --mode validation",
+    "test:harness:benchmarks": "npm run test:harness -- --mode benchmarks",
+    "test:harness:regression": "npm run test:harness -- --mode regression",
+    "test:harness:golden": "npm run test:harness -- --mode golden",
+    "test:harness:js": "npm run test:harness -- --languages javascript",
+    "test:harness:py": "npm run test:harness -- --languages python",
+    "test:harness:php": "npm run test:harness -- --languages php",
+    "test:harness:update": "npm run test:harness -- --update-golden",
+    "test:parsers": "npm run test:harness:validation",
+    "benchmark:parsers": "npm run test:harness:benchmarks",
+    "baseline:verify": "node dist/test-fixtures/fullSpectrumBaseline.js verify",
+    "baseline:update": "node dist/test-fixtures/fullSpectrumBaseline.js update",
+    "test:fixture-baseline": "npm run baseline:verify"
+  },
+  "dependencies": {
+    "@huggingface/jinja": "^0.5.1",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@typescript-eslint/typescript-estree": "^6.21.0",
+    "@xenova/transformers": "^2.17.2",
+    "glob": "^10.3.10",
+    "ignore": "^5.3.0",
+    "java-parser": "^2.3.4",
+    "js-yaml": "^4.1.0",
+    "minimatch": "^9.0.3",
+    "tree-sitter-c-sharp": "^0.21.0",
+    "tree-sitter-css": "^0.21.0",
+    "tree-sitter-html": "^0.20.3",
+    "tree-sitter-java": "^0.21.0",
+    "tree-sitter-javascript": "^0.21.0",
+    "tree-sitter-php": "^0.22.0",
+    "tree-sitter-python": "^0.21.0",
+    "tree-sitter-typescript": "^0.21.0",
+    "uuid": "^11.0.0",
+    "vscode-jsonrpc": "^8.2.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-protocol": "^3.17.5",
+    "vscode-languageserver-textdocument": "^1.0.12",
+    "vscode-languageserver-types": "^3.17.5",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.16",
+    "jest": "^29.7.0",
+    "jest-util": "^29.7.0",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "semantic-search",
+    "code-analysis",
+    "parser",
+    "embeddings",
+    "nlp",
+    "knowledge-graph",
+    "content-intelligence",
+    "documentation",
+    "rag",
+    "ai",
+    "oracle",
+    "matrix"
+  ],
+  "author": "epoplive",
+  "license": "UNLICENSED"
+}

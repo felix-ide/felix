@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Web Mixed Sample</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* inline CSS */
+      .inline { color: purple; }
+    </style>
+  </head>
+  <body>
+    <h1 class="title inline">Web Mixed Sample</h1>
+
+    <?php // embedded PHP in HTML
+      $user = "Visitor";
+      echo "<p class=\"php-greeting\">PHP says hi, $user!</p>";
+    ?>
+
+    <div id="app"></div>
+
+    <script>
+      // inline JS that uses function from external script
+      function onReady() {
+        greet('World'); // defined in script.js
+      }
+      document.addEventListener('DOMContentLoaded', onReady);
+    </script>
+    <script src="script.js"></script>
+  </body>
+  </html>
+

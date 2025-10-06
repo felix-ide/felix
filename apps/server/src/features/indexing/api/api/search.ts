@@ -1,0 +1,71 @@
+import type { SearchCoordinator } from '../../../search/coordinators/SearchCoordinator.js';
+
+export interface SearchApi {
+  searchComponents: SearchCoordinator['searchComponents'];
+  getAllComponents: SearchCoordinator['getAllComponents'];
+  searchComponentsBySimilarity: SearchCoordinator['searchComponentsBySimilarity'];
+  searchBySimilarity: SearchCoordinator['searchBySimilarity'];
+  searchSemanticUniversal: SearchCoordinator['searchSemanticUniversal'];
+  searchDiscover: SearchCoordinator['searchDiscover'];
+  findSimilarEntities: SearchCoordinator['findSimilarEntities'];
+  executeBatch: SearchCoordinator['executeBatch'];
+  exportToJSON: SearchCoordinator['exportToJSON'];
+  importFromJSON: SearchCoordinator['importFromJSON'];
+  optimize: SearchCoordinator['optimize'];
+  validate: SearchCoordinator['validate'];
+  getComponent: SearchCoordinator['getComponent'];
+  getComponentsByFile: SearchCoordinator['getComponentsByFile'];
+  getComponentsInFile: SearchCoordinator['getComponentsInFile'];
+  getComponentRelationships: SearchCoordinator['getComponentRelationships'];
+  searchRelationships: SearchCoordinator['searchRelationships'];
+  getAllRelationships: SearchCoordinator['getAllRelationships'];
+  findCircularDependencies: SearchCoordinator['findCircularDependencies'];
+  getNeighbors: SearchCoordinator['getNeighbors'];
+  getNotesForComponent: SearchCoordinator['getNotesForComponent'];
+  getRulesForComponent: SearchCoordinator['getRulesForComponent'];
+  getKnowledgeGraphInstance: SearchCoordinator['getKnowledgeGraphInstance'];
+  getKnowledgeGraph: SearchCoordinator['getKnowledgeGraph'];
+  findSimilarComponents: SearchCoordinator['findSimilarComponents'];
+  getComponentGraph: SearchCoordinator['getComponentGraph'];
+  buildDependencyGraph: SearchCoordinator['buildDependencyGraph'];
+  getComponentsByEntity: SearchCoordinator['getComponentsByEntity'];
+  getSupportedLanguages: SearchCoordinator['getSupportedLanguages'];
+  getSupportedExtensions: SearchCoordinator['getSupportedExtensions'];
+  getEmbedding: SearchCoordinator['getEmbedding'];
+  getEmbeddingStats: SearchCoordinator['getEmbeddingStats'];
+}
+
+export function attachSearchApi(target: any, coordinator: SearchCoordinator): void {
+  target.searchComponents = coordinator.searchComponents.bind(coordinator);
+  target.getAllComponents = coordinator.getAllComponents.bind(coordinator);
+  target.searchComponentsBySimilarity = coordinator.searchComponentsBySimilarity.bind(coordinator);
+  target.searchBySimilarity = coordinator.searchBySimilarity.bind(coordinator);
+  target.searchSemanticUniversal = coordinator.searchSemanticUniversal.bind(coordinator);
+  target.searchDiscover = coordinator.searchDiscover.bind(coordinator);
+  target.findSimilarEntities = coordinator.findSimilarEntities.bind(coordinator);
+  target.executeBatch = coordinator.executeBatch.bind(coordinator);
+  target.exportToJSON = coordinator.exportToJSON.bind(coordinator);
+  target.importFromJSON = coordinator.importFromJSON.bind(coordinator);
+  target.optimize = coordinator.optimize.bind(coordinator);
+  target.validate = coordinator.validate.bind(coordinator);
+  target.getComponent = coordinator.getComponent.bind(coordinator);
+  target.getComponentsByFile = coordinator.getComponentsByFile.bind(coordinator);
+  target.getComponentsInFile = coordinator.getComponentsInFile.bind(coordinator);
+  target.getComponentRelationships = coordinator.getComponentRelationships.bind(coordinator);
+  target.searchRelationships = coordinator.searchRelationships.bind(coordinator);
+  target.getAllRelationships = coordinator.getAllRelationships.bind(coordinator);
+  target.findCircularDependencies = coordinator.findCircularDependencies.bind(coordinator);
+  target.getNeighbors = coordinator.getNeighbors.bind(coordinator);
+  target.getNotesForComponent = coordinator.getNotesForComponent.bind(coordinator);
+  target.getRulesForComponent = coordinator.getRulesForComponent.bind(coordinator);
+  target.getKnowledgeGraphInstance = coordinator.getKnowledgeGraphInstance.bind(coordinator);
+  target.getKnowledgeGraph = coordinator.getKnowledgeGraph.bind(coordinator);
+  target.findSimilarComponents = coordinator.findSimilarComponents.bind(coordinator);
+  target.getComponentGraph = coordinator.getComponentGraph.bind(coordinator);
+  target.buildDependencyGraph = coordinator.buildDependencyGraph.bind(coordinator);
+  target.getComponentsByEntity = coordinator.getComponentsByEntity.bind(coordinator);
+  target.getSupportedLanguages = coordinator.getSupportedLanguages.bind(coordinator);
+  target.getSupportedExtensions = coordinator.getSupportedExtensions.bind(coordinator);
+  target.getEmbedding = coordinator.getEmbedding.bind(coordinator);
+  target.getEmbeddingStats = coordinator.getEmbeddingStats.bind(coordinator);
+}

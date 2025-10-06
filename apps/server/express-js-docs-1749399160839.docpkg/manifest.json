@@ -1,0 +1,55 @@
+{
+  "format": "docpkg",
+  "version": "1.0",
+  "metadata": {
+    "id": "express-js-docs-1749399160839",
+    "name": "Express.js Docs",
+    "version": "1.0.0",
+    "description": "Documentation package for Express.js Docs",
+    "source": {
+      "id": "express-js-docs",
+      "name": "Express.js Docs",
+      "baseUrl": "https://expressjs.com/en/4x/api.html",
+      "type": "static",
+      "crawlConfig": {
+        "maxDepth": 3,
+        "maxPages": 1,
+        "delay": 1000,
+        "respectRobots": true,
+        "followExternalLinks": false,
+        "excludePatterns": [
+          ".*\\.(jpg|jpeg|png|gif|css|js|pdf)$",
+          ".*/api/.*",
+          ".*/admin/.*"
+        ],
+        "userAgent": "DocScraper/1.0"
+      },
+      "selectors": {
+        "contentSelector": "main, .content, .documentation, .docs",
+        "titleSelector": "h1, .page-title, .doc-title",
+        "excludeSelectors": [
+          ".navigation",
+          ".sidebar",
+          ".footer",
+          ".header",
+          ".breadcrumb"
+        ]
+      }
+    },
+    "createdAt": "2025-06-08T16:12:40.839Z",
+    "totalDocuments": 1,
+    "totalChunks": 257,
+    "embeddingModel": "all-MiniLM-L6-v2"
+  },
+  "files": {
+    "sqlite": "data.db",
+    "json": "data.json",
+    "jsonCompressed": "data.json.gz"
+  },
+  "statistics": {
+    "totalDocuments": 1,
+    "totalChunks": 257,
+    "totalEmbeddings": 257,
+    "indexedChunks": 257
+  }
+}

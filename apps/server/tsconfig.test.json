@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "module": "ES2022",
+    "types": ["jest"],
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "src/**/*",
+    "tests/**/*"
+  ]
+}

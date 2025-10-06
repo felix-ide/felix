@@ -1,0 +1,79 @@
+/* Slideshow transition animations */
+.slideshow-slide-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.slideshow-slide-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.slideshow-slide-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.slideshow-slide-exit-active {
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: opacity 300ms ease-in, transform 300ms ease-in;
+}
+
+/* Slide navigation dots animation */
+.slideshow-dot {
+  transition: all 200ms ease-out;
+}
+
+.slideshow-dot-active {
+  transform: scaleX(4);
+  background-color: var(--primary);
+}
+
+/* Fullscreen transition */
+.slideshow-fullscreen-enter {
+  opacity: 0;
+}
+
+.slideshow-fullscreen-enter-active {
+  opacity: 1;
+  transition: opacity 200ms ease-out;
+}
+
+/* Auto-advance progress bar */
+.slideshow-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background-color: var(--primary);
+  transition: width linear;
+}
+
+/* Preview thumbnails */
+.slideshow-preview-thumbnail {
+  transition: all 200ms ease-out;
+  cursor: pointer;
+}
+
+.slideshow-preview-thumbnail:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Timeline integration */
+.slideshow-timeline-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.slideshow-timeline-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to top, var(--background), transparent);
+  pointer-events: none;
+}

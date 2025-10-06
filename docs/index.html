@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Felix - Spec-Driven Vibe Coding with Guardrails</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="overview">
+  <div class="page-shell">
+    <header class="surface-card site-header">
+      <nav class="top-nav">
+        <a href="index.html" class="brand" aria-label="Felix home">
+          <span class="brand-mark">F</span>
+          Felix
+        </a>
+        <div class="nav-links">
+          <a class="nav-link" data-nav="overview" href="index.html">Overview</a>
+          <a class="nav-link" data-nav="explore" href="explore.html">Visualize</a>
+          <a class="nav-link" data-nav="notes" href="notes.html">Notes</a>
+          <a class="nav-link" data-nav="rules" href="rules.html">Rules</a>
+          <a class="nav-link" data-nav="tasks" href="tasks.html">Tasks</a>
+          <a class="nav-link" data-nav="workflows" href="workflows.html">Workflows</a>
+          <a class="nav-link" data-nav="getting-started" href="getting-started.html">Get Started</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="surface-card hero">
+        <div class="hero-content">
+          <span class="hero-eyebrow">Spec-driven vibe coding with guardrails</span>
+          <h1>A shared workspace between you and your AI</h1>
+          <p>
+            Chat with Claude Code naturally while Felix ensures complete specifications get written. Visualize code as mind maps and 3D graphs. Link architecture docs to components. Enforce workflow gates. Track everything with Gantt charts and Kanban boards.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="getting-started.html">Install Felix</a>
+            <a class="btn btn-secondary" href="explore.html">Explore features →</a>
+          </div>
+        </div>
+        <div class="hero-content">
+          <figure class="screenshot">
+            <a href="assets/screenshots/component-explore-overview.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/component-explore-overview.png" alt="Felix showing component explore with tabbed interface" />
+            </a>
+            <figcaption>Component explore: Overview, components, relationships, and graph tabs</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="surface-card section">
+        <div class="section-header">
+          <h2 class="section-title">Stop coding without specs</h2>
+          <p class="section-subtitle">Felix makes your AI create complete documentation before it writes a single line of code.</p>
+        </div>
+        <div class="card-grid">
+          <article class="card">
+            <div class="badge">Problem</div>
+            <h3>AI jumps straight to coding</h3>
+            <p>You vibe with Claude Code about a feature. It starts coding immediately. No architecture doc. No test plan. Just code.</p>
+          </article>
+          <article class="card">
+            <div class="badge">Solution</div>
+            <h3>Workflow gates enforce specs</h3>
+            <p>Felix blocks the AI from coding until it creates: architecture notes with Mermaid diagrams, ERDs, API contracts, acceptance criteria, and test plans.</p>
+          </article>
+          <article class="card">
+            <div class="badge">Result</div>
+            <h3>Complete, reviewable plans</h3>
+            <p>You open Felix UI to review what the AI generated. Everything is visual—diagrams, mind maps, dependency graphs. Approve or refine before coding starts.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="surface-card section">
+        <div class="section-header">
+          <h2 class="section-title">Core features</h2>
+          <p class="section-subtitle">Every feature listed here is built, shipped, and working in the current codebase.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <h3>Visual Code Intelligence</h3>
+            <p>Forget file trees. See your code as interactive mind maps, 3D WebGL visualizations, or relationship graphs. Click a component to see its callers, imports, and linked docs.</p>
+            <ul style="margin-top: 0.75rem; padding-left: 1.25rem; color: var(--muted); font-size: 0.9rem;">
+              <li>Mind maps with React Flow</li>
+              <li>3D component galaxy (WebGL)</li>
+              <li>Component details panels</li>
+              <li>Focus mode for deep dives</li>
+            </ul>
+            <a class="card-link" href="explore.html">View visualizations</a>
+          </article>
+
+          <article class="feature-card">
+            <h3>Task Management</h3>
+            <p>Break work into epics → stories → tasks → subtasks. View as Gantt charts, Kanban boards, or hierarchical cards. Dependencies auto-visualize. Progress tracks in real-time.</p>
+            <ul style="margin-top: 0.75rem; padding-left: 1.25rem; color: var(--muted); font-size: 0.9rem;">
+              <li>Gantt timeline view</li>
+              <li>Kanban drag-and-drop</li>
+              <li>Dependency graphs</li>
+              <li>Checklist tracking</li>
+            </ul>
+            <a class="card-link" href="tasks.html">Explore tasks</a>
+          </article>
+
+          <article class="feature-card">
+            <h3>Configurable Workflows</h3>
+            <p>Workflows enforce spec requirements with logic gates. Built-in workflows for features, bugs, and research. Or build custom workflows for any process—even non-code tasks.</p>
+            <ul style="margin-top: 0.75rem; padding-left: 1.25rem; color: var(--muted); font-size: 0.9rem;">
+              <li>Spec-state gating</li>
+              <li>Conditional requirements</li>
+              <li>Custom validation logic</li>
+              <li>Workflow editor UI</li>
+            </ul>
+            <a class="card-link" href="workflows.html">Design workflows</a>
+          </article>
+
+          <article class="feature-card">
+            <h3>Entity-Linked Documentation</h3>
+            <p>Write architecture notes with Mermaid diagrams and Excalidraw sketches. Link them to specific components. Felix indexes everything as a RAG layer—AI gets code + linked docs automatically.</p>
+            <ul style="margin-top: 0.75rem; padding-left: 1.25rem; color: var(--muted); font-size: 0.9rem;">
+              <li>Markdown + Mermaid + Excalidraw</li>
+              <li>Link notes to code components</li>
+              <li>Block-level parsing for RAG</li>
+              <li>Tags & hierarchy</li>
+            </ul>
+            <a class="card-link" href="notes.html">Manage knowledge</a>
+          </article>
+
+          <article class="feature-card">
+            <h3>Smart Rules Engine</h3>
+            <p>Rules that auto-match based on semantic context. Track which rules are effective. Auto-degrade unused rules. Generate boilerplate code. More advanced than .cursorrules.</p>
+            <ul style="margin-top: 0.75rem; padding-left: 1.25rem; color: var(--muted); font-size: 0.9rem;">
+              <li>4 rule types (Pattern, Constraint, Semantic, Automation)</li>
+              <li>Usage analytics & effectiveness tracking</li>
+              <li>Auto-degradation when code changes</li>
+              <li>Claude Code hook integration</li>
+            </ul>
+            <a class="card-link" href="rules.html">Explore rules</a>
+          </article>
+
+          <article class="feature-card">
+            <h3>Full AST Parsing</h3>
+            <p>Deep code understanding via AST parsing across languages (JS/TS, Python, PHP, more). Semantic search with embeddings. Hybrid search combines semantic + structural queries.</p>
+            <ul style="margin-top: 0.75rem; padding-left: 1.25rem; color: var(--muted); font-size: 0.9rem;">
+              <li>Multi-language AST parsing</li>
+              <li>Semantic embeddings</li>
+              <li>Hybrid search (semantic + filters)</li>
+              <li>Relationship extraction</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="surface-card section">
+        <div class="section-header">
+          <h2 class="section-title">How it works: A typical session</h2>
+        </div>
+        <div class="card-grid">
+          <article class="card">
+            <h3><span class="badge">01</span> Chat with AI</h3>
+            <p>You: "Add user authentication"</p>
+            <p style="margin-top: 0.5rem; color: var(--muted);">Chat naturally with Claude Code. No change to your vibe-coding flow.</p>
+          </article>
+
+          <article class="card">
+            <h3><span class="badge">02</span> AI creates task + specs</h3>
+            <p>AI creates a task, architecture note with Mermaid diagram, ERD, API contract, acceptance criteria, test plan. Felix validates—blocks if anything is missing.</p>
+          </article>
+
+          <article class="card">
+            <h3><span class="badge">03</span> You review in UI</h3>
+            <p>Open Felix. See the Mermaid diagram, ERD, API contract. Review checklists. Check dependency graph. Everything visual and interconnected.</p>
+          </article>
+
+          <article class="card">
+            <h3><span class="badge">04</span> AI gets full context</h3>
+            <p>When AI queries code, Felix returns: source code + linked architecture notes + applicable rules + task context. Full RAG layer, not just raw code.</p>
+          </article>
+
+          <article class="card">
+            <h3><span class="badge">05</span> Coding begins</h3>
+            <p>Only after workflow gates pass. AI codes with full context. Rules inject via Claude Code hooks. You supervise progress in Gantt/Kanban views.</p>
+          </article>
+
+          <article class="card">
+            <h3><span class="badge">06</span> Rules self-manage</h3>
+            <p>Felix tracks which rules were helpful. Auto-degrades unused rules. Learns patterns. Keeps your rule catalog fresh without manual curation.</p>
+          </article>
+        </div>
+
+        <figure class="screenshot" style="margin-top: 2rem;">
+          <a href="assets/screenshots/task-view.png" target="_blank" rel="noopener">
+            <img src="assets/screenshots/task-view.png" alt="Task with validation panel" />
+          </a>
+          <figcaption>Workflow validation showing required artifacts</figcaption>
+        </figure>
+        <figure class="screenshot">
+          <a href="assets/screenshots/component-mind-map.png" target="_blank" rel="noopener">
+            <img src="assets/screenshots/component-mind-map.png" alt="Interactive mind map" />
+          </a>
+          <figcaption>Interactive mind map showing component relationships</figcaption>
+        </figure>
+        <figure class="screenshot">
+          <a href="assets/screenshots/rule-analytics.png" target="_blank" rel="noopener">
+            <img src="assets/screenshots/rule-analytics.png" alt="Rule analytics dashboard" />
+          </a>
+          <figcaption>Rule analytics showing effectiveness tracking</figcaption>
+        </figure>
+      </section>
+
+
+      <section class="callout">
+        <h2>Ready to try Felix?</h2>
+        <p>Install locally, connect Claude Code, and start building with guardrails.</p>
+        <div class="hero-actions" style="justify-content: center;">
+          <a class="btn btn-primary" href="getting-started.html">Get started</a>
+          <a class="btn btn-secondary" href="explore.html">Explore features →</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Felix — Spec-driven development for AI pairing</p>
+    </footer>
+  </div>
+
+  <div class="lightbox-backdrop" aria-hidden="true">
+    <div class="lightbox-content">
+      <button class="lightbox-close" type="button" aria-label="Close screenshot">✕</button>
+      <img src="" alt="" />
+      <div class="lightbox-caption"></div>
+    </div>
+  </div>
+
+  <script src="assets/site.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Felix - Task Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="tasks">
+  <div class="page-shell">
+    <header class="surface-card site-header">
+      <nav class="top-nav">
+        <a href="index.html" class="brand" aria-label="Felix home">
+          <span class="brand-mark">F</span>
+          Felix
+        </a>
+        <div class="nav-links">
+          <a class="nav-link" data-nav="overview" href="index.html">Overview</a>
+          <a class="nav-link" data-nav="explore" href="explore.html">Visualize</a>
+          <a class="nav-link" data-nav="notes" href="notes.html">Notes</a>
+          <a class="nav-link" data-nav="rules" href="rules.html">Rules</a>
+          <a class="nav-link" data-nav="tasks" href="tasks.html">Tasks</a>
+          <a class="nav-link" data-nav="workflows" href="workflows.html">Workflows</a>
+          <a class="nav-link" data-nav="getting-started" href="getting-started.html">Get Started</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="surface-card hero">
+        <div class="hero-content">
+          <figure class="screenshot">
+            <a href="assets/screenshots/tasks-all-collapsed.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/tasks-all-collapsed.png" alt="Task hierarchy" />
+            </a>
+            <figcaption>Hierarchical task cards</figcaption>
+          </figure>
+        </div>
+        <div class="hero-content">
+          <span class="hero-eyebrow">Task management</span>
+          <h1>4 views: Cards, Gantt, Kanban, Dependencies</h1>
+          <p>
+            The AI creates tasks with checklists and metadata. You supervise in whichever view makes sense. All views update in real-time.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="getting-started.html">Get started</a>
+            <a class="btn btn-secondary" href="#views">See all views →</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface-card section" id="views">
+        <div class="section-header">
+          <h2 class="section-title">Multiple views of the same data</h2>
+          <p class="section-subtitle">Switch between views instantly</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/task-view.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/task-view.png" alt="Task detail" />
+            </a>
+            <figcaption>Task detail with workflow validation</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>Hierarchical structure</h3>
+            <p>Nest tasks infinitely. Epics → Stories → Tasks → Subtasks. Progress rolls up automatically.</p>
+          </article>
+
+          <article class="card" style="margin: 0;">
+            <h3>Workflow integration</h3>
+            <p>Tasks track spec_state and task_status separately. Workflows gate transitions between states.</p>
+          </article>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/tasks-gantt.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/tasks-gantt.png" alt="Gantt timeline" />
+            </a>
+            <figcaption>Gantt timeline view</figcaption>
+          </figure>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/tasks-kanban.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/tasks-kanban.png" alt="Kanban board" />
+            </a>
+            <figcaption>Kanban board with drag-and-drop</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>Real-time updates</h3>
+            <p>All views sync instantly. Edit in Gantt, see changes in Kanban. Drag tasks in Kanban, watch dependencies update.</p>
+          </article>
+
+          <article class="card" style="margin: 0;">
+            <h3>Dependency tracking</h3>
+            <p>Define blocking relationships. Visualize critical paths. See which tasks are ready to start.</p>
+          </article>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/tasks-dependency-map.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/tasks-dependency-map.png" alt="Dependency graph" />
+            </a>
+            <figcaption>Dependency graph</figcaption>
+          </figure>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/tasks-burndown.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/tasks-burndown.png" alt="Burndown chart" />
+            </a>
+            <figcaption>Burndown chart tracking progress</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>Progress tracking</h3>
+            <p>Burndown charts show velocity. Checklists track completion. Estimates vs actuals recorded.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="callout">
+        <h2>Next: Workflows</h2>
+        <p>Enforce spec requirements with configurable workflow gates.</p>
+        <div class="hero-actions" style="justify-content: center;">
+          <a class="btn btn-primary" href="workflows.html">Explore workflows →</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Felix — Spec-driven development for AI pairing</p>
+    </footer>
+  </div>
+
+  <div class="lightbox-backdrop" aria-hidden="true">
+    <div class="lightbox-content">
+      <button class="lightbox-close" type="button" aria-label="Close screenshot">✕</button>
+      <img src="" alt="" />
+      <div class="lightbox-caption"></div>
+    </div>
+  </div>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>

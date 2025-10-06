@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Felix - Coming Soon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="coming-soon">
+  <div class="page-shell">
+    <header class="surface-card site-header">
+      <nav class="top-nav">
+        <a href="index.html" class="brand" aria-label="Felix home">
+          <span class="brand-mark">F</span>
+          Felix
+        </a>
+        <div class="nav-links">
+          <a class="nav-link" data-nav="overview" href="index.html">Overview</a>
+          <a class="nav-link" data-nav="explore" href="explore.html">Explore</a>
+          <a class="nav-link" data-nav="notes" href="notes.html">Docs &amp; Notes</a>
+          <a class="nav-link" data-nav="rules" href="rules.html">Rules</a>
+          <a class="nav-link" data-nav="tasks" href="tasks.html">Tasks &amp; Workflows</a>
+          <a class="nav-link" data-nav="guardrails" href="guardrails.html">Guardrails</a>
+          <a class="nav-link" data-nav="coming-soon" href="coming-soon.html">Coming Soon</a>
+          <a class="nav-link" data-nav="getting-started" href="getting-started.html">Get Felix</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="surface-card hero">
+        <div class="hero-content">
+          <span class="hero-eyebrow">On the roadmap</span>
+          <h1>What’s next for Felix</h1>
+          <p>
+            Everything on this page is in development. It builds on the indexing, rules, notes, tasks, and workflows already shipping in this repo.
+          </p>
+        </div>
+        <div class="hero-content">
+          <div class="screenshot-slot" data-label="Screenshot placeholder for roadmap collage"></div>
+        </div>
+      </section>
+
+      <section class="surface-card section">
+        <div class="section-header">
+          <h2 class="section-title">Documentation crawler</h2>
+          <p class="section-subtitle">A companion service that mirrors the code indexer—this time for external docs.</p>
+        </div>
+        <div class="highlight-box">
+          <ul>
+            <li>Crawl documentation sites, collapse them into structured components, and reuse Felix search + embeddings.</li>
+            <li>Link doc snippets directly to code components so the AI sees both views in one context bundle.</li>
+            <li>Expose the cached docs inside the same Explore workspace.</li>
+          </ul>
+        </div>
+        <div class="screenshot-slot" data-label="Screenshot placeholder: documentation crawler mockup"></div>
+      </section>
+
+      <section class="surface-card section">
+        <div class="section-header">
+          <h2 class="section-title">Rule-aware chat UI</h2>
+          <p class="section-subtitle">A lightweight front-end for Claude Code / Codex / LangGraph sessions with Felix baked in.</p>
+        </div>
+        <div class="highlight-box">
+          <ul>
+            <li>Shows rule bundles before every message so you see exactly what’s injected.</li>
+            <li>Quick toggles to enable/disable rules, re-run validation, or open the linked context.</li>
+            <li>Built on the existing MCP integration scripts in <code class="inline-code">integrations/</code>.</li>
+          </ul>
+        </div>
+        <div class="screenshot-slot" data-label="Screenshot placeholder: chat UI concept"></div>
+      </section>
+
+      <section class="surface-card section">
+        <div class="section-header">
+          <h2 class="section-title">Composable workspace</h2>
+          <p class="section-subtitle">Drag-and-drop panels for AI chat, code explorer, terminals, and Felix widgets.</p>
+        </div>
+        <div class="highlight-box">
+          <ul>
+            <li>Arrange widgets (Explore, Component Map, Tasks, Notes, Chat) into custom layouts.</li>
+            <li>All panes communicate over MCP so the AI, Felix, and the IDE stay in sync.</li>
+            <li>Aim: deliver a full IDE experience built around the Felix data layer.</li>
+          </ul>
+        </div>
+        <div class="screenshot-slot" data-label="Screenshot placeholder: workspace layout mockup"></div>
+      </section>
+
+      <section class="callout">
+        <h2>Want to help test these?</h2>
+        <p>Open an issue on GitHub or drop feedback in the repo once Felix is running locally.</p>
+        <div class="hero-actions" style="justify-content: center;">
+          <a class="btn btn-primary" href="https://github.com/yourusername/felix">Follow the project</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Felix — Spec-driven development for AI pairing</p>
+    </footer>
+  </div>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>

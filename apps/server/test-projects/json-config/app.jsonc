@@ -1,0 +1,12 @@
+{
+  // Application name
+  "name": "demo-app",
+  /* Semver version */
+  "version": "0.1.0",
+  "features": {
+    "web": true,
+    "php": true,
+    "java": false
+  }
+}
+

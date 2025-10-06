@@ -1,0 +1,43 @@
+node_modules/
+claude-interceptor/node_modules/
+.history/
+.idea/
+chat-logs/
+.aigent-smith
+dist/
+release/
+.code-indexer.index.db-*
+.felix.index.db-*
+*.wal
+*.shm
+*.db
+**/.claude/settings.local.json
+python-sidecar/.venv/
+# Test coverage and reports
+coverage/
+coverage-*/
+**/coverage/
+**/coverage-*/
+**/lcov-report/
+
+# Logs and debug artifacts
+*.log
+server.log
+mcp-debug.log
+mcp-permission-debug.json
+.sidecar-dev.pid
+
+# Legacy PID names
+.felix.sidecar.pid
+
+# Windows OS artifacts
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+*.lnk
+
+# Local debug and cache directories
+apps/**/.code-indexer/
+*.onnx
+apps/server/.env

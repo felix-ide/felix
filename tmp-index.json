@@ -1,0 +1,26 @@
+{
+  "components": 73802,
+  "relationships": 305798,
+  "tasks": 400,
+  "notes": 193,
+  "rules": 85,
+  "total": 380278,
+  "componentCount": 73802,
+  "relationshipCount": 305798,
+  "fileCount": 144,
+  "indexSize": 0,
+  "lastUpdated": "2025-10-02T21:35:23.308Z",
+  "languageBreakdown": {
+    "markdown": 2,
+    "lsp": 800,
+    "css": 197,
+    "typescript": 1
+  },
+  "taskCount": 400,
+  "noteCount": 193,
+  "ruleCount": 85,
+  "componentEmbeddingCount": 73802,
+  "ruleEmbeddingCount": 85,
+  "taskEmbeddingCount": 400,
+  "noteEmbeddingCount": 193
+}

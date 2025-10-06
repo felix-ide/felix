@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Felix - Visual Code Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="explore">
+  <div class="page-shell">
+    <header class="surface-card site-header">
+      <nav class="top-nav">
+        <a href="index.html" class="brand" aria-label="Felix home">
+          <span class="brand-mark">F</span>
+          Felix
+        </a>
+        <div class="nav-links">
+          <a class="nav-link" data-nav="overview" href="index.html">Overview</a>
+          <a class="nav-link" data-nav="explore" href="explore.html">Visualize</a>
+          <a class="nav-link" data-nav="notes" href="notes.html">Notes</a>
+          <a class="nav-link" data-nav="rules" href="rules.html">Rules</a>
+          <a class="nav-link" data-nav="tasks" href="tasks.html">Tasks</a>
+          <a class="nav-link" data-nav="workflows" href="workflows.html">Workflows</a>
+          <a class="nav-link" data-nav="getting-started" href="getting-started.html">Get Started</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="surface-card hero" style="display: block;">
+        <figure class="screenshot" style="margin-bottom: 2rem;">
+          <a href="assets/screenshots/code-3d-visualization-galazy.png" target="_blank" rel="noopener">
+            <img src="assets/screenshots/code-3d-visualization-galazy.png" alt="3D visualization" />
+          </a>
+          <figcaption>WebGL 3D visualization with 10 layout algorithms</figcaption>
+        </figure>
+        <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+          <span class="hero-eyebrow">Visual code intelligence</span>
+          <h1>Mind maps, 3D graphs, component relationships</h1>
+          <p>
+            See code as interactive mind maps and 3D visualizations. Click components to explore relationships, docs, and context.
+          </p>
+          <div class="hero-actions" style="justify-content: center;">
+            <a class="btn btn-primary" href="getting-started.html">Get started</a>
+            <a class="btn btn-secondary" href="#visualizations">See more →</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface-card section" id="visualizations">
+        <div class="section-header">
+          <h2 class="section-title">Multiple visualization types</h2>
+          <p class="section-subtitle">10 layout algorithms, mind maps, context views</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/code-visualization-focus-view.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/code-visualization-focus-view.png" alt="Focus mode" />
+            </a>
+            <figcaption>Focus mode</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>10 3D layouts</h3>
+            <p>Force-directed, hierarchical, radial, dependency, inheritance, flow, tree, circular, grid, network. Filter by relationship or node type.</p>
+          </article>
+
+          <article class="card" style="margin: 0;">
+            <h3>Interactive navigation</h3>
+            <p>Click nodes to drill down. Pan, zoom, rotate. Hover for tooltips. Double-click to focus. Right-click for context menu.</p>
+          </article>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/component-mind-map.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/component-mind-map.png" alt="Mind map" />
+            </a>
+            <figcaption>React Flow mind map</figcaption>
+          </figure>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/component-explore-overview.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/component-explore-overview.png" alt="Component explore overview" />
+            </a>
+            <figcaption>Component explore overview with tabs</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>Context bundles</h3>
+            <p>See everything about a component: source code, who calls it, what it imports, linked docs, applicable rules.</p>
+          </article>
+
+          <article class="card" style="margin: 0;">
+            <h3>Relationship filtering</h3>
+            <p>Toggle relationship types on/off. Show only imports, only calls, only inheritance. Simplify complex graphs instantly.</p>
+          </article>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/component-explore-components.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/component-explore-components.png" alt="Components view" />
+            </a>
+            <figcaption>Components tab showing all related components</figcaption>
+          </figure>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/component-explore-relationships.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/component-explore-relationships.png" alt="Relationships" />
+            </a>
+            <figcaption>Relationships tab with grouped relationship types</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>Hybrid search</h3>
+            <p>Semantic search via embeddings + structural search via AST. Filter by language, component type, file path.</p>
+          </article>
+
+          <article class="card" style="margin: 0;">
+            <h3>Multi-file context</h3>
+            <p>View multiple files simultaneously. Compare implementations. Track changes across related components.</p>
+          </article>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/search-semantic-mixed-components.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/search-semantic-mixed-components.png" alt="Hybrid search" />
+            </a>
+            <figcaption>Hybrid search results</figcaption>
+          </figure>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/file-view-architecture-diagram.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/file-view-architecture-diagram.png" alt="Architecture view" />
+            </a>
+            <figcaption>Architecture diagram view</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>Linked documentation</h3>
+            <p>Architecture notes, Mermaid diagrams, and Excalidraw sketches linked to code appear automatically in context views.</p>
+          </article>
+
+          <article class="card" style="margin: 0;">
+            <h3>Graph visualization</h3>
+            <p>Interactive Mermaid graph view with direct and full relationship modes. Toggle depth to show immediate dependencies or entire context.</p>
+          </article>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/component-explore-graph-direct.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/component-explore-graph-direct.png" alt="Graph direct relationships" />
+            </a>
+            <figcaption>Graph view - direct relationships only</figcaption>
+          </figure>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/component-explore-graph-full.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/component-explore-graph-full.png" alt="Graph all relationships" />
+            </a>
+            <figcaption>Graph view - all relationships</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>Component details</h3>
+            <p>Dockable panel showing source code, relationships, metadata. Navigate between connected components.</p>
+          </article>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/file-view-overview.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/file-view-overview.png" alt="File overview" />
+            </a>
+            <figcaption>File overview</figcaption>
+          </figure>
+
+          <figure class="screenshot" style="margin: 0;">
+            <a href="assets/screenshots/file-view-view-source.png" target="_blank" rel="noopener">
+              <img src="assets/screenshots/file-view-view-source.png" alt="Source view" />
+            </a>
+            <figcaption>Source code view</figcaption>
+          </figure>
+
+          <article class="card" style="margin: 0;">
+            <h3>Symbol navigation</h3>
+            <p>Jump between classes, functions, interfaces. See all symbols in a file. Click to view implementation.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="callout">
+        <h2>Next: Documentation layer</h2>
+        <p>Link architecture notes, Mermaid diagrams, and Excalidraw sketches directly to code.</p>
+        <div class="hero-actions" style="justify-content: center;">
+          <a class="btn btn-primary" href="notes.html">Explore notes →</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Felix — Spec-driven development for AI pairing</p>
+    </footer>
+  </div>
+
+  <div class="lightbox-backdrop" aria-hidden="true">
+    <div class="lightbox-content">
+      <button class="lightbox-close" type="button" aria-label="Close screenshot">✕</button>
+      <img src="" alt="" />
+      <div class="lightbox-caption"></div>
+    </div>
+  </div>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>

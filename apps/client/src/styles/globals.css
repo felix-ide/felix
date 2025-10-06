@@ -1,0 +1,350 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Frappe Gantt Custom Styles */
+.gantt .bar-progress { fill: hsl(var(--primary)) !important; }
+.gantt .bar { fill: hsl(var(--accent)) !important; rx: 3; }
+.gantt .bar.active { fill: hsl(var(--primary)) !important; }
+.gantt .bar-label { fill: hsl(var(--primary-foreground)) !important; font-size: 12px; font-weight: 500; }
+
+
+@layer base {
+  :root {
+    /* Default fallback values for Tailwind - will be overridden by theme system */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+  }
+
+  /* Dark theme handled by theme system */
+  .dark {
+    /* Theme system will provide appropriate values */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Theme handled by theme system */
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Thin scrollbar variant */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
+}
+
+/* Layout classes */
+.app-layout {
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+.sidebar {
+  flex-shrink: 0;
+}
+
+.main-content {
+  flex: 1;
+  /* Allow inner sections to scroll vertically within viewport */
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Graph visualization styles */
+.graph-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.graph-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+}
+
+/* Document editor styles */
+.document-editor {
+  display: flex;
+  height: 100%;
+}
+
+.editor-pane {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-pane {
+  flex: 1;
+  min-width: 0;
+  border-left: 1px solid hsl(var(--border));
+}
+
+/* CodeMirror customizations */
+.cm-editor {
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.cm-scroller {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+  overflow-x: auto;
+}
+
+/* SyntaxHighlighter overflow fix */
+.focus-component-source pre,
+.focus-component-source code {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+}
+
+/* Mermaid diagram styling */
+.mermaid {
+  background: transparent;
+}
+
+/* Document Preview Styles */
+.mermaid-preview svg {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto !important;
+  height: auto !important;
+}
+
+.mermaid-preview .nodeLabel {
+  font-size: 14px;
+}
+
+/* Preview animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-in {
+  animation-duration: 200ms;
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.zoom-in-95 {
+  animation-name: zoomIn;
+}
+
+/* Excalidraw preview overrides */
+.excalidraw-preview .excalidraw {
+  --ui-font: inherit;
+}
+
+.excalidraw-preview .excalidraw-container {
+  outline: none !important;
+}
+
+/* Preview modal specific styles */
+.preview-modal-backdrop {
+  backdrop-filter: blur(4px);
+}
+
+/* Activity indicators */
+.activity-indicator {
+  @apply inline-flex items-center gap-2 px-2 py-1 rounded-md text-xs;
+}
+
+.activity-indicator.ai {
+  background-color: hsl(var(--chip-bg-primary));
+  color: hsl(var(--chip-text-primary));
+  border: 1px solid hsl(var(--chip-border-primary));
+}
+
+.activity-indicator.user {
+  background-color: hsl(var(--chip-bg-success));
+  color: hsl(var(--chip-text-success));
+  border: 1px solid hsl(var(--chip-border-success));
+}
+
+/* Task status indicators */
+.task-status {
+  @apply inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium;
+}
+
+.task-status.todo {
+  @apply bg-muted text-muted-foreground;
+}
+
+.task-status.in_progress {
+  background-color: hsl(var(--chip-bg-primary));
+  color: hsl(var(--chip-text-primary));
+  border: 1px solid hsl(var(--chip-border-primary));
+}
+
+.task-status.blocked {
+  background-color: hsl(var(--chip-bg-destructive));
+  color: hsl(var(--chip-text-destructive));
+  border: 1px solid hsl(var(--chip-border-destructive));
+}
+
+.task-status.done {
+  background-color: hsl(var(--chip-bg-success));
+  color: hsl(var(--chip-text-success));
+  border: 1px solid hsl(var(--chip-border-success));
+}
+
+.task-status.cancelled {
+  @apply bg-muted text-muted-foreground line-through;
+}
+
+/* Note type indicators */
+.note-type {
+  @apply inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium;
+}
+
+.note-type.note {
+  background-color: hsl(var(--chip-bg-primary));
+  color: hsl(var(--chip-text-primary));
+  border: 1px solid hsl(var(--chip-border-primary));
+}
+
+.note-type.warning {
+  background-color: hsl(var(--chip-bg-warning));
+  color: hsl(var(--chip-text-warning));
+  border: 1px solid hsl(var(--chip-border-warning));
+}
+
+.note-type.documentation {
+  background-color: hsl(var(--chip-bg-info));
+  color: hsl(var(--chip-text-info));
+  border: 1px solid hsl(var(--chip-border-info));
+}
+
+/* Priority indicators */
+.priority {
+  @apply inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium;
+}
+
+.priority.low {
+  @apply bg-muted text-muted-foreground;
+}
+
+.priority.medium {
+  background-color: hsl(var(--chip-bg-warning));
+  color: hsl(var(--chip-text-warning));
+  border: 1px solid hsl(var(--chip-border-warning));
+}
+
+.priority.high {
+  background-color: hsl(var(--chip-bg-warning));
+  color: hsl(var(--chip-text-warning));
+  border: 1px solid hsl(var(--chip-border-warning));
+}
+
+.priority.critical {
+  background-color: hsl(var(--chip-bg-destructive));
+  color: hsl(var(--chip-text-destructive));
+  border: 1px solid hsl(var(--chip-border-destructive));
+}
+
+/* Project Editor Theme - Integrated with theme system */
+:root {
+  --project-editor-bg-primary: var(--bg-primary);
+  --project-editor-bg-secondary: var(--bg-secondary);
+  --project-editor-bg-tertiary: var(--bg-tertiary);
+  --project-editor-fg-primary: var(--text-primary);
+  --project-editor-fg-secondary: var(--text-secondary);
+  --project-editor-fg-muted: var(--text-muted);
+  --project-editor-border: var(--border-primary);
+  --project-editor-accent: var(--color-primary-600);
+  --project-editor-success: var(--color-success-600);
+  --project-editor-warning: var(--color-warning-600);
+  --project-editor-error: var(--color-error-600);
+  
+  /* Documentation Browser theme variables */
+  --db-bg-primary: var(--bg-primary);
+  --db-bg-secondary: var(--bg-secondary);
+  --db-text-primary: var(--text-primary);
+  --db-text-secondary: var(--text-secondary);
+  --db-border: var(--border-primary);
+  --db-accent: var(--color-primary-600);
+}
+
+/* Documentation Browser uses theme system variables */

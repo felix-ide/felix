@@ -1,0 +1,266 @@
+{
+  "fixtureVersion": "1.0.0",
+  "generatedAt": "2025-10-03T21:00:01.839Z",
+  "totals": {
+    "totalFiles": 23,
+    "totalComponents": 180,
+    "totalRelationships": 365
+  },
+  "componentsByLanguage": {
+    "css": 14,
+    "html": 3,
+    "java": 11,
+    "javascript": 54,
+    "json": 6,
+    "markdown": 22,
+    "mermaid": 1,
+    "php": 22,
+    "python": 47
+  },
+  "componentsByType": {
+    "class": 19,
+    "comment": 5,
+    "constructor": 1,
+    "embedded_script": 2,
+    "enum": 1,
+    "file": 22,
+    "function": 39,
+    "import": 22,
+    "interface": 7,
+    "method": 15,
+    "module": 4,
+    "namespace": 5,
+    "property": 9,
+    "section": 13,
+    "typedef": 2,
+    "variable": 14
+  },
+  "relationshipsByType": {
+    "REFERENCES_FILE": 13,
+    "belongs_to": 1,
+    "calls": 29,
+    "class-contains-method": 13,
+    "class-contains-property": 4,
+    "contains": 141,
+    "exports": 1,
+    "extends": 3,
+    "flows_to": 1,
+    "implements": 5,
+    "imports_from": 26,
+    "in_namespace": 23,
+    "uses": 105
+  },
+  "files": [
+    {
+      "file": "docs/architecture.md",
+      "components": 0,
+      "relationships": 2,
+      "processingTimeMs": 17,
+      "languagesDetected": [
+        "index",
+        "mermaid"
+      ]
+    },
+    {
+      "file": "docs/runbook.md",
+      "components": 14,
+      "relationships": 13,
+      "processingTimeMs": 1,
+      "languagesDetected": [
+        "json",
+        "mermaid"
+      ]
+    },
+    {
+      "file": "src/css/reset.css",
+      "components": 2,
+      "relationships": 1,
+      "processingTimeMs": 1,
+      "languagesDetected": [
+        "css"
+      ]
+    },
+    {
+      "file": "src/css/styles.css",
+      "components": 12,
+      "relationships": 12,
+      "processingTimeMs": 1,
+      "languagesDetected": [
+        "css"
+      ]
+    },
+    {
+      "file": "src/html/index.html",
+      "components": 5,
+      "relationships": 7,
+      "processingTimeMs": 1,
+      "languagesDetected": [
+        "javascript"
+      ]
+    },
+    {
+      "file": "src/java/src/app/GraphProcessor.java",
+      "components": 3,
+      "relationships": 3,
+      "processingTimeMs": 237,
+      "languagesDetected": [
+        "java"
+      ]
+    },
+    {
+      "file": "src/java/src/app/Main.java",
+      "components": 8,
+      "relationships": 11,
+      "processingTimeMs": 9,
+      "languagesDetected": [
+        "java"
+      ]
+    },
+    {
+      "file": "src/javascript/component.ts",
+      "components": 29,
+      "relationships": 57,
+      "processingTimeMs": 16,
+      "languagesDetected": [
+        "javascript"
+      ]
+    },
+    {
+      "file": "src/javascript/main.js",
+      "components": 8,
+      "relationships": 37,
+      "processingTimeMs": 3,
+      "languagesDetected": [
+        "javascript"
+      ]
+    },
+    {
+      "file": "src/javascript/utilities.js",
+      "components": 8,
+      "relationships": 24,
+      "processingTimeMs": 3,
+      "languagesDetected": [
+        "javascript"
+      ]
+    },
+    {
+      "file": "src/javascript/widget.jsx",
+      "components": 4,
+      "relationships": 19,
+      "processingTimeMs": 3,
+      "languagesDetected": [
+        "javascript"
+      ]
+    },
+    {
+      "file": "src/json/config.json",
+      "components": 5,
+      "relationships": 4,
+      "processingTimeMs": 0,
+      "languagesDetected": [
+        "json"
+      ]
+    },
+    {
+      "file": "src/php_bridge.py",
+      "components": 3,
+      "relationships": 3,
+      "processingTimeMs": 2,
+      "languagesDetected": [
+        "python"
+      ]
+    },
+    {
+      "file": "src/php/index.php",
+      "components": 7,
+      "relationships": 17,
+      "processingTimeMs": 10,
+      "languagesDetected": [
+        "javascript",
+        "php"
+      ]
+    },
+    {
+      "file": "src/php/services/EmailService.php",
+      "components": 7,
+      "relationships": 19,
+      "processingTimeMs": 3,
+      "languagesDetected": [
+        "php"
+      ]
+    },
+    {
+      "file": "src/php/services/NotifierInterface.php",
+      "components": 3,
+      "relationships": 4,
+      "processingTimeMs": 1,
+      "languagesDetected": [
+        "php"
+      ]
+    },
+    {
+      "file": "src/php/templates/dashboard.php",
+      "components": 5,
+      "relationships": 8,
+      "processingTimeMs": 2,
+      "languagesDetected": [
+        "javascript"
+      ]
+    },
+    {
+      "file": "src/python-bridge.js",
+      "components": 2,
+      "relationships": 3,
+      "processingTimeMs": 1,
+      "languagesDetected": [
+        "javascript"
+      ]
+    },
+    {
+      "file": "src/python/app.py",
+      "components": 18,
+      "relationships": 55,
+      "processingTimeMs": 4,
+      "languagesDetected": [
+        "python"
+      ]
+    },
+    {
+      "file": "src/python/async_worker.py",
+      "components": 7,
+      "relationships": 10,
+      "processingTimeMs": 1,
+      "languagesDetected": [
+        "python"
+      ]
+    },
+    {
+      "file": "src/python/utils/graph.py",
+      "components": 19,
+      "relationships": 47,
+      "processingTimeMs": 3,
+      "languagesDetected": [
+        "python"
+      ]
+    },
+    {
+      "file": "src/sql/schema.sql",
+      "components": 1,
+      "relationships": 0,
+      "processingTimeMs": 6,
+      "languagesDetected": []
+    },
+    {
+      "file": "testdata/mixed.md",
+      "components": 10,
+      "relationships": 9,
+      "processingTimeMs": 1,
+      "languagesDetected": [
+        "markdown"
+      ]
+    }
+  ],
+  "phaseTotals": {
+    "processingTimeMs": 326
+  }
+}
