@@ -13,10 +13,40 @@ A multi-package workspace that provides:
 
 ## Getting Started
 
-- Prerequisites: Node 18+, npm 9+, Python 3.8+ (optional for embeddings)
-- Install: `npm install`
-- Dev (full stack): `npm run dev`
-  - Starts UI + backend with hot reload and ensures the Python sidecar is ready on first run.
+**Prerequisites:** Node 18+, npm 9+, Python 3.8+ (optional for embeddings)
+
+### Quick Start
+
+1. **Install dependencies:**
+   ```bash
+   git clone https://github.com/felix-ide/felix.git
+   cd felix
+   npm install
+   ```
+
+2. **Start Felix:**
+   ```bash
+   npm run dev
+   ```
+   This starts the full stack (server on port 9000 + UI) with hot reload and ensures the Python sidecar is ready on first run.
+
+3. **Connect to Claude Code:**
+   ```bash
+   claude mcp add felix --transport http http://localhost:9000 --scope user
+   ```
+
+   Or manually add to your Claude Code config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+   ```json
+   {
+     "mcpServers": {
+       "felix": {
+         "url": "http://localhost:9000"
+       }
+     }
+   }
+   ```
+
+Restart Claude Code. Felix MCP tools will appear in the tool list.
 
 Useful workspace scripts:
 - `npm run build:packages` – build core packages

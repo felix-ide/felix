@@ -22,10 +22,18 @@ main() {
     local tool_success=$(echo "$input_json" | jq -r '.tool_success // "false"')
     local file_path=$(echo "$input_json" | jq -r '.tool_input.file_path // .tool_input.notebook_path // ""')
     local new_content=$(echo "$input_json" | jq -r '.tool_input.new_string // .tool_input.content // .tool_input.new_source // ""')
+    local project_dir=$(echo "$input_json" | jq -r '.cwd // ""')
+
+    # Override FELIX_PROJECT_PATH with Claude Code's current working directory
+    if [ -n "$project_dir" ]; then
+        FELIX_PROJECT_PATH="$project_dir"
+        export FELIX_PROJECT_PATH
+    fi
 
     debug_log "Tool name: $tool_name"
     debug_log "File path: $file_path"
     debug_log "Tool success: $tool_success"
+    debug_log "Project dir: $FELIX_PROJECT_PATH"
 
     # Only process successful Edit, Write, and MultiEdit tools
     if [[ ! "$tool_name" =~ ^(Edit|Write|MultiEdit|NotebookEdit)$ ]]; then

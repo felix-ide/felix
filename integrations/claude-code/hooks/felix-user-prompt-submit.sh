@@ -21,8 +21,14 @@ main() {
     local user_prompt=$(echo "$input_json" | jq -r '.prompt // ""')
     local project_dir=$(echo "$input_json" | jq -r '.cwd // ""')
 
+    # Override FELIX_PROJECT_PATH with Claude Code's current working directory
+    if [ -n "$project_dir" ]; then
+        FELIX_PROJECT_PATH="$project_dir"
+        export FELIX_PROJECT_PATH
+    fi
+
     debug_log "User prompt: $user_prompt"
-    debug_log "Project dir: $project_dir"
+    debug_log "Project dir: $FELIX_PROJECT_PATH"
 
     # Validate environment
     if ! validate_environment; then

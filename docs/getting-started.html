@@ -93,14 +93,25 @@ npm run dev
         </div>
 
         <h3>MCP Server Configuration</h3>
-        <p>Felix supports three MCP transport types. Choose one based on your needs:</p>
+        <p>Start Felix with <code class="inline-code">npm run dev</code> (server runs on port 9000), then connect it to Claude Code.</p>
 
-        <h4 style="margin-top: 1.5rem;">Option 1: HTTP Streaming - Easiest setup (recommended)</h4>
-        <p>Start Felix with <code class="inline-code">npm run dev</code>, then add to your Claude Desktop MCP settings:</p>
+        <h4 style="margin-top: 1.5rem;">Option 1: Using Claude Code CLI (Recommended)</h4>
+        <p>The easiest way to add Felix as an MCP server:</p>
+        <pre><code class="language-bash">claude mcp add felix --transport http http://localhost:9000 --scope user</code></pre>
+        <p style="margin-top: 0.5rem;">This command automatically configures Felix in your Claude Code settings.</p>
+
+        <h4 style="margin-top: 1.5rem;">Option 2: Manual Configuration File</h4>
+        <p>Alternatively, manually edit your Claude Code settings file. The location depends on your system:</p>
+        <ul style="margin: 1rem 0; padding-left: 1.5rem;">
+          <li><strong>macOS:</strong> <code class="inline-code">~/Library/Application Support/Claude/claude_desktop_config.json</code></li>
+          <li><strong>Windows:</strong> <code class="inline-code">%APPDATA%\Claude\claude_desktop_config.json</code></li>
+          <li><strong>Linux:</strong> <code class="inline-code">~/.config/Claude/claude_desktop_config.json</code></li>
+        </ul>
+        <p>Add Felix to the <code class="inline-code">mcpServers</code> section:</p>
         <pre><code class="language-json">{
   "mcpServers": {
     "felix": {
-      "url": "http://localhost:9000/mcp"
+      "url": "http://localhost:9000"
     }
   }
 }</code></pre>
@@ -121,34 +132,7 @@ npm run dev
           </figure>
         </div>
 
-        <h4 style="margin-top: 1.5rem;">Option 2: HTTP + SSE - Legacy transport</h4>
-        <p>Start Felix with <code class="inline-code">npm run dev</code>, then add to settings:</p>
-        <pre><code class="language-json">{
-  "mcpServers": {
-    "felix": {
-      "url": "http://localhost:9000"
-    }
-  }
-}</code></pre>
-        <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--muted);">Note: SSE endpoint is at the root <code class="inline-code">/</code> or <code class="inline-code">/sse</code></p>
-
-        <h4 style="margin-top: 1.5rem;">Option 3: stdio (CLI) - Advanced setup</h4>
-        <p>For advanced users. Requires building the server first:</p>
-        <pre><code class="language-json">{
-  "mcpServers": {
-    "felix": {
-      "command": "/usr/bin/env",
-      "args": ["node", "<path-to-felix>/apps/server/dist/stdio.js"],
-      "env": {
-        "FORCE_STDERR_LOGS": "1",
-        "LOG_LEVEL": "error",
-        "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      }
-    }
-  }
-}</code></pre>
-
-        <p style="margin-top: 1.5rem;">Restart Claude Code/Desktop. Felix MCP tools appear in the tool list. The AI can now search code, create tasks, manage workflows, and link documentation.</p>
+        <p style="margin-top: 1.5rem;">Restart Claude Code/Desktop. Felix MCP tools will appear in the tool list. The AI can now search code, create tasks, manage workflows, and link documentation.</p>
 
         <h3 style="margin-top: 2rem;">Hook Integration (Automatic Rule Injection)</h3>
         <p>Run the installer to set up hooks that inject rules and validate workflows:</p>
