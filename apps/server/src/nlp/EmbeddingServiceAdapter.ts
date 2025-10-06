@@ -47,12 +47,17 @@ export class EmbeddingService extends BaseEmbeddingService {
       // Process individually to isolate failures
       const results: EmbeddingResult[] = [];
       for (let i = 0; i < texts.length; i++) {
+        const text = texts[i];
+        if (!text) {
+          console.error(`[Embeddings] Skipping empty/undefined text at index ${i}`);
+          continue;
+        }
         try {
-          const result = await this.sidecar.getEmbedding(texts[i]);
+          const result = await this.sidecar.getEmbedding(text);
           results.push(result);
         } catch (err) {
           console.error(`[Embeddings] Failed to embed item ${i}/${texts.length}:`, {
-            textPreview: texts[i]?.substring(0, 100),
+            textPreview: text.substring(0, 100),
             error: err instanceof Error ? err.message : String(err),
             stack: err instanceof Error ? err.stack : undefined
           });
