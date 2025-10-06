@@ -72,7 +72,9 @@ Felix is free and open-source software licensed under the [GNU Affero General Pu
 - ⚠️ Cannot be used in closed-source SaaS products without a commercial license
 
 ### Commercial License
-For organizations that need to use Felix in proprietary software or SaaS products without open-sourcing their code, commercial licenses are available. Contact: **epoplive@github.com**
+For organizations that need to use Felix in proprietary software or SaaS products without open-sourcing their code, commercial licenses are available.
+
+**Contact:** [GitHub Discussions](https://github.com/felix-ide/felix/discussions) or [@epoplive](https://github.com/epoplive)
 
 Benefits of commercial licensing:
 - 🔓 Use in closed-source/proprietary software
@@ -80,6 +82,9 @@ Benefits of commercial licensing:
 - 🚀 Access to premium extensions and plugins
 - ⚡ Priority bug fixes and feature development
 
-## Repository
+## Links
 
-https://github.com/felix-ide/felix
+- **Repository:** https://github.com/felix-ide/felix
+- **Documentation:** https://felix-ide.github.io/felix/
+- **Discussions:** https://github.com/felix-ide/felix/discussions
+- **Issues:** https://github.com/felix-ide/felix/issues

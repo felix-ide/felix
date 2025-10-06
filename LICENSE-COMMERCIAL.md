@@ -38,7 +38,8 @@ Contact for custom pricing based on:
 ### Contact
 
 To purchase a commercial license or discuss pricing:
-- Email: epoplive@github.com
+- GitHub Discussions: https://github.com/felix-ide/felix/discussions
+- GitHub Issues: https://github.com/felix-ide/felix/issues
 - GitHub: @epoplive
 
 ### Terms
