@@ -610,8 +610,10 @@ class SetupValidator {
       const requirementsPath = `${sidecarDir}/requirements.txt`;
 
       if (existsSync(requirementsPath)) {
-        // Check if packages are installed
+        // Check if packages are installed and at correct versions
         let needsInstall = false;
+        let needsRebuild = false;
+
         try {
           // Check for key packages
           const checkScript = `
@@ -621,7 +623,21 @@ missing = [m for m in mods if importlib.util.find_spec(m) is None]
 sys.exit(1 if missing else 0)
 `;
           runVenvPython(venvPath, ['-c', checkScript], { cwd: sidecarDir });
-          this.success('Python dependencies installed');
+
+          // Check sentence-transformers version (must be 5.x for compatibility)
+          try {
+            const versionCheck = `
+import importlib.metadata
+version = importlib.metadata.version("sentence-transformers")
+major = int(version.split('.')[0])
+sys.exit(0 if major >= 5 else 1)
+`;
+            runVenvPython(venvPath, ['-c', versionCheck], { cwd: sidecarDir });
+            this.success('Python dependencies installed (sentence-transformers 5.x)');
+          } catch {
+            this.warning('sentence-transformers is outdated (need 5.x), will reinstall dependencies');
+            needsInstall = true;
+          }
         } catch {
           needsInstall = true;
           this.warning('Python dependencies not installed');
@@ -637,7 +653,41 @@ sys.exit(1 if missing else 0)
               // Upgrade pip first
               runVenvPython(venvPath, ['-m', 'pip', 'install', '--upgrade', 'pip'], { cwd: sidecarDir });
 
-              // Install requirements
+              // Detect GPU and install appropriate PyTorch
+              spinner.text = 'Detecting GPU support...';
+              let torchIndex = 'https://download.pytorch.org/whl/cpu'; // default to CPU
+
+              // Check for NVIDIA GPU on Windows/Linux
+              if (process.platform === 'win32' || process.platform === 'linux') {
+                try {
+                  execSync('nvidia-smi', { encoding: 'utf8', stdio: 'ignore' });
+                  torchIndex = 'https://download.pytorch.org/whl/cu124'; // CUDA 12.4 (supports Python 3.13)
+                  this.info('✨ NVIDIA GPU detected! Installing CUDA-enabled PyTorch...');
+                } catch {
+                  this.info('No NVIDIA GPU detected, installing CPU-only PyTorch');
+                }
+              }
+              // Check for Apple Silicon on macOS
+              else if (process.platform === 'darwin') {
+                try {
+                  const arch = execSync('uname -m', { encoding: 'utf8' }).trim();
+                  if (arch === 'arm64') {
+                    this.info('✨ Apple Silicon detected! PyTorch will use Metal (MPS)...');
+                  }
+                } catch {}
+                torchIndex = 'https://download.pytorch.org/whl/cpu'; // macOS uses same index
+              }
+
+              // Install PyTorch with appropriate index
+              spinner.text = 'Installing PyTorch...';
+              runVenvPython(venvPath, [
+                '-m', 'pip', 'install',
+                'torch>=2.3.0',
+                '--index-url', torchIndex
+              ], { cwd: sidecarDir });
+
+              // Install other requirements
+              spinner.text = 'Installing other Python dependencies...';
               runVenvPython(venvPath, ['-m', 'pip', 'install', '-r', 'requirements.txt'], { cwd: sidecarDir });
 
               spinner.succeed('Python dependencies installed successfully');

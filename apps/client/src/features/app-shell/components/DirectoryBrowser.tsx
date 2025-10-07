@@ -27,22 +27,16 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
 
   const loadDirectory = async (path: string) => {
     setLoading(true);
-    console.log('[DEBUG] Loading directory:', path);
     try {
       // Get base URL from integration config or use default
       const integrationConfig = (window as any).FELIX_INTEGRATION || (window as any).FELIX_INTEGRATION;
       const baseUrl = integrationConfig?.apiUrl || '/api';
 
-      const url = `${baseUrl}/files/browse?path=${encodeURIComponent(path)}`;
-      console.log('[DEBUG] Fetching:', url);
-      const response = await fetch(url);
+      const response = await fetch(`${baseUrl}/files/browse?path=${encodeURIComponent(path)}`);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('[DEBUG] Server error:', errorData);
         throw new Error('Failed to load directory');
       }
       const data = await response.json();
-      console.log('[DEBUG] Server returned:', data);
       const dirs = data.entries.filter((entry: DirectoryNode) => entry.type === 'directory');
       setDirectories(dirs);
       setCurrentPath(data.path);
@@ -78,11 +72,8 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
     const separator = isWindows ? '\\' : '/';
     const parts = currentPath.split(/[/\\]/).filter(p => p); // Remove empty parts
 
-    console.log('[DEBUG] goUp called:', { currentPath, isWindows, parts });
-
     // Can't go up from root (e.g., C:\ or /)
     if (parts.length <= 1) {
-      console.log('[DEBUG] Already at root, cannot go up');
       return;
     }
 
@@ -94,7 +85,6 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
       parentPath += separator;
     }
 
-    console.log('[DEBUG] Going up to:', parentPath);
     loadDirectory(parentPath);
     setSelectedPath(null);
   };

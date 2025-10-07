@@ -40,5 +40,7 @@
     "ora": "^8.0.1",
     "rimraf": "^6.0.1"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.52.4"
+  }
 }

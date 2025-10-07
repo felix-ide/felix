@@ -92,6 +92,18 @@ async function ensureRequirements(venvPython) {
   const modulesProbe = 'import importlib, sys;\nmods = ["fastapi", "uvicorn", "numpy"];\nmissing = [m for m in mods if importlib.util.find_spec(m) is None];\nsys.exit(1 if missing else 0)';
   try {
     await runCommand(venvPython, ['-c', modulesProbe], { cwd: sidecarDir, stdio: 'ignore' });
+
+    // Check sentence-transformers version
+    const versionCheck = 'import importlib.metadata, sys;\nversion = importlib.metadata.version("sentence-transformers");\nmajor = int(version.split(".")[0]);\nsys.exit(0 if major >= 5 else 1)';
+    try {
+      await runCommand(venvPython, ['-c', versionCheck], { cwd: sidecarDir, stdio: 'ignore' });
+    } catch {
+      log('⚠️  sentence-transformers is outdated (need 5.x). Reinstalling...');
+      if (process.env.SKIP_PIP_INSTALL !== '1') {
+        await runCommand(venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip'], { cwd: sidecarDir });
+        await runCommand(venvPython, ['-m', 'pip', 'install', '-r', 'requirements.txt', '--upgrade'], { cwd: sidecarDir });
+      }
+    }
   } catch {
     if (process.env.SKIP_PIP_INSTALL === '1') {
       log('Skipping dependency install because SKIP_PIP_INSTALL=1');
@@ -117,6 +129,21 @@ async function waitForHealth(timeoutMs = DEFAULT_TIMEOUT_MS) {
 }
 
 async function startSidecar(venvPython) {
+  // Clear Python bytecode cache to ensure fresh code is loaded
+  try {
+    const { execSync } = await import('child_process');
+    if (isWindows) {
+      execSync('for /d /r . %d in (__pycache__) do @if exist "%d" rd /s /q "%d"', { cwd: sidecarDir, shell: true, stdio: 'ignore' });
+      execSync('del /s /q *.pyc', { cwd: sidecarDir, shell: true, stdio: 'ignore' });
+    } else {
+      execSync('find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true', { cwd: sidecarDir, stdio: 'ignore' });
+      execSync('find . -name "*.pyc" -delete 2>/dev/null || true', { cwd: sidecarDir, stdio: 'ignore' });
+    }
+    log('Cleared Python bytecode cache');
+  } catch {
+    // Cache clearing is best-effort, don't fail if it errors
+  }
+
   const env = {
     ...process.env,
     SIDECAR_ALLOW_MOCK: process.env.SIDECAR_ALLOW_MOCK ?? 'false',

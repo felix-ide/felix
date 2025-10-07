@@ -27,6 +27,9 @@ mcp-debug.log
 mcp-permission-debug.json
 .sidecar-dev.pid
 
+.sidecar-dev.pid
+python-sidecar/__pycache__/
+
 # Legacy PID names
 .felix.sidecar.pid
 

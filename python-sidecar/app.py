@@ -74,41 +74,120 @@ _backend: str = "mock"
 
 
 def select_device() -> str:
+    print("=" * 80)
+    print("🔍 GPU DETECTION STARTING")
+    print("=" * 80)
+    print(f"FORCE_DEVICE setting: {FORCE_DEVICE}")
+    print(f"PyTorch available: {_TORCH_AVAILABLE}")
+
     if FORCE_DEVICE == "cpu":
+        print("⚠️  FORCED TO CPU via SIDECAR_DEVICE=cpu")
         return "cpu"
+
     if FORCE_DEVICE == "cuda":
         if _TORCH_AVAILABLE and torch.cuda.is_available():  # type: ignore
+            print("✅ CUDA FORCED and available")
             return "cuda"
+        print("❌ CUDA FORCED but NOT available")
         return "cpu"
+
     if FORCE_DEVICE == "mps":
         if _TORCH_AVAILABLE and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():  # type: ignore
+            print("✅ MPS FORCED and available")
             return "mps"
+        print("❌ MPS FORCED but NOT available")
         return "cpu"
-    # auto
-    if _TORCH_AVAILABLE and torch.cuda.is_available():  # type: ignore
-        return "cuda"
-    if _TORCH_AVAILABLE and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():  # type: ignore
-        return "mps"
+
+    # auto detection
+    if _TORCH_AVAILABLE:
+        print(f"PyTorch version: {torch.__version__}")  # type: ignore
+
+        # Check CUDA
+        if torch.cuda.is_available():  # type: ignore
+            cuda_version = torch.version.cuda  # type: ignore
+            device_count = torch.cuda.device_count()  # type: ignore
+            device_name = torch.cuda.get_device_name(0)  # type: ignore
+            print(f"✅ CUDA is available!")
+            print(f"   CUDA version: {cuda_version}")
+            print(f"   GPU count: {device_count}")
+            print(f"   GPU 0: {device_name}")
+            return "cuda"
+
+        # Check MPS
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():  # type: ignore
+            print("✅ MPS (Metal) is available!")
+            return "mps"
+
+        print("⚠️  No GPU detected, falling back to CPU")
+    else:
+        print("❌ PyTorch not available")
+
     return "cpu"
 
 
 def load_backend():
     global _model, _backend, _device, _dimensions
     _device = select_device()
+
+    print("=" * 80)
+    print(f"🚀 LOADING MODEL: {MODEL_NAME}")
+    print(f"📍 Target device: {_device}")
+    print(f"🔢 Using FP16: {USE_FP16 and _device == 'cuda'}")
+
+    # Check sentence-transformers version
     if _TORCH_AVAILABLE and SentenceTransformer is not None:
         try:
+            import importlib.metadata
+            st_version = importlib.metadata.version("sentence-transformers")
+            print(f"📦 sentence-transformers: {st_version}")
+            major_version = int(st_version.split('.')[0])
+            if major_version < 5:
+                print("⚠️  WARNING: sentence-transformers is outdated!")
+                print("   Please run: npm run setup --auto")
+                print("   Or manually: cd python-sidecar && rm -rf .venv && npm run setup")
+        except Exception:
+            pass
+
+    print("=" * 80)
+
+    if _TORCH_AVAILABLE and SentenceTransformer is not None:
+        try:
+            load_start = time.perf_counter()
             _model = SentenceTransformer(MODEL_NAME, device=_device)
-            # probe dims
+            load_time = time.perf_counter() - load_start
+
+            # probe dims with timing
+            test_start = time.perf_counter()
             vec = _model.encode(["hello"], convert_to_numpy=True, normalize_embeddings=True)
+            test_time = time.perf_counter() - test_start
+
             _dimensions = int(vec.shape[1])
             _backend = "sentence-transformers"
+
+            print(f"✅ MODEL LOADED SUCCESSFULLY!")
+            print(f"   Load time: {load_time:.2f}s")
+            print(f"   Test encoding time: {test_time*1000:.1f}ms")
+            print(f"   Dimensions: {_dimensions}")
+            print(f"   Backend: {_backend}")
+            print(f"   Device: {_device}")
+
+            # Show actual device the model is on
+            if hasattr(_model, '_target_device'):
+                print(f"   Model device: {_model._target_device}")
+
+            print("=" * 80)
             return
         except Exception as e:
+            print(f"❌ FAILED TO LOAD MODEL: {e}")
             if not ALLOW_MOCK:
                 raise RuntimeError(f"Failed to load embedding model '{MODEL_NAME}' and SIDECAR_ALLOW_MOCK is not enabled. Error: {e}")
+
     # mock fallback
     if not ALLOW_MOCK and not _TORCH_AVAILABLE:
         raise RuntimeError("PyTorch/sentence-transformers not available and SIDECAR_ALLOW_MOCK is not enabled. Install torch/sentence-transformers or set SIDECAR_ALLOW_MOCK=true")
+
+    print("⚠️  USING MOCK EMBEDDINGS (no real model loaded)")
+    print("=" * 80)
     _model = None
     _dimensions = 384
     _backend = "mock"
@@ -197,26 +276,43 @@ def embeddings(req: Request, body: EmbeddingRequest):
     inputs = valid_inputs
 
     # Debug: Log what we're about to encode (safe for Windows console)
-    print(f"DEBUG: About to encode {len(inputs)} inputs")
-    if inputs:
-        print(f"DEBUG: First input length: {len(inputs[0])}, starts with: {inputs[0][:50]}")
+    print(f"DEBUG: About to encode {len(inputs)} inputs on device={_device}")
 
     try:
         if _backend == "sentence-transformers" and _model is not None:
+            # Try with dtype first (sentence-transformers <5.0), fall back without (5.0+)
             kwargs = {}
             if USE_FP16 and _device == "cuda":
                 kwargs["dtype"] = np.float16  # type: ignore
-            # On MPS, prefer float32 for stability unless explicitly overridden
+            # On MPS, prefer float32 for stability
             if _device == "mps":
                 kwargs.pop("dtype", None)
+
             try:
+                # Try with dtype parameter (works on older versions)
                 vecs = _model.encode(
                     inputs,
                     convert_to_numpy=True,
                     normalize_embeddings=body.normalize,
                     **kwargs,
                 )
-            except (TypeError, ValueError) as te:
+            except (TypeError, ValueError) as dtype_error:
+                # sentence-transformers 5.0+ doesn't accept dtype, retry without it
+                if "dtype" in str(dtype_error) or "additional keyword arguments" in str(dtype_error):
+                    print(f"INFO: Retrying without dtype parameter (sentence-transformers 5.0+)")
+                    vecs = _model.encode(
+                        inputs,
+                        convert_to_numpy=True,
+                        normalize_embeddings=body.normalize,
+                    )
+                    # Successfully encoded, continue
+                    te = None  # Clear any error
+                else:
+                    # Not a dtype error, save for error handling below
+                    te = dtype_error
+
+            # If we have a non-dtype error, handle it
+            if 'te' in locals() and te is not None:
                 # Handle invalid input types from sentence-transformers
                 print(f"ERROR: sentence-transformers rejected inputs. Error: {str(te)[:200]}")
                 print(f"ERROR: Input count: {len(inputs)}")
@@ -230,6 +326,11 @@ def embeddings(req: Request, body: EmbeddingRequest):
         else:
             vecs = _mock_encode(inputs, normalize=body.normalize)
         elapsed_ms = int((time.perf_counter() - start) * 1000)
+
+        # Log performance info
+        items_per_sec = len(inputs) / (elapsed_ms / 1000) if elapsed_ms > 0 else 0
+        print(f"⚡ Encoded {len(inputs)} inputs in {elapsed_ms}ms ({items_per_sec:.1f} items/sec) on {_device}")
+
         return JSONResponse(
             {
                 "embeddings": vecs.tolist(),

@@ -2,9 +2,11 @@ fastapi==0.112.1
 uvicorn[standard]==0.30.5
 pydantic==2.8.2
 numpy==2.0.2
-# Optional but recommended for real embeddings (requires network + larger download)
-torch>=2.3.0
-sentence-transformers>=3.0.0
+# PyTorch - DO NOT install from this file, use setup script
+# torch is installed separately via scripts/setup.js to detect GPU
+# sentence-transformers 5.x has breaking API changes from 3.x/4.x
+# If upgrading from older version, delete .venv and run setup again
+sentence-transformers>=5.0.0,<6.0.0
 scipy>=1.11.0
 pytest==8.3.2
 httpx==0.27.2

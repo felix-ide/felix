@@ -20,9 +20,7 @@ export function createFileBrowserHandler(resolveFn: typeof resolvePath = resolve
     try {
       // Default to current working directory, allow absolute paths
       const targetPath = typeof req.query.path === 'string' ? req.query.path : process.cwd();
-      console.log('[DEBUG] File browse request:', { targetPath, isAbsolute: isAbsolute(targetPath) });
       const resolvedPath = resolveFn(targetPath);
-      console.log('[DEBUG] Resolved to:', resolvedPath);
 
       if (!existsSync(resolvedPath)) {
         res.status(404).json({ error: 'Directory not found' });
@@ -63,12 +61,9 @@ export function createFileBrowserHandler(resolveFn: typeof resolvePath = resolve
           return a.name.localeCompare(b.name);
         });
 
-      const response = { path: resolvedPath, entries: nodes };
-      console.log('[DEBUG] Returning:', { path: response.path, entryCount: response.entries.length });
-      res.json(response);
+      res.json({ path: resolvedPath, entries: nodes });
       return;
     } catch (error) {
-      console.error('[DEBUG] Error browsing directory:', error);
       res.status(500).json({ error: (error as Error).message });
       return;
     }
