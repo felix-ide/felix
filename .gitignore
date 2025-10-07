@@ -8,8 +8,8 @@ dist/
 release/
 .code-indexer.index.db-*
 .felix.index.db-*
-*.wal
-*.shm
+*.db-wal
+*.db-shm
 *.db
 **/.claude/settings.local.json
 python-sidecar/.venv/
