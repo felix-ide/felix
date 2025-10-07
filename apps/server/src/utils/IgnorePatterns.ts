@@ -81,13 +81,16 @@ export class IgnorePatterns {
    */
   shouldIgnore(filePath: string): boolean {
     const relativePath = relative(this.projectRoot, resolve(filePath));
-    
+
     // Don't ignore paths outside the project root
     if (!relativePath || relativePath.startsWith('..')) {
       return false;
     }
 
-    return this.ig.ignores(relativePath);
+    // Normalize path separators to forward slashes for ignore library (Windows compatibility)
+    const normalizedPath = relativePath.replace(/\\/g, '/');
+
+    return this.ig.ignores(normalizedPath);
   }
 
   /**
