@@ -1,4 +1,4 @@
-import { resolve as resolvePath, join } from 'path';
+import { resolve as resolvePath, join, isAbsolute } from 'path';
 import { existsSync, statSync, readdirSync } from 'fs';
 import type { Request, Response, RequestHandler } from 'express';
 
@@ -18,8 +18,11 @@ interface FileNode {
 export function createFileBrowserHandler(resolveFn: typeof resolvePath = resolvePath): RequestHandler {
   return async function handleFileBrowse(req: Request, res: Response) {
     try {
-      const targetPath = typeof req.query.path === 'string' ? req.query.path : '/';
-      const resolvedPath = targetPath === '/' ? resolveFn('..') : resolveFn(targetPath);
+      // Default to current working directory, allow absolute paths
+      const targetPath = typeof req.query.path === 'string' ? req.query.path : process.cwd();
+      console.log('[DEBUG] File browse request:', { targetPath, isAbsolute: isAbsolute(targetPath) });
+      const resolvedPath = resolveFn(targetPath);
+      console.log('[DEBUG] Resolved to:', resolvedPath);
 
       if (!existsSync(resolvedPath)) {
         res.status(404).json({ error: 'Directory not found' });
@@ -35,17 +38,24 @@ export function createFileBrowserHandler(resolveFn: typeof resolvePath = resolve
       const entries = readdirSync(resolvedPath, { withFileTypes: true });
       const nodes = entries
         .filter(entry => !entry.name.startsWith('.'))
-        .map<FileNode>(entry => {
+        .map<FileNode | null>(entry => {
           const entryPath = join(resolvedPath, entry.name);
-          const entryStat = statSync(entryPath);
-          return {
-            name: entry.name,
-            path: entryPath,
-            type: entry.isDirectory() ? 'directory' : 'file',
-            size: entry.isFile() ? entryStat.size : undefined,
-            modified: entryStat.mtime.toISOString()
-          };
+          try {
+            const entryStat = statSync(entryPath);
+            return {
+              name: entry.name,
+              path: entryPath,
+              type: entry.isDirectory() ? 'directory' : 'file',
+              size: entry.isFile() ? entryStat.size : undefined,
+              modified: entryStat.mtime.toISOString()
+            };
+          } catch (error) {
+            // Skip files that are locked or inaccessible (common on Windows system drives)
+            console.log(`[DEBUG] Skipping inaccessible file: ${entryPath}`);
+            return null;
+          }
         })
+        .filter((node): node is FileNode => node !== null)
         .sort((a, b) => {
           if (a.type !== b.type) {
             return a.type === 'directory' ? -1 : 1;
@@ -53,9 +63,12 @@ export function createFileBrowserHandler(resolveFn: typeof resolvePath = resolve
           return a.name.localeCompare(b.name);
         });
 
-      res.json({ path: resolvedPath, entries: nodes });
+      const response = { path: resolvedPath, entries: nodes };
+      console.log('[DEBUG] Returning:', { path: response.path, entryCount: response.entries.length });
+      res.json(response);
       return;
     } catch (error) {
+      console.error('[DEBUG] Error browsing directory:', error);
       res.status(500).json({ error: (error as Error).message });
       return;
     }

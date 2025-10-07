@@ -20,23 +20,29 @@ interface DirectoryBrowserProps {
 }
 
 export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrowserProps) {
-  const [currentPath, setCurrentPath] = useState<string>('/');
+  const [currentPath, setCurrentPath] = useState<string>('');
   const [directories, setDirectories] = useState<DirectoryNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
   const loadDirectory = async (path: string) => {
     setLoading(true);
+    console.log('[DEBUG] Loading directory:', path);
     try {
       // Get base URL from integration config or use default
       const integrationConfig = (window as any).FELIX_INTEGRATION || (window as any).FELIX_INTEGRATION;
       const baseUrl = integrationConfig?.apiUrl || '/api';
-      
-      const response = await fetch(`${baseUrl}/files/browse?path=${encodeURIComponent(path)}`);
+
+      const url = `${baseUrl}/files/browse?path=${encodeURIComponent(path)}`;
+      console.log('[DEBUG] Fetching:', url);
+      const response = await fetch(url);
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[DEBUG] Server error:', errorData);
         throw new Error('Failed to load directory');
       }
       const data = await response.json();
+      console.log('[DEBUG] Server returned:', data);
       const dirs = data.entries.filter((entry: DirectoryNode) => entry.type === 'directory');
       setDirectories(dirs);
       setCurrentPath(data.path);
@@ -67,7 +73,28 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
   };
 
   const goUp = () => {
-    const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
+    // Handle both Windows (C:\foo\bar) and Unix (/foo/bar) paths
+    const isWindows = currentPath.includes('\\') || /^[A-Z]:/i.test(currentPath);
+    const separator = isWindows ? '\\' : '/';
+    const parts = currentPath.split(/[/\\]/).filter(p => p); // Remove empty parts
+
+    console.log('[DEBUG] goUp called:', { currentPath, isWindows, parts });
+
+    // Can't go up from root (e.g., C:\ or /)
+    if (parts.length <= 1) {
+      console.log('[DEBUG] Already at root, cannot go up');
+      return;
+    }
+
+    const parentParts = parts.slice(0, -1);
+    let parentPath = parentParts.join(separator);
+
+    // On Windows, ensure drive letter has backslash (C:\ not C:)
+    if (isWindows && parentParts.length === 1 && /^[A-Z]:$/i.test(parentPath)) {
+      parentPath += separator;
+    }
+
+    console.log('[DEBUG] Going up to:', parentPath);
     loadDirectory(parentPath);
     setSelectedPath(null);
   };
@@ -90,7 +117,7 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
               variant="outline"
               size="sm"
               onClick={goUp}
-              disabled={currentPath === '/' || loading}
+              disabled={loading}
             >
               Up
             </Button>
