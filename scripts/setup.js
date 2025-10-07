@@ -238,12 +238,12 @@ class SetupValidator {
       const spinner = ora('Installing Rollup Windows binary...').start();
 
       try {
-        execSync('npm install @rollup/rollup-win32-x64-msvc', { stdio: 'ignore' });
+        execSync('npm install @rollup/rollup-win32-x64-msvc --no-save', { stdio: 'ignore' });
         spinner.succeed('Installed Rollup Windows binary');
         this.success('Fixed Windows Rollup dependency');
       } catch (error) {
         spinner.fail('Failed to install Rollup Windows binary');
-        this.warning('You may need to manually run: npm install @rollup/rollup-win32-x64-msvc');
+        this.warning('You may need to manually run: npm install @rollup/rollup-win32-x64-msvc --no-save');
       }
     }
   }
