@@ -140,6 +140,22 @@ export interface TaskData {
   
   // Checklists for flexible task organization
   checklists?: Checklist[];
+
+  transition_prompt?: string;
+  transition_bundle_results?: Array<{
+    bundle_id?: string;
+    bundle_name?: string;
+    is_valid: boolean;
+    missing_requirements: Array<{
+      section_type: string;
+      action_needed: string;
+      description: string;
+      is_conditional?: boolean;
+      condition_not_met?: string;
+    }>;
+    completed_requirements: string[];
+  }>;
+  transition_applied?: Record<string, any>;
   
   sort_order: number;
   depth_level: number;

@@ -8,6 +8,7 @@ import { WorkflowService } from '../features/workflows/services/WorkflowService.
 import { WorkflowScaffoldingService } from '../features/workflows/services/WorkflowScaffoldingService.js';
 import { DatabaseManager } from '../features/storage/DatabaseManager.js';
 import { GuidanceService } from '../features/workflows/services/GuidanceService.js';
+import { WorkflowSnapshotService } from '../features/workflows/services/WorkflowSnapshotService.js';
 
 /**
  * Handle workflow configuration tools
@@ -18,37 +19,51 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
   const dbManager: DatabaseManager | null = dbOrManager && dbOrManager.getMetadataDataSource ? dbOrManager as DatabaseManager : null;
   const metadataDs = dbManager ? dbManager.getMetadataDataSource() : dbOrManager;
   const configManager = new WorkflowConfigManager(metadataDs);
+
+  const respond = (payload: any, text?: string) => ({
+    content: [{ type: 'text', text: text ?? JSON.stringify(payload, null, 2) }],
+    payload
+  });
+
+  const parseMap = (raw: unknown): Record<string, string> => {
+    if (!raw) return {};
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+    if (typeof raw === 'object') {
+      return raw as Record<string, string>;
+    }
+    return {};
+  };
   
   switch (action) {
     case 'set_type_mapping': {
       const { task_type, workflow_name } = params;
       if (!task_type || !workflow_name) throw new Error('task_type and workflow_name are required');
       await configManager.setWorkflowForTaskType(task_type, workflow_name);
-      return { content: [{ type: 'text', text: `Mapping set: ${task_type} -> ${workflow_name}` }] };
+      return respond({ ok: true, task_type, workflow_name }, `Mapping set: ${task_type} -> ${workflow_name}`);
     }
 
     case 'get_type_mapping': {
       const cfg = await configManager.getGlobalConfig();
-      const value = (cfg as any).defaults_by_task_type || {};
-      return { content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] };
+      const value = parseMap((cfg as any).defaults_by_task_type);
+      return respond({ map: value });
     }
 
     case 'resolve': {
       const { task_type, workflow } = params;
       const byType = await configManager.getWorkflowForTaskType(task_type);
       const resolved = workflow || byType || await configManager.getDefaultWorkflow();
-      return { content: [{ type: 'text', text: resolved }] };
+      return respond({ workflow: resolved }, resolved);
     }
     case 'get_default': {
       const defaultWorkflow = await configManager.getDefaultWorkflow();
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Default workflow: ${defaultWorkflow}`
-          }
-        ]
-      };
+      return respond({ workflow: defaultWorkflow }, `Default workflow: ${defaultWorkflow}`);
     }
     
     case 'set_default': {
@@ -58,26 +73,12 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
       }
       
       await configManager.setDefaultWorkflow(workflow_name);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Default workflow set to: ${workflow_name}`
-          }
-        ]
-      };
+      return respond({ ok: true, workflow: workflow_name }, `Default workflow set to: ${workflow_name}`);
     }
     
     case 'list': {
       const workflows = await configManager.listAvailableWorkflows();
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(workflows, null, 2)
-          }
-        ]
-      };
+      return respond({ items: workflows });
     }
     
     case 'get': {
@@ -91,14 +92,7 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
         throw new Error(`Workflow not found: ${workflow_name}`);
       }
       
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(workflow, null, 2)
-          }
-        ]
-      };
+      return respond({ workflow });
     }
     
     case 'create': {
@@ -108,14 +102,7 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
       }
       
       await configManager.createWorkflow(workflow as WorkflowDefinition);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Workflow created: ${workflow.name}`
-          }
-        ]
-      };
+      return respond({ ok: true, workflow: workflow.name }, `Workflow created: ${workflow.name}`);
     }
     
     case 'update': {
@@ -128,14 +115,7 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
       }
       
       await configManager.updateWorkflowConfig(workflow_name, updates);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Workflow updated: ${workflow_name}`
-          }
-        ]
-      };
+      return respond({ ok: true, workflow: workflow_name, updates }, `Workflow updated: ${workflow_name}`);
     }
     
     case 'delete': {
@@ -145,26 +125,12 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
       }
       
       await configManager.deleteWorkflow(workflow_name);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Workflow deleted: ${workflow_name}`
-          }
-        ]
-      };
+      return respond({ ok: true, workflow: workflow_name }, `Workflow deleted: ${workflow_name}`);
     }
     
     case 'get_config': {
       const config = await configManager.getGlobalConfig();
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(config, null, 2)
-          }
-        ]
-      };
+      return respond({ config });
     }
     
     case 'update_config': {
@@ -174,14 +140,25 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
       }
       
       await configManager.updateGlobalConfig(updates);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'Global workflow configuration updated'
-          }
-        ]
-      };
+      return respond({ ok: true, updates }, 'Global workflow configuration updated');
+    }
+
+    case 'export_snapshot': {
+      if (!dbManager) throw new Error('DatabaseManager required for export_snapshot');
+      const projectPath = params.project || params.project_path;
+      if (!projectPath) throw new Error('project path is required for export_snapshot');
+      const snapshotService = new WorkflowSnapshotService(dbManager);
+      const result = await snapshotService.exportSnapshot(projectPath, { filePath: params.file_path });
+      return respond(result);
+    }
+
+    case 'import_snapshot': {
+      if (!dbManager) throw new Error('DatabaseManager required for import_snapshot');
+      const projectPath = params.project || params.project_path;
+      if (!projectPath) throw new Error('project path is required for import_snapshot');
+      const snapshotService = new WorkflowSnapshotService(dbManager);
+      const result = await snapshotService.importSnapshot(projectPath, { filePath: params.file_path, overwrite: params.overwrite !== false });
+      return respond(result);
     }
 
     case 'guide': {
@@ -193,13 +170,13 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
       (task as any).workflow = await wf.resolveWorkflowName(task.task_type, workflow);
       const svc = new GuidanceService(dbManager);
       const guidance = await svc.build(task);
-      return { content: [{ type: 'text', text: JSON.stringify(guidance, null, 2) }] };
+      return respond({ guidance });
     }
 
     case 'reseed': {
       const { force } = params;
       await configManager.reseedBuiltIns(!!force);
-      return { content: [{ type: 'text', text: 'Built-in workflows reseeded' }] };
+      return respond({ ok: true, force: !!force }, 'Built-in workflows reseeded');
     }
     
     case 'validate': {
@@ -235,10 +212,10 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
         const guidance = await withTimeout(guideSvc.build({ ...taskForValidation, workflow: wfName } as any), 'guidance');
         const enriched = { ...result, guidance };
         console.log(`[workflows.validate] done for task=${task.id || task.title || 'unknown'}`);
-        return { content: [{ type: 'text', text: JSON.stringify(enriched, null, 2) }] };
+        return respond(enriched);
       }
       console.log(`[workflows.validate] done (no guidance) for task=${task.id || task.title || 'unknown'}`);
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      return respond(result);
     }
     
     case 'scaffold': {
@@ -248,7 +225,95 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
       if (!task_id) throw new Error('task_id is required');
       const svc = new WorkflowScaffoldingService(dbManager);
       const result = await svc.scaffoldMissing(task_id, workflow_name, { dryRun: !!dry_run, sections, stubs });
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      return respond(result);
+    }
+
+    case 'list_statuses': {
+      const statuses = await configManager.listTaskStatuses();
+      return respond({ statuses });
+    }
+
+    case 'upsert_status': {
+      const statusInput = params.status ?? params;
+      if (!statusInput || !statusInput.name) {
+        throw new Error('status.name is required for upsert_status');
+      }
+      const status = await configManager.upsertTaskStatus(statusInput);
+      return respond({ status }, `Status saved: ${status.id}`);
+    }
+
+    case 'delete_status': {
+      const statusId = params.status_id || params.id;
+      if (!statusId) throw new Error('status_id is required for delete_status');
+      await configManager.deleteTaskStatus(String(statusId));
+      return respond({ ok: true, status_id: String(statusId) }, `Status deleted: ${statusId}`);
+    }
+
+    case 'list_status_flows': {
+      const [flows, presets] = await Promise.all([
+        configManager.listTaskStatusFlows(),
+        Promise.resolve(configManager.getStatePresets())
+      ]);
+      return respond({ flows, presets });
+    }
+
+    case 'upsert_status_flow': {
+      const flowInput = params.flow ?? params;
+      if (!flowInput || !flowInput.name) {
+        throw new Error('flow.name is required for upsert_status_flow');
+      }
+      if (!Array.isArray(flowInput.status_ids) || !flowInput.status_ids.length) {
+        throw new Error('flow.status_ids must be a non-empty array');
+      }
+      const flow = await configManager.upsertTaskStatusFlow(flowInput);
+      return respond({ flow }, `Flow saved: ${flow.id}`);
+    }
+
+    case 'delete_status_flow': {
+      const flowId = params.flow_id || params.id;
+      if (!flowId) throw new Error('flow_id is required for delete_status_flow');
+      await configManager.deleteTaskStatusFlow(String(flowId));
+      return respond({ ok: true, flow_id: String(flowId) }, `Flow deleted: ${flowId}`);
+    }
+
+    case 'get_flow_mapping': {
+      const cfg = await configManager.getGlobalConfig();
+      const map = parseMap((cfg as any).status_flow_by_task_type);
+      return respond({ map });
+    }
+
+    case 'set_flow_mapping': {
+      const bulk = params.flow_map;
+      if (bulk && typeof bulk === 'object') {
+        const cfg = await configManager.getGlobalConfig();
+        const existing = parseMap((cfg as any).status_flow_by_task_type);
+        const merged = { ...existing };
+        Object.entries(bulk as Record<string, unknown>).forEach(([taskType, flow]) => {
+          if (!flow) {
+            delete merged[taskType];
+          } else {
+            merged[taskType] = String(flow);
+          }
+        });
+        await configManager.updateGlobalConfig({ status_flow_by_task_type: merged });
+        return respond({ ok: true, map: merged }, 'Flow mapping updated');
+      }
+      const taskType = params.task_type;
+      const flowIdRaw = params.flow_id_for_type ?? params.flow_id;
+      if (!taskType) {
+        throw new Error('task_type is required for set_flow_mapping');
+      }
+      if (!flowIdRaw) {
+        await configManager.setStatusFlowForTaskType(taskType, null);
+      } else {
+        await configManager.setStatusFlowForTaskType(taskType, String(flowIdRaw));
+      }
+      const cfg = await configManager.getGlobalConfig();
+      const map = parseMap((cfg as any).status_flow_by_task_type);
+      return respond(
+        { ok: true, task_type: taskType, flow_id: flowIdRaw ?? null, map },
+        flowIdRaw ? `Flow mapping set: ${taskType} -> ${flowIdRaw}` : `Flow mapping cleared for ${taskType}`
+      );
     }
     
     default:

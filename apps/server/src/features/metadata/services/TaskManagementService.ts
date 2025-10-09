@@ -14,8 +14,11 @@ import type {
 import { TaskUtils } from '@felix/code-intelligence';
 import type { SearchResult } from '../../../types/storage.js';
 import { WorkflowService } from '../../workflows/services/WorkflowService.js';
+import { WorkflowTransitionService } from '../../workflows/services/WorkflowTransitionService.js';
+import type { TransitionEvaluationResult } from '../../workflows/services/WorkflowTransitionService.js';
 import { WorkflowConfigManager } from '../../../storage/WorkflowConfigManager.js';
 import { logger } from '../../../shared/logger.js';
+import { TransitionGateError } from '../../workflows/errors/TransitionGateError.js';
  
 
 export interface TaskDependencyParams {
@@ -91,10 +94,14 @@ export class TaskManagementService {
   async updateTask(id: string, updates: UpdateTaskParams): Promise<ITask> {
     const updateWithChecklists = { ...updates, checklists: (updates as any).checklists } as any;
     let specStateUpdated = false;
+    const currentTask = await this.getTask(id);
+    if (!currentTask) {
+      throw new Error('Task not found');
+    }
+    const baseTask = currentTask as ITask;
     // Guard: prevent moving to in_progress unless spec_state >= spec_ready
     if (updates.task_status && updates.task_status === 'in_progress') {
-      const current = await this.getTask(id) as any;
-      const state = current?.spec_state || 'draft';
+      const state = (baseTask as any).spec_state || 'draft';
       if (state !== 'spec_ready') {
         throw new Error(`Cannot set task_status=in_progress when spec_state is '${state}'. Gate requires spec_state=spec_ready.`);
       }
@@ -119,6 +126,25 @@ export class TaskManagementService {
       }
     }
 
+    let transitionEvaluation: TransitionEvaluationResult | null = null;
+    if (updates.task_status && updates.task_status !== baseTask.task_status) {
+      const transitionService = new WorkflowTransitionService(this.dbManager);
+      const evaluation = await transitionService.evaluateStatusChange(
+        baseTask,
+        updates.task_status,
+        {
+          gateToken: (updates as any).transition_gate_token,
+          actor: (updates as any).updated_by
+        }
+      );
+      if (!evaluation.allowed) {
+        throw new TransitionGateError('Task status transition blocked by workflow requirements', evaluation);
+      }
+      transitionEvaluation = evaluation;
+    }
+    delete (updateWithChecklists as any).transition_gate_token;
+    delete (updateWithChecklists as any).transition_gate_response;
+
     // If attempting to set spec_state via generic update, route through gated setter
     if ((updates as any).spec_state) {
       const next = (updates as any).spec_state as 'draft'|'spec_in_progress'|'spec_ready';
@@ -134,8 +160,7 @@ export class TaskManagementService {
       const enforce = (cfg as any).enforce_type_mapping === true || (cfg as any).enforce_type_mapping === 'true';
       if (enforce) {
         const wfSvc = new WorkflowService(this.dbManager);
-        const current = await this.getTask(id);
-        const nextType = (updates as any).task_type || current?.task_type;
+        const nextType = (updates as any).task_type || baseTask?.task_type;
         const resolved = await wfSvc.resolveWorkflowName(nextType, undefined);
         (updateWithChecklists as any).workflow = resolved;
       }
@@ -157,6 +182,16 @@ export class TaskManagementService {
     const updatedTask = await this.getTask(id);
     if (!updatedTask) {
       throw new Error('Task not found after update');
+    }
+
+    if (transitionEvaluation?.prompt) {
+      (updatedTask as any).transition_prompt = transitionEvaluation.prompt;
+    }
+    if (transitionEvaluation?.bundle_results) {
+      (updatedTask as any).transition_bundle_results = transitionEvaluation.bundle_results;
+    }
+    if (transitionEvaluation?.transition) {
+      (updatedTask as any).transition_applied = transitionEvaluation.transition;
     }
     
     // Regenerate embedding if content changed

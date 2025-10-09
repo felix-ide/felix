@@ -1,5 +1,15 @@
 import type { TaskData, TaskDependency } from '@/types/api';
-import { API_BASE, JSON_HEADERS, buildUrl, fetchJson } from './http';
+import { API_BASE, JSON_HEADERS, addProjectHeader, buildUrl, fetchJson } from './http';
+
+export class TaskUpdateError extends Error {
+  gate?: any;
+
+  constructor(message: string, gate?: any) {
+    super(message);
+    this.name = 'TaskUpdateError';
+    this.gate = gate;
+  }
+}
 
 export const addTask = (task: {
   title: string;
@@ -38,12 +48,36 @@ export const addTask = (task: {
     'Failed to add task'
   );
 
+type TaskListApiResponse = {
+  tasks?: TaskData[];
+  items?: TaskData[];
+  total?: number;
+  hasMore?: boolean;
+  offset?: number;
+  limit?: number;
+};
+
 export const listTasks = async (options: Record<string, unknown> = {}) => {
   const url = buildUrl(API_BASE, 'tasks', options as Record<string, string | number | boolean>);
   try {
-    return await fetchJson<{ tasks: TaskData[]; total: number }>(url, undefined, 'Failed to list tasks');
+    const response = await fetchJson<TaskListApiResponse>(url, undefined, 'Failed to list tasks');
+    const tasks = response.tasks ?? response.items ?? [];
+    const total = response.total ?? tasks.length;
+    return {
+      tasks,
+      total,
+      hasMore: response.hasMore ?? false,
+      offset: response.offset ?? 0,
+      limit: response.limit ?? (typeof options.limit === 'number' ? options.limit : undefined)
+    };
   } catch {
-    return { tasks: [], total: 0 };
+    return {
+      tasks: [],
+      total: 0,
+      hasMore: false,
+      offset: 0,
+      limit: typeof options.limit === 'number' ? options.limit : undefined
+    };
   }
 };
 
@@ -91,6 +125,8 @@ export const updateTask = (
     checklists?: any[];
     spec_state?: 'draft' | 'spec_in_progress' | 'spec_ready';
     skip_validation?: boolean;
+    transitionGateToken?: string;
+    transitionGateResponse?: string;
   }
 ) => {
   const body = Object.fromEntries(
@@ -110,15 +146,50 @@ export const updateTask = (
       sort_order: updates.sortOrder,
       checklists: updates.checklists,
       spec_state: updates.spec_state,
-      skip_validation: updates.skip_validation
+      skip_validation: updates.skip_validation,
+      transition_gate_token: updates.transitionGateToken,
+      transition_gate_response: updates.transitionGateResponse
     }).filter(([, value]) => value !== undefined)
   );
 
-  return fetchJson<{ task: TaskData }>(
-    `${API_BASE}/tasks/${encodeURIComponent(taskId)}`,
-    { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify(body) },
-    'Failed to update task'
-  );
+  const url = buildUrl(API_BASE, `tasks/${encodeURIComponent(taskId)}`);
+
+  return fetch(url, addProjectHeader({
+    method: 'PUT',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body)
+  })).then(async response => {
+    if (response.status === 409) {
+      let gate: any = null;
+      let message = 'Task update blocked by workflow gate';
+      try {
+        const data = await response.json();
+        gate = data?.gate;
+        if (data?.error) message = data.error;
+      } catch {
+        /* ignore parse errors */
+      }
+      throw new TaskUpdateError(message, gate);
+    }
+
+    if (!response.ok) {
+      let message = 'Failed to update task';
+      try {
+        const data = await response.json();
+        if (data?.error) message = data.error;
+      } catch {
+        try {
+          const text = await response.text();
+          if (text) message = text;
+        } catch {
+          /* ignore */
+        }
+      }
+      throw new Error(message);
+    }
+
+    return response.json() as Promise<{ task: TaskData }>;
+  });
 };
 
 export const deleteTask = (taskId: string) =>

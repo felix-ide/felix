@@ -127,16 +127,13 @@ export function DocumentPreview({
             </div>
           );
         } else {
-          // For thumbnail, render full content in scrollable container with smaller text
+          // For thumbnail, render full content in scrollable container
           return (
             <div className="flex flex-col h-full">
               <div className="text-xs font-medium px-2 pt-2 pb-1 border-b border-border">
                 {title || metadata?.fileName || 'Document'}
               </div>
-              <div className="flex-1 overflow-auto p-2 prose prose-sm dark:prose-invert max-w-none
-                [&>*]:text-xs [&_p]:mb-1 [&_pre]:text-xs [&_code]:text-xs
-                [&_h1]:text-sm [&_h1]:mb-1 [&_h2]:text-sm [&_h2]:mb-1 [&_h3]:text-xs [&_h3]:mb-1
-                [&_ul]:text-xs [&_ol]:text-xs [&_li]:mb-0.5">
+              <div className="flex-1 overflow-auto p-2">
                 <MarkdownRenderer content={content} />
               </div>
             </div>

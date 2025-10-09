@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TaskData } from '@/types/api';
 import { felixService } from '@/services/felixService';
+import { TaskUpdateError } from '@client/shared/api/tasksClient';
 
 interface TasksStore {
   tasks: TaskData[];
@@ -10,6 +11,11 @@ interface TasksStore {
   selectedTaskId?: string;
   selectedTaskIds: Set<string>;
   pollInterval: number | null;
+  pendingGates: Record<string, {
+    gate: any;
+    updates: Record<string, unknown>;
+    message: string;
+  }>;
   
   // Actions
   loadTasks: (options?: { parentId?: string; includeChildren?: boolean }) => Promise<void>;
@@ -23,6 +29,8 @@ interface TasksStore {
   clearError: () => void;
   startPolling: (interval?: number) => void;
   stopPolling: () => void;
+  acknowledgeGate: (taskId: string) => Promise<void>;
+  dismissGate: (taskId: string) => void;
 }
 
 export const useTasksStore = create<TasksStore>()(
@@ -34,6 +42,7 @@ export const useTasksStore = create<TasksStore>()(
       selectedTaskId: undefined,
       selectedTaskIds: new Set<string>(),
       pollInterval: null,
+      pendingGates: {},
 
       loadTasks: async (options = {}) => {
         set({ loading: true, error: null });
@@ -128,19 +137,39 @@ export const useTasksStore = create<TasksStore>()(
           if (updates.parent_id !== undefined || updates.sort_order !== undefined) {
             await get().loadTasks();
           } else {
-            set((state) => ({
-              tasks: state.tasks.map(task =>
-                task.id === taskId ? updatedTask : task
-              ),
-              loading: false,
-            }));
+            set((state) => {
+              const { [taskId]: _, ...restGates } = state.pendingGates;
+              return {
+                tasks: state.tasks.map(task =>
+                  task.id === taskId ? updatedTask : task
+                ),
+                loading: false,
+                pendingGates: restGates
+              };
+            });
           }
         } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : 'Failed to update task',
-            loading: false,
-          });
-          throw error;
+          if (error instanceof TaskUpdateError && error.gate) {
+            set((state) => ({
+              error: error.message,
+              loading: false,
+              pendingGates: {
+                ...state.pendingGates,
+                [taskId]: {
+                  gate: error.gate,
+                  updates: serviceUpdates,
+                  message: error.message
+                }
+              }
+            }));
+            throw error;
+          } else {
+            set({ 
+              error: error instanceof Error ? error.message : 'Failed to update task',
+              loading: false,
+            });
+            throw error;
+          }
         }
       },
 
@@ -221,6 +250,60 @@ export const useTasksStore = create<TasksStore>()(
           set({ pollInterval: null });
         }
       },
+
+      acknowledgeGate: async (taskId: string) => {
+        const pending = get().pendingGates[taskId];
+        if (!pending) {
+          throw new Error('No pending workflow gate for this task');
+        }
+        set({ loading: true, error: null });
+        try {
+          const result = await felixService.updateTask(taskId, {
+            ...pending.updates,
+            transitionGateToken: pending.gate?.issued_token ?? pending.gate?.gate?.issued_token
+          });
+          const updatedTask = result.task;
+          set((state) => {
+            const { [taskId]: _, ...rest } = state.pendingGates;
+            return {
+              tasks: state.tasks.map(task =>
+                task.id === taskId ? updatedTask : task
+              ),
+              loading: false,
+              pendingGates: rest
+            };
+          });
+        } catch (error) {
+          if (error instanceof TaskUpdateError && error.gate) {
+            set((state) => ({
+              error: error.message,
+              loading: false,
+              pendingGates: {
+                ...state.pendingGates,
+                [taskId]: {
+                  gate: error.gate,
+                  updates: pending.updates,
+                  message: error.message
+                }
+              }
+            }));
+            throw error;
+          } else {
+            set({
+              error: error instanceof Error ? error.message : 'Failed to acknowledge workflow gate',
+              loading: false
+            });
+            throw error;
+          }
+        }
+      },
+
+      dismissGate: (taskId: string) => {
+        set((state) => {
+          const { [taskId]: _, ...rest } = state.pendingGates;
+          return { pendingGates: rest };
+        });
+      }
     }),
     { name: 'tasks-store' }
   )

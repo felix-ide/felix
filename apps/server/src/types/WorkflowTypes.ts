@@ -14,6 +14,9 @@ export interface WorkflowDefinition {
   use_cases?: string[];
   // Optional structural requirements
   subtasks_required?: SubtaskRequirement[];
+  validation_bundles?: WorkflowValidationBundle[];
+  status_flow_ref?: string | null;
+  status_flow?: WorkflowStatusFlow;
 }
 
 export interface WorkflowSection {
@@ -148,6 +151,8 @@ export interface ValidationStatus {
   completed_requirements: string[];
   workflow: string;
   can_override: boolean;
+  bundle_id?: string;
+  bundle_name?: string;
   // Optional: future gate signals
   // spec_state_satisfied?: boolean;
 }
@@ -177,4 +182,54 @@ export interface SpecWaiver {
   reason: string;
   added_by?: string;
   added_at?: string; // ISO
+}
+
+export interface WorkflowValidationBundle {
+  id: string;
+  name: string;
+  description?: string;
+  sections?: WorkflowSectionType[];
+  optional_sections?: WorkflowSectionType[];
+  rules?: string[];
+  subtasks?: Array<SubtaskRequirement & { optional?: boolean }>;
+  guidance_hint?: string;
+}
+
+export interface WorkflowStatusFlow {
+  initial_state?: string;
+  states: string[];
+  transitions: WorkflowTransition[];
+}
+
+export interface WorkflowTransition {
+  id: string;
+  from: string;
+  to: string;
+  label?: string;
+  description?: string;
+  required_bundles?: string[];
+  optional_bundles?: string[];
+  pre_prompt_template?: string;
+  post_prompt_template?: string;
+  gate?: WorkflowTransitionGateConfig;
+}
+
+export interface WorkflowTransitionGateConfig {
+  require_acknowledgement?: boolean;
+  acknowledgement_prompt_template?: string;
+  auto_checklist?: {
+    name: string;
+    items: string[];
+    merge_strategy?: 'append' | 'replace';
+  };
+}
+
+export interface TransitionGatePayload {
+  gate_id: string;
+  transition_id: string;
+  workflow: string;
+  target_status: string;
+  prompt: string;
+  issued_token: string;
+  created_at: string;
 }

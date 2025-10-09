@@ -16,7 +16,8 @@ import {
   Task, Note, Rule, 
   TaskDependency, TaskCodeLink, TaskMetric,
   RuleRelationship, RuleApplication,
-  WorkflowConfiguration, GlobalWorkflowSetting 
+  WorkflowConfiguration, GlobalWorkflowSetting,
+  TransitionGate
 } from '../entities/metadata/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,7 +58,7 @@ export const metadataDatabaseConfig: DataSourceOptions = METADATA_DB_TYPE === 'p
       database: process.env.DB_NAME || 'code_indexer_metadata',
       entities: [
         Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
-        RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting
+        RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate
       ],
       synchronize: true, // Enable to create schema
       logging: process.env.DB_LOGGING === 'true',
@@ -80,7 +81,7 @@ export const metadataDatabaseConfig: DataSourceOptions = METADATA_DB_TYPE === 'p
       database: process.env.METADATA_DB_PATH || '.felix.metadata.db',
       entities: [
         Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
-        RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting
+        RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate
       ],
       synchronize: true, // Enable to create schema
       logging: process.env.DB_LOGGING === 'true',

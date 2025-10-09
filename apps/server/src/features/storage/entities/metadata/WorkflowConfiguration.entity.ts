@@ -11,6 +11,7 @@ import {
   UpdateDateColumn,
   Index
 } from 'typeorm';
+import { WorkflowStatusFlow, WorkflowValidationBundle } from '../../../../types/WorkflowTypes';
 
 export interface RequiredSection {
   name: string;
@@ -95,6 +96,43 @@ export class WorkflowConfiguration {
     }
   })
   use_cases?: string[];
+
+  @Column({ 
+    type: 'simple-json', 
+    nullable: true,
+    transformer: {
+      to: (value: WorkflowValidationBundle[] | undefined) => value ? JSON.stringify(value) : null,
+      from: (value: string | null) => {
+        if (!value) return null;
+        try {
+          return JSON.parse(value) as WorkflowValidationBundle[];
+        } catch {
+          return null;
+        }
+      }
+    }
+  })
+  validation_bundles?: WorkflowValidationBundle[] | null;
+
+  @Column({
+    type: 'simple-json',
+    nullable: true,
+    transformer: {
+      to: (value: WorkflowStatusFlow | undefined | null) => value ? JSON.stringify(value) : null,
+      from: (value: string | null) => {
+        if (!value) return null;
+        try {
+          return JSON.parse(value) as WorkflowStatusFlow;
+        } catch {
+          return null;
+        }
+      }
+    }
+  })
+  status_flow?: WorkflowStatusFlow | null;
+
+  @Column({ type: 'text', nullable: true })
+  status_flow_ref?: string | null;
 
   @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;

@@ -1,7 +1,9 @@
 import { WorkflowConfigManager } from '../../../storage/WorkflowConfigManager.js';
 import { WorkflowValidator } from '../../../validation/WorkflowValidator.js';
-import type { WorkflowDefinition, CreateTaskParams, ValidationStatus, SubtaskRequirement } from '../../../types/WorkflowTypes.js';
+import type { WorkflowDefinition, CreateTaskParams, ValidationStatus, SubtaskRequirement, WorkflowStatusFlow } from '../../../types/WorkflowTypes.js';
 import { DatabaseManager } from '../../storage/DatabaseManager.js';
+import { TaskStatusFlow } from '../../storage/entities/metadata/TaskStatusFlow.entity.js';
+import { TaskStatus } from '../../storage/entities/metadata/TaskStatus.entity.js';
 
 export class WorkflowService {
   constructor(private dbManager: DatabaseManager) {}
@@ -9,7 +11,40 @@ export class WorkflowService {
   private async getDefinitions(): Promise<WorkflowDefinition[]> {
     const mgr = new WorkflowConfigManager(this.dbManager.getMetadataDataSource());
     await mgr.initialize();
-    return mgr.listAvailableWorkflows();
+    const [workflows, flows] = await Promise.all([
+      mgr.listAvailableWorkflows(),
+      mgr.listTaskStatusFlows()
+    ]);
+
+    const flowMap = new Map<string, TaskStatusFlow>();
+    flows.forEach((flow) => {
+      if (flow?.id) flowMap.set(flow.id, flow);
+    });
+
+    return workflows.map((wf) => {
+      if (wf.status_flow_ref && flowMap.has(wf.status_flow_ref)) {
+        const flow = flowMap.get(wf.status_flow_ref)!;
+        const states = Array.isArray(flow.status_ids) ? flow.status_ids : [flow.status_ids].filter(Boolean);
+        return {
+          ...wf,
+          status_flow: {
+            initial_state: states[0] || undefined,
+            states,
+            transitions: wf.status_flow?.transitions || []
+          }
+        };
+      }
+      return wf;
+    });
+  }
+
+  async listDefinitions(): Promise<WorkflowDefinition[]> {
+    return this.getDefinitions();
+  }
+
+  async getWorkflowDefinition(name: string): Promise<WorkflowDefinition | undefined> {
+    const defs = await this.getDefinitions();
+    return defs.find(def => def.name === name);
   }
 
   async validate(task: CreateTaskParams, workflowName?: string): Promise<ValidationStatus> {

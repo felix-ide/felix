@@ -656,6 +656,7 @@ sys.exit(0 if major >= 5 else 1)
               // Detect GPU and install appropriate PyTorch
               spinner.text = 'Detecting GPU support...';
               let torchIndex = 'https://download.pytorch.org/whl/cpu'; // default to CPU
+              let macArchMessage;
 
               // Check for NVIDIA GPU on Windows/Linux
               if (process.platform === 'win32' || process.platform === 'linux') {
@@ -672,19 +673,79 @@ sys.exit(0 if major >= 5 else 1)
                 try {
                   const arch = execSync('uname -m', { encoding: 'utf8' }).trim();
                   if (arch === 'arm64') {
-                    this.info('✨ Apple Silicon detected! PyTorch will use Metal (MPS)...');
+                    macArchMessage = '✨ Apple Silicon detected! PyTorch will use Metal (MPS)...';
+                  } else {
+                    macArchMessage = 'Intel macOS detected. Installing CPU-only PyTorch...';
                   }
-                } catch {}
-                torchIndex = 'https://download.pytorch.org/whl/cpu'; // macOS uses same index
+                } catch {
+                  macArchMessage = 'Installing PyTorch from the default macOS index...';
+                }
+                if (macArchMessage) {
+                  this.info(macArchMessage);
+                }
               }
 
-              // Install PyTorch with appropriate index
+              // Install PyTorch with a platform-aware index. macOS wheels are shipped via PyPI,
+              // so fall back to the default index when a custom one is not needed.
               spinner.text = 'Installing PyTorch...';
-              runVenvPython(venvPath, [
-                '-m', 'pip', 'install',
-                'torch>=2.3.0',
-                '--index-url', torchIndex
-              ], { cwd: sidecarDir });
+              const torchArgs = ['-m', 'pip', 'install', 'torch>=2.3.0'];
+              let usedCustomIndex = false;
+
+              if (process.platform === 'win32' || process.platform === 'linux') {
+                usedCustomIndex = true;
+                torchArgs.push('--index-url', torchIndex);
+              } else if (process.platform === 'darwin') {
+                // macOS (both Intel and Apple Silicon) should pull wheels from the default index.
+                if (!macArchMessage) {
+                  this.info('Installing PyTorch from the default macOS index...');
+                }
+              }
+
+              const reinstallTorchFromDefault = (reason) => {
+                if (reason) {
+                  this.warning(reason);
+                }
+                spinner.text = 'Cleaning up previous PyTorch install...';
+                try {
+                  runVenvPython(venvPath, ['-m', 'pip', 'uninstall', '-y', 'torch'], { cwd: sidecarDir });
+                } catch {
+                  // ignore cleanup failures and continue with reinstall
+                }
+                try {
+                  runVenvPython(venvPath, ['-m', 'pip', 'cache', 'purge'], { cwd: sidecarDir });
+                } catch {
+                  // pip versions prior to cache support will throw; ignore
+                }
+                spinner.text = 'Installing PyTorch from PyPI...';
+                runVenvPython(venvPath, [
+                  '-m', 'pip', 'install',
+                  '--no-cache-dir',
+                  '--force-reinstall',
+                  'torch>=2.3.0'
+                ], { cwd: sidecarDir });
+              };
+
+              try {
+                runVenvPython(venvPath, torchArgs, { cwd: sidecarDir });
+              } catch {
+                if (usedCustomIndex) {
+                  reinstallTorchFromDefault('PyTorch install via custom index failed, retrying with a clean install from the default PyPI index');
+                } else {
+                  reinstallTorchFromDefault('PyTorch install failed, attempting clean reinstall from the default PyPI index');
+                }
+              }
+
+              const verifyTorch = () => {
+                runVenvPython(venvPath, ['-c', 'import torch'], { cwd: sidecarDir });
+              };
+
+              try {
+                verifyTorch();
+              } catch {
+                reinstallTorchFromDefault('PyTorch verification failed, performing clean reinstall');
+                verifyTorch();
+              }
+              this.success('PyTorch installed successfully');
 
               // Install other requirements
               spinner.text = 'Installing other Python dependencies...';

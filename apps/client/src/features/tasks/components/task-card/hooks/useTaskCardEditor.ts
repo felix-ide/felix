@@ -130,7 +130,7 @@ export function useTaskCardEditor({
   useEffect(() => {
     felixService
       .getWorkflowMapping()
-      .then(setTypeMapping)
+      .then(({ workflowMap }) => setTypeMapping(workflowMap || {}))
       .catch((error) => {
         console.error('[Felix] Failed to load workflow mapping', error);
       });

@@ -5,10 +5,14 @@
 import { DataSource } from 'typeorm';
 import { WorkflowConfiguration } from '../features/storage/entities/metadata/WorkflowConfiguration.entity.js';
 import { GlobalWorkflowSetting } from '../features/storage/entities/metadata/GlobalWorkflowSetting.entity.js';
+import { TaskStatus } from '../features/storage/entities/metadata/TaskStatus.entity.js';
+import { TaskStatusFlow } from '../features/storage/entities/metadata/TaskStatusFlow.entity.js';
 import { 
   WorkflowDefinition, 
   WorkflowConfig,
-  WorkflowType
+  WorkflowType,
+  WorkflowValidationBundle,
+  WorkflowStatusFlow
 } from '../types/WorkflowTypes.js';
 import { BUILT_IN_WORKFLOWS } from '../validation/WorkflowDefinitions.js';
 
@@ -33,6 +37,10 @@ export class WorkflowConfigManager {
 
     // Ensure default task_type -> workflow mapping exists
     await this.ensureDefaultTaskTypeMapping();
+
+    // Seed core task statuses and flows when missing
+    await this.ensureDefaultStatuses();
+    await this.ensureDefaultStatusFlows();
     
     this.initialized = true;
   }
@@ -56,6 +64,8 @@ export class WorkflowConfigManager {
           required_sections: workflow.required_sections as any,
           conditional_requirements: workflow.conditional_requirements as any || [],
           validation_rules: workflow.validation_rules as any || [],
+          validation_bundles: workflow.validation_bundles as WorkflowValidationBundle[] | undefined,
+          status_flow: workflow.status_flow as WorkflowStatusFlow | undefined,
           use_cases: workflow.use_cases || []
         });
       } else {
@@ -79,6 +89,8 @@ export class WorkflowConfigManager {
             required_sections: workflow.required_sections as any,
             conditional_requirements: workflow.conditional_requirements as any || [],
             validation_rules: workflow.validation_rules as any || [],
+            validation_bundles: workflow.validation_bundles as WorkflowValidationBundle[] | undefined,
+            status_flow: workflow.status_flow as WorkflowStatusFlow | undefined,
             use_cases: workflow.use_cases || []
           });
         }
@@ -132,11 +144,78 @@ export class WorkflowConfigManager {
       await settingsRepo.upsert({ setting_key: 'defaults_by_task_type', setting_value: JSON.stringify(DEFAULTS_BY_TASK_TYPE) }, ['setting_key']);
     }
 
+    const DEFAULT_FLOWS_BY_TASK_TYPE: Record<string, string> = {
+      epic: 'flow_kanban',
+      story: 'flow_kanban',
+      feature: 'flow_kanban',
+      task: 'flow_kanban',
+      subtask: 'flow_simple',
+      milestone: 'flow_kanban',
+      bug: 'flow_spec_gate',
+      fix: 'flow_spec_gate',
+      hotfix: 'flow_spec_gate',
+      spike: 'flow_simple',
+      research: 'flow_simple',
+      chore: 'flow_simple',
+      documentation: 'flow_simple',
+      doc: 'flow_simple',
+      refactor: 'flow_kanban'
+    };
+
+    const flowRow = await settingsRepo.findOne({ where: { setting_key: 'status_flow_by_task_type' } });
+    if (!flowRow || !flowRow.setting_value) {
+      await settingsRepo.upsert({ setting_key: 'status_flow_by_task_type', setting_value: JSON.stringify(DEFAULT_FLOWS_BY_TASK_TYPE) }, ['setting_key']);
+    }
+
     // Seed types_metadata
     const metaRow = await settingsRepo.findOne({ where: { setting_key: 'types_metadata' } });
     if (!metaRow || !metaRow.setting_value) {
       await settingsRepo.upsert({ setting_key: 'types_metadata', setting_value: JSON.stringify(TYPES_METADATA) }, ['setting_key']);
     }
+  }
+
+  private async ensureDefaultStatuses(): Promise<void> {
+    const repo = this.dataSource.getRepository(TaskStatus);
+    const count = await repo.count();
+    if (count > 0) return;
+    const defaults: Array<Partial<TaskStatus>> = [
+      { id: 'todo', name: 'todo', display_label: 'To Do', emoji: '📝' },
+      { id: 'in_progress', name: 'in_progress', display_label: 'In Progress', emoji: '🚧' },
+      { id: 'blocked', name: 'blocked', display_label: 'Blocked', emoji: '⛔️' },
+      { id: 'done', name: 'done', display_label: 'Done', emoji: '✅' },
+      { id: 'spec_ready', name: 'spec_ready', display_label: 'Spec Ready', emoji: '📋' }
+    ];
+    await repo.save(defaults.map((status) => repo.create(status)));
+  }
+
+  private async ensureDefaultStatusFlows(): Promise<void> {
+    const repo = this.dataSource.getRepository(TaskStatusFlow);
+    const count = await repo.count();
+    if (count > 0) return;
+    const defaults: Array<Partial<TaskStatusFlow>> = [
+      {
+        id: 'flow_kanban',
+        name: 'kanban',
+        display_label: 'Kanban',
+        description: 'Todo → In Progress → Blocked → Done',
+        status_ids: ['todo', 'in_progress', 'blocked', 'done']
+      },
+      {
+        id: 'flow_spec_gate',
+        name: 'spec_gate',
+        display_label: 'Spec Gate',
+        description: 'Todo → Spec Ready → In Progress → Done',
+        status_ids: ['todo', 'spec_ready', 'in_progress', 'done']
+      },
+      {
+        id: 'flow_simple',
+        name: 'simple',
+        display_label: 'Simple',
+        description: 'Todo → Done',
+        status_ids: ['todo', 'done']
+      }
+    ];
+    await repo.save(defaults.map((flow) => repo.create(flow)));
   }
 
   /** Reseed built-ins explicitly, with optional force overwrite */
@@ -154,6 +233,8 @@ export class WorkflowConfigManager {
           required_sections: w.required_sections as any,
           conditional_requirements: w.conditional_requirements as any || [],
           validation_rules: w.validation_rules as any || [],
+          validation_bundles: w.validation_bundles as WorkflowValidationBundle[] | undefined,
+          status_flow: w.status_flow as WorkflowStatusFlow | undefined,
           use_cases: w.use_cases || []
         });
       } else if (force) {
@@ -163,6 +244,8 @@ export class WorkflowConfigManager {
           required_sections: w.required_sections as any,
           conditional_requirements: w.conditional_requirements as any || [],
           validation_rules: w.validation_rules as any || [],
+          validation_bundles: w.validation_bundles as WorkflowValidationBundle[] | undefined,
+          status_flow: w.status_flow as WorkflowStatusFlow | undefined,
           use_cases: w.use_cases || []
         });
       }
@@ -209,6 +292,42 @@ export class WorkflowConfigManager {
     await workflowRepo.update({ name: workflowName }, { is_default: true });
   }
 
+  async getAvailableTaskStatuses(): Promise<string[]> {
+    await this.initialize();
+    const defaults = ['todo', 'in_progress', 'blocked', 'done'];
+    try {
+      const repo = this.dataSource.getRepository(TaskStatus);
+      const rows = await repo.find({ order: { name: 'ASC' } });
+      if (!rows.length) {
+        return defaults;
+      }
+      return rows.map((row) => row.id || row.name);
+    } catch (error) {
+      console.error('[WorkflowConfigManager] Failed to fetch task statuses', error);
+      return defaults;
+    }
+  }
+
+  getStatePresets(): Array<{ id: string; label: string; states: string[] }> {
+    return [
+      {
+        id: 'kanban',
+        label: 'Kanban (Todo → In Progress → Blocked → Done)',
+        states: ['todo', 'in_progress', 'blocked', 'done']
+      },
+      {
+        id: 'spec_gate',
+        label: 'Spec Gate (Todo → Spec Ready → In Progress → Done)',
+        states: ['todo', 'spec_ready', 'in_progress', 'done']
+      },
+      {
+        id: 'simple',
+        label: 'Simple (Todo → Done)',
+        states: ['todo', 'done']
+      }
+    ];
+  }
+
   /**
    * Get a specific workflow configuration
    */
@@ -227,6 +346,9 @@ export class WorkflowConfigManager {
       required_sections: (Array.isArray(result.required_sections) ? result.required_sections : []) as any,
       conditional_requirements: (result.conditional_requirements || []) as any,
       validation_rules: (result.validation_rules || []) as any,
+      validation_bundles: (result.validation_bundles || undefined) as any,
+      status_flow_ref: result.status_flow_ref || null,
+      status_flow: result.status_flow as any,
       use_cases: result.use_cases || []
     };
   }
@@ -264,11 +386,29 @@ export class WorkflowConfigManager {
     if (config.validation_rules !== undefined) {
       updateData.validation_rules = config.validation_rules as any;
     }
-    
+
+    if (config.validation_bundles !== undefined) {
+      updateData.validation_bundles = config.validation_bundles as any;
+    }
+
+    if (config.status_flow !== undefined) {
+      updateData.status_flow = config.status_flow as any;
+      if (config.status_flow_ref === undefined) {
+        updateData.status_flow_ref = null;
+      }
+    }
+
+    if (config.status_flow_ref !== undefined) {
+      updateData.status_flow_ref = config.status_flow_ref as any;
+      if (config.status_flow_ref) {
+        updateData.status_flow = null;
+      }
+    }
+
     if (config.use_cases !== undefined) {
       updateData.use_cases = config.use_cases;
     }
-    
+
     if (Object.keys(updateData).length > 0) {
       await workflowRepo.update({ name }, updateData);
     }
@@ -290,6 +430,9 @@ export class WorkflowConfigManager {
       required_sections: (Array.isArray(r.required_sections) ? r.required_sections : []) as any,
       conditional_requirements: (r.conditional_requirements || []) as any,
       validation_rules: (r.validation_rules || []) as any,
+      validation_bundles: (r.validation_bundles || undefined) as any,
+      status_flow_ref: r.status_flow_ref || null,
+      status_flow: r.status_flow as any,
       use_cases: r.use_cases || []
     }));
   }
@@ -396,6 +539,9 @@ export class WorkflowConfigManager {
       required_sections: workflow.required_sections as any,
       conditional_requirements: workflow.conditional_requirements as any || [],
       validation_rules: workflow.validation_rules as any || [],
+      validation_bundles: workflow.validation_bundles as WorkflowValidationBundle[] | undefined,
+      status_flow_ref: workflow.status_flow_ref || null,
+      status_flow: workflow.status_flow_ref ? undefined : workflow.status_flow as WorkflowStatusFlow | undefined,
       use_cases: workflow.use_cases || []
     });
   }
@@ -421,4 +567,128 @@ export class WorkflowConfigManager {
     const workflowRepo = this.dataSource.getRepository(WorkflowConfiguration);
     await workflowRepo.delete({ name });
   }
+
+  // --- Task Status Management -------------------------------------------------
+  async listTaskStatuses(): Promise<TaskStatus[]> {
+    await this.initialize();
+    const repo = this.dataSource.getRepository(TaskStatus);
+    return repo.find({ order: { name: 'ASC' } });
+  }
+
+  async upsertTaskStatus(status: {
+    id?: string;
+    name: string;
+    display_label?: string;
+    emoji?: string;
+    color?: string;
+    description?: string;
+  }): Promise<TaskStatus> {
+    await this.initialize();
+    const repo = this.dataSource.getRepository(TaskStatus);
+    const id = status.id || slugify(status.name);
+    const entity = repo.create({
+      id,
+      name: status.name,
+      display_label: status.display_label,
+      emoji: status.emoji,
+      color: status.color,
+      description: status.description
+    });
+    await repo.save(entity);
+    return entity;
+  }
+
+  async deleteTaskStatus(id: string): Promise<void> {
+    await this.initialize();
+    const repo = this.dataSource.getRepository(TaskStatus);
+    await repo.delete({ id });
+  }
+
+  // --- Task Status Flow Management --------------------------------------------
+  async listTaskStatusFlows(): Promise<TaskStatusFlow[]> {
+    await this.initialize();
+    const repo = this.dataSource.getRepository(TaskStatusFlow);
+    return repo.find({ order: { name: 'ASC' } });
+  }
+
+  async upsertTaskStatusFlow(flow: {
+    id?: string;
+    name: string;
+    display_label?: string;
+    description?: string;
+    status_ids: string[];
+    metadata?: Record<string, unknown>;
+  }): Promise<TaskStatusFlow> {
+    await this.initialize();
+    const repo = this.dataSource.getRepository(TaskStatusFlow);
+    const statusRepo = this.dataSource.getRepository(TaskStatus);
+    const normalized = Array.from(new Set(
+      (flow.status_ids || [])
+        .map((id) => slugify(id))
+        .filter(Boolean)
+    ));
+    if (!normalized.length) {
+      throw new Error('A status flow must include at least one status');
+    }
+    const statuses = await statusRepo.findByIds(normalized);
+    if (statuses.length !== normalized.length) {
+      const missing = normalized.filter((id) => !statuses.find((status) => status.id === id));
+      throw new Error(`Unknown status id(s): ${missing.join(', ')}`);
+    }
+
+    const id = flow.id || slugify(flow.name);
+    const entity = repo.create({
+      id,
+      name: flow.name,
+      display_label: flow.display_label,
+      description: flow.description,
+      status_ids: normalized,
+      metadata: flow.metadata ?? null
+    });
+    await repo.save(entity);
+    return entity;
+  }
+
+  async deleteTaskStatusFlow(id: string): Promise<void> {
+    await this.initialize();
+    const repo = this.dataSource.getRepository(TaskStatusFlow);
+    await repo.delete({ id });
+  }
+  async getStatusFlowForTaskType(taskType?: string): Promise<string | undefined> {
+    await this.initialize();
+    if (!taskType) return undefined;
+    const settingsRepo = this.dataSource.getRepository(GlobalWorkflowSetting);
+    const row = await settingsRepo.findOne({ where: { setting_key: 'status_flow_by_task_type' } });
+    if (!row?.setting_value) return undefined;
+    try {
+      const map = JSON.parse(row.setting_value || '{}');
+      return map?.[taskType];
+    } catch {
+      return undefined;
+    }
+  }
+
+  async setStatusFlowForTaskType(taskType: string, flowId?: string | null): Promise<void> {
+    await this.initialize();
+    const settingsRepo = this.dataSource.getRepository(GlobalWorkflowSetting);
+    const row = await settingsRepo.findOne({ where: { setting_key: 'status_flow_by_task_type' } });
+    let map: any = {};
+    try { map = row?.setting_value ? JSON.parse(row.setting_value) : {}; } catch {}
+    if (!flowId) {
+      delete map[taskType];
+    } else {
+      map[taskType] = flowId;
+    }
+    await settingsRepo.upsert({ setting_key: 'status_flow_by_task_type', setting_value: JSON.stringify(map) }, ['setting_key']);
+  }
+}
+
+function slugify(input: string): string {
+  const base = String(input || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s_-]/g, '')
+    .replace(/[\s-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return base || `status_${Math.random().toString(36).slice(2, 8)}`;
 }

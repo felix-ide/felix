@@ -7,6 +7,7 @@ import { getProjectIndexer, getCurrentProject } from './projectContext.js';
 import { TaskType, TaskStatus } from '@felix/code-intelligence';
 import { EntityType } from '@felix/code-intelligence';
 import { logger } from '../../shared/logger.js';
+import { TransitionGateError } from '../../features/workflows/errors/TransitionGateError.js';
 
 const router = express.Router();
 
@@ -323,7 +324,9 @@ router.put('/tasks/:id', async (req: any, res: any) => {
       entity_links,
       parent_id,
       sort_order,
-      checklists
+      checklists,
+      transition_gate_token,
+      transition_gate_response
     } = req.body;
     
     if (!task_id) {
@@ -332,27 +335,37 @@ router.put('/tasks/:id', async (req: any, res: any) => {
     
     const indexer = await getProjectIndexer(currentProject);
     
-    const updatedTask = await indexer.updateTask(task_id, {
-      title,
-      description,
-      task_status,
-      task_priority,
-      task_type,
-      assigned_to,
-      estimated_effort,
-      actual_effort,
-      due_date: due_date ? new Date(due_date) : undefined,
-      stable_tags,
-      entity_links,
-      parent_id,
-      sort_order,
-      checklists,
-      workflow: (req.body as any).workflow,
-      spec_state: (req.body as any).spec_state,
-      spec_waivers: (req.body as any).spec_waivers,
-      last_validated_at: (req.body as any).last_validated_at,
-      validated_by: (req.body as any).validated_by
-    });
+    let updatedTask;
+    try {
+      updatedTask = await indexer.updateTask(task_id, {
+        title,
+        description,
+        task_status,
+        task_priority,
+        task_type,
+        assigned_to,
+        estimated_effort,
+        actual_effort,
+        due_date: due_date ? new Date(due_date) : undefined,
+        stable_tags,
+        entity_links,
+        parent_id,
+        sort_order,
+        checklists,
+        workflow: (req.body as any).workflow,
+        spec_state: (req.body as any).spec_state,
+        spec_waivers: (req.body as any).spec_waivers,
+        last_validated_at: (req.body as any).last_validated_at,
+        validated_by: (req.body as any).validated_by,
+        transition_gate_token,
+        transition_gate_response
+      } as any);
+    } catch (error) {
+      if (error instanceof TransitionGateError) {
+        return res.status(409).json({ error: error.message, gate: error.details });
+      }
+      throw error;
+    }
     
     logger.debug('Updated task object', { updatedTask, checklists: updatedTask.checklists });
 

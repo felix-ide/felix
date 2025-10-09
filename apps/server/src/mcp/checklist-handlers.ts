@@ -148,7 +148,7 @@ export async function handleChecklistTools(args: any) {
       // Find by text if index not provided
       if (itemIndex === undefined && item_text) {
         itemIndex = checklist.items.findIndex((item: ChecklistItem) => 
-          item.text.toLowerCase() === item_text.toLowerCase()
+          String(item.text || '').toLowerCase() === String(item_text || '').toLowerCase()
         );
         if (itemIndex === -1) {
           throw new Error(`Item "${item_text}" not found in checklist`);
