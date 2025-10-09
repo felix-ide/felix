@@ -15,22 +15,95 @@ import chalk from 'chalk';
 import ora from 'ora';
 import readline from 'readline';
 
+const MIN_PYTHON_MAJOR = 3;
+const MIN_PYTHON_MINOR = 10;
+
 const pythonCandidates = () => {
   const candidates = [];
-  if (process.platform === 'win32') {
-    candidates.push({ command: 'py', args: ['-3'] });
+  const seen = new Set();
+
+  const addCandidate = (command, args = []) => {
+    if (!command) return;
+    const key = `${command} ${args.join(' ')}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push({ command, args });
+  };
+
+  const envPython = process.env.FELIX_PYTHON || process.env.PYTHON_BIN || process.env.PYTHON;
+  if (envPython) {
+    const parts = envPython.trim().split(/\s+/);
+    addCandidate(parts[0], parts.slice(1));
   }
-  candidates.push({ command: 'python3', args: [] }, { command: 'python', args: [] });
+
+  if (process.platform === 'win32') {
+    addCandidate('py', ['-3.13']);
+    addCandidate('py', ['-3.12']);
+    addCandidate('py', ['-3.11']);
+    addCandidate('py', ['-3']);
+    addCandidate('python3.13');
+    addCandidate('python3.12');
+    addCandidate('python3.11');
+    addCandidate('python3');
+    addCandidate('python');
+  } else {
+    const versioned = ['python3.13', 'python3.12', 'python3.11', 'python3.10', 'python3'];
+    versioned.forEach(cmd => addCandidate(cmd));
+    ['/opt/homebrew/bin/python3.13', '/opt/homebrew/bin/python3.12', '/opt/homebrew/bin/python3', '/usr/local/bin/python3.13', '/usr/local/bin/python3.12', '/usr/local/bin/python3'].forEach(path => addCandidate(path));
+    addCandidate('python');
+  }
+
   return candidates;
 };
 
+const parsePythonVersion = (text) => {
+  if (!text) return null;
+  const match = text.match(/Python\s+(\d+)\.(\d+)\.(\d+)/i);
+  if (!match) return null;
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    micro: Number(match[3])
+  };
+};
+
+const comparePythonVersions = (a, b) => {
+  if (!a || !b) return 0;
+  if (a.major !== b.major) return a.major - b.major;
+  if (a.minor !== b.minor) return a.minor - b.minor;
+  return (a.micro || 0) - (b.micro || 0);
+};
+
 const findSystemPython = () => {
+  let best = null;
+  let bestVersion = null;
+  let fallback = null;
+  let fallbackVersion = null;
+
   for (const candidate of pythonCandidates()) {
-    const result = spawnSync(candidate.command, [...candidate.args, '--version'], { stdio: 'ignore' });
-    if (!result.error && result.status === 0) {
-      return candidate;
+    try {
+      const result = spawnSync(candidate.command, [...candidate.args, '--version'], { stdio: 'pipe' });
+      if (result.error || result.status !== 0) continue;
+      const output = `${result.stdout?.toString() ?? ''}${result.stderr?.toString() ?? ''}`;
+      const version = parsePythonVersion(output);
+      const candidateWithVersion = { ...candidate, version };
+      if (version && (version.major > MIN_PYTHON_MAJOR || (version.major === MIN_PYTHON_MAJOR && version.minor >= MIN_PYTHON_MINOR))) {
+        if (!bestVersion || comparePythonVersions(version, bestVersion) > 0) {
+          best = candidateWithVersion;
+          bestVersion = version;
+        }
+      }
+      if (!fallbackVersion || (version && comparePythonVersions(version, fallbackVersion) > 0)) {
+        fallback = candidateWithVersion;
+        fallbackVersion = version;
+      }
+    } catch {
+      // ignore candidate failure
     }
   }
+
+  if (best) return best;
+  if (fallback) return fallback;
   throw new Error('Python interpreter not found. Install Python 3 and try again.');
 };
 
@@ -59,6 +132,17 @@ const runVenvPython = (venvPath, args, options = {}) => {
     throw error;
   }
   return result;
+};
+
+const resolvePythonDetails = (python) => {
+  try {
+    const script = 'import sys, os, json; sys.stdout.write(json.dumps({"executable": sys.executable, "realpath": os.path.realpath(sys.executable)}))';
+    const result = spawnSync(python.command, [...python.args, '-c', script], { stdio: 'pipe' });
+    if (result.error || result.status !== 0) return null;
+    return JSON.parse(result.stdout.toString() || '{}');
+  } catch {
+    return null;
+  }
 };
 
 class SetupValidator {
@@ -657,6 +741,15 @@ class SetupValidator {
           spinner.fail('Python not found. Please install Python 3.8+');
           this.error('Python is required for the embedding service');
           return false;
+        }
+
+        const details = resolvePythonDetails(python);
+        if (details?.realpath) {
+          this.info(`Using Python interpreter: ${details.realpath}`);
+        } else if (python.version) {
+          this.info(`Using Python interpreter command: ${python.command} (version ${python.version.major}.${python.version.minor}.${python.version.micro ?? 0})`);
+        } else {
+          this.info(`Using Python interpreter command: ${python.command}`);
         }
 
         runPython(python, ['-m', 'venv', venvPath], { cwd: sidecarDir });
