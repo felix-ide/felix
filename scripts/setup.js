@@ -729,16 +729,6 @@ class SetupValidator {
       let requirementsFile = 'requirements.txt';
       let requirementNote = 'default dependency set';
 
-      if (pythonVersion && pythonVersion.major === 3 && pythonVersion.minor <= 9) {
-        const compatFile = 'requirements.py39.txt';
-        if (existsSync(join(sidecarDir, compatFile))) {
-          requirementsFile = compatFile;
-          requirementNote = 'Python 3.9 compatibility set (NumPy 1.26 / SciPy 1.10)';
-        } else {
-          this.warning('Python 3.9 detected but compatibility dependency file is missing. Falling back to default requirements.');
-        }
-      }
-
       const requirementsPath = join(sidecarDir, requirementsFile);
 
       if (existsSync(requirementsPath)) {
