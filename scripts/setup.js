@@ -123,7 +123,8 @@ const getVenvPythonPath = (venvPath) => (process.platform === 'win32'
   : join(venvPath, 'bin', 'python'));
 
 const runVenvPython = (venvPath, args, options = {}) => {
-  const pythonPath = getVenvPythonPath(venvPath);
+  const absVenvPath = join(process.cwd(), venvPath);
+  const pythonPath = getVenvPythonPath(absVenvPath);
   const result = spawnSync(pythonPath, args, { stdio: 'pipe', ...options });
   if (result.error || result.status !== 0) {
     const error = result.error ?? new Error(result.stderr?.toString() || `Command failed with exit code ${result.status}`);
@@ -150,6 +151,7 @@ class SetupValidator {
     this.issues = [];
     this.warnings = [];
     this.successes = [];
+    this.criticalErrors = []; // Errors that will prevent app from running
     const autoInstallEnv = process.env.FELIX_AUTO_INSTALL ?? process.env.FELIX_AUTO_INSTALL;
     this.autoInstall = process.argv.includes('--auto') || autoInstallEnv === '1';
     this.runningPostinstall = process.env.npm_lifecycle_event === 'postinstall';
@@ -188,6 +190,12 @@ class SetupValidator {
   error(message) {
     this.issues.push(message);
     console.log(chalk.red('❌ ' + message));
+  }
+
+  critical(message) {
+    this.criticalErrors.push(message);
+    this.issues.push(message);
+    console.log(chalk.red.bold('🚨 CRITICAL: ' + message));
   }
 
   info(message) {
@@ -273,6 +281,7 @@ class SetupValidator {
     }
 
     await this.checkNodeVersion();
+    await this.checkPhpRuntime();
     await this.fixWindowsRollup();
     await this.checkNpmPackages();
     await this.checkTreeSitterGrammars();
@@ -378,6 +387,50 @@ class SetupValidator {
       }
     } catch (error) {
       this.error('Could not determine Node.js version');
+    }
+  }
+
+  async checkPhpRuntime() {
+    this.header('PHP Runtime');
+
+    try {
+      const phpVersion = execSync('php --version', { encoding: 'utf8' }).split('\n')[0];
+      this.success(`PHP installed: ${phpVersion}`);
+      return true;
+    } catch (error) {
+      this.critical('PHP is not installed or not in PATH - app will crash when parsing PHP files');
+      this.info('PHP is required for parsing PHP code');
+
+      if (process.platform === 'darwin') {
+        this.info('Install PHP with: brew install php');
+      } else if (process.platform === 'win32') {
+        this.info('Install PHP from: https://windows.php.net/download/');
+      } else {
+        this.info('Install PHP with: sudo apt install php-cli');
+      }
+
+      if (this.autoInstall || await this.prompt('Install PHP now?')) {
+        const spinner = ora('Installing PHP...').start();
+        try {
+          if (process.platform === 'darwin') {
+            execSync('brew install php', { encoding: 'utf8', stdio: 'pipe' });
+          } else if (process.platform === 'linux') {
+            execSync('sudo apt-get install -y php-cli', { encoding: 'utf8', stdio: 'pipe' });
+          } else {
+            spinner.fail('Automatic installation not supported on this platform');
+            return false;
+          }
+          spinner.succeed('PHP installed successfully');
+          this.successes.push('Installed PHP');
+          this.criticalErrors = this.criticalErrors.filter(e => !e.includes('PHP'));
+          return true;
+        } catch (installError) {
+          spinner.fail('Failed to install PHP');
+          this.error('Please install PHP manually before running the app');
+          return false;
+        }
+      }
+      return false;
     }
   }
 
@@ -738,8 +791,12 @@ class SetupValidator {
         try {
           python = findSystemPython();
         } catch (error) {
-          spinner.fail('Python not found. Please install Python 3.8+');
-          this.error('Python is required for the embedding service');
+          spinner.fail('Python not found. Please install Python 3.10+');
+          this.critical('Python 3.10+ is required - app will crash when parsing Python files or using embeddings');
+          this.info('Install Python from: https://www.python.org/downloads/');
+          if (process.platform === 'darwin') {
+            this.info('Or install via Homebrew: brew install python@3.13');
+          }
           return false;
         }
 
@@ -752,7 +809,7 @@ class SetupValidator {
           this.info(`Using Python interpreter command: ${python.command}`);
         }
 
-        runPython(python, ['-m', 'venv', venvPath], { cwd: sidecarDir });
+        runPython(python, ['-m', 'venv', '--copies', '.venv'], { cwd: sidecarDir });
         spinner.succeed('Python virtual environment created');
         venvExists = true;
         return true;
@@ -1155,6 +1212,13 @@ except: sys.exit(1)`;
     console.log(chalk.bold.cyan('SETUP SUMMARY'));
     console.log(chalk.bold('═══════════════════════════════════════════════════'));
 
+    if (this.criticalErrors.length > 0) {
+      console.log(chalk.red.bold(`\n🚨 CRITICAL ERRORS: ${this.criticalErrors.length}`));
+      console.log(chalk.red.bold('THE APP WILL NOT RUN UNTIL THESE ARE FIXED:\n'));
+      this.criticalErrors.forEach(e => console.log(chalk.red.bold(`   ⛔ ${e}`)));
+      console.log('');
+    }
+
     if (this.successes.length > 0) {
       console.log(chalk.green(`\n✅ Successful checks: ${this.successes.length}`));
     }
@@ -1166,13 +1230,22 @@ except: sys.exit(1)`;
 
     if (this.issues.length > 0) {
       console.log(chalk.red(`\n❌ Issues found: ${this.issues.length}`));
-      this.issues.forEach(i => console.log(chalk.red(`   - ${i}`)));
+      this.issues.forEach(i => {
+        if (!this.criticalErrors.includes(i)) {
+          console.log(chalk.red(`   - ${i}`));
+        }
+      });
 
       console.log(chalk.yellow('\n📝 Next Steps:'));
-      console.log('1. Fix the issues listed above');
-      console.log('2. Run: npm install');
-      console.log('3. Run: npm run build');
-      console.log('4. Run this setup script again to verify');
+      if (this.criticalErrors.length > 0) {
+        console.log(chalk.red.bold('1. FIX THE CRITICAL ERRORS ABOVE FIRST'));
+        console.log('2. Run this setup script again to verify: node scripts/setup.js --auto');
+      } else {
+        console.log('1. Fix the issues listed above');
+        console.log('2. Run: npm install');
+        console.log('3. Run: npm run build');
+        console.log('4. Run this setup script again to verify');
+      }
     } else {
       console.log(chalk.green('\n🎉 All checks passed! Felix is ready to use.'));
       console.log(chalk.cyan('\nTo start the development server:'));
