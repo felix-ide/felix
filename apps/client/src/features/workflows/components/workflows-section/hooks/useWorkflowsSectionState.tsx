@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { felixService } from '@/services/felixService';
+import type { TaskStatusRecord, TaskStatusFlowRecord } from '@/shared/api/workflowsClient';
 import type { WorkflowDefinition } from '@client/features/workflows/components/WorkflowForm';
 import { Bug, Code, FileText, Search as SearchIcon, Settings2, Sparkles } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 export type EditorSection = 'basic' | 'configuration' | 'json';
-export type ConfigSection = 'mapping' | 'types' | 'settings';
+export type ConfigSection = 'mapping' | 'types' | 'statuses' | 'flows' | 'settings';
 export type WorkflowsTab = 'edit' | 'validate' | 'mapping';
 
 export interface WorkflowListItem {
@@ -46,6 +47,15 @@ export interface UseWorkflowsSectionStateResult {
   tab: WorkflowsTab;
   editorSection: EditorSection;
   configSection: ConfigSection;
+  configPanel: 'sections' | 'status' | 'bundles' | 'rules';
+  statusHints: string[];
+  statusPresets: Array<{ id: string; label: string; states: string[] }>;
+  statusCatalog: TaskStatusRecord[];
+  statusFlows: TaskStatusFlowRecord[];
+  saveStatus: (status: Partial<TaskStatusRecord> & { name: string }) => Promise<void>;
+  removeStatus: (id: string) => Promise<void>;
+  saveStatusFlow: (flow: Partial<TaskStatusFlowRecord> & { name: string; status_ids: string[] }) => Promise<void>;
+  removeStatusFlow: (id: string) => Promise<void>;
   mappingKey: number;
   showNewDialog: boolean;
   newWorkflowName: string;
@@ -54,6 +64,7 @@ export interface UseWorkflowsSectionStateResult {
   setTab: (tab: WorkflowsTab) => void;
   setEditorSection: (section: EditorSection) => void;
   setConfigSection: (section: ConfigSection) => void;
+  setConfigPanel: (panel: 'sections' | 'status' | 'bundles' | 'rules') => void;
   setMappingKey: Dispatch<SetStateAction<number>>;
   setShowNewDialog: (value: boolean) => void;
   setNewWorkflowName: (value: string) => void;
@@ -66,6 +77,8 @@ export interface UseWorkflowsSectionStateResult {
   updateDefaultWorkflow: (workflowName: string) => Promise<void>;
   toggleEnforceMapping: () => Promise<void>;
   restoreBuiltInWorkflows: () => Promise<void>;
+  exportSnapshot: (filePath?: string) => Promise<void>;
+  importSnapshot: (options?: { filePath?: string; overwrite?: boolean }) => Promise<void>;
   handleSelect: (name: string, options?: { bypassDirtyCheck?: boolean }) => Promise<void>;
   handleNew: () => void;
   createNewWorkflow: () => void;
@@ -86,6 +99,9 @@ const defaultWorkflowDefinition: WorkflowDefinition = {
   required_sections: [],
   conditional_requirements: [],
   validation_rules: [],
+  validation_bundles: [],
+  status_flow_ref: null,
+  status_flow: { initial_state: '', states: [], transitions: [] },
 } as WorkflowDefinition;
 
 export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
@@ -113,6 +129,142 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     }
   });
   const [editorSection, setEditorSection] = useState<EditorSection>('basic');
+  const [configPanel, setConfigPanel] = useState<'sections' | 'status' | 'bundles' | 'rules'>('sections');
+  const [availableStatuses, setAvailableStatuses] = useState<string[]>(['todo', 'in_progress', 'blocked', 'done']);
+  const [statusCatalog, setStatusCatalog] = useState<TaskStatusRecord[]>([]);
+  const [statusFlows, setStatusFlows] = useState<TaskStatusFlowRecord[]>([]);
+  const [statusPresets, setStatusPresets] = useState<Array<{ id: string; label: string; states: string[] }>>([]);
+
+  const loadStatusMetadata = useCallback(async () => {
+    try {
+      const [statusResult, flowResult] = await Promise.all([
+        felixService.getWorkflowStatuses(),
+        felixService.getWorkflowStatusFlows()
+      ]);
+      if (Array.isArray(statusResult?.statuses) && statusResult.statuses.length) {
+        setStatusCatalog(statusResult.statuses as TaskStatusRecord[]);
+        const normalized = Array.from(new Set(
+          statusResult.statuses
+            .map((status: TaskStatusRecord) => String(status.id || status.name || '').trim())
+            .filter((status) => status.length > 0)
+        ));
+        if (normalized.length) {
+          setAvailableStatuses(normalized);
+        }
+      }
+      if (Array.isArray(flowResult?.flows)) {
+        setStatusFlows(flowResult.flows as TaskStatusFlowRecord[]);
+      }
+      if (Array.isArray(flowResult?.presets)) {
+        const presets = flowResult.presets.map((preset: any) => ({
+          id: String(preset?.id || ''),
+          label: String(preset?.label || preset?.id || ''),
+          states: Array.isArray(preset?.states)
+            ? preset.states.map((state: unknown) => String(state || '').trim()).filter(Boolean)
+            : []
+        }));
+        setStatusPresets(presets);
+      }
+    } catch (err) {
+      console.error('[Felix] Failed to load workflow statuses', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStatusMetadata().catch(() => undefined);
+  }, [loadStatusMetadata]);
+
+  const fallbackStatuses = useMemo(() => (
+    availableStatuses.length ? availableStatuses : ['todo', 'in_progress', 'blocked', 'done']
+  ), [availableStatuses]);
+
+  const sanitizeStateName = useCallback((value: string) => {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s_-]/g, '')
+      .replace(/[\s-]+/g, '_');
+  }, []);
+
+  const makeRandomId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return `wf_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  }, []);
+
+  const normalizeBundles = useCallback((bundles: any[] | undefined) => {
+    if (!Array.isArray(bundles)) return [] as any[];
+    return bundles.map((bundle: any, index: number) => ({
+      id: bundle?.id || `bundle_${index}_${makeRandomId()}`,
+      name: bundle?.name || '',
+      description: bundle?.description || '',
+      sections: Array.isArray(bundle?.sections) ? bundle.sections.filter(Boolean) : [],
+      optional_sections: Array.isArray(bundle?.optional_sections) ? bundle.optional_sections.filter(Boolean) : [],
+      rules: Array.isArray(bundle?.rules) ? bundle.rules.filter(Boolean) : [],
+      subtasks: Array.isArray(bundle?.subtasks) ? bundle.subtasks : [],
+      guidance_hint: bundle?.guidance_hint || ''
+    }));
+  }, [makeRandomId]);
+
+  const sanitizeStatusFlow = useCallback((raw: any) => {
+    const inputStates = Array.isArray(raw?.states) ? raw.states : [];
+    const normalizedStates = inputStates
+      .map((state: any) => sanitizeStateName(state))
+      .filter((state) => state.length > 0);
+    const baseStates = normalizedStates.length ? normalizedStates : fallbackStatuses;
+    const uniqueStates = Array.from(new Set(
+      baseStates
+        .map((state) => sanitizeStateName(state))
+        .filter((state) => state.length > 0)
+    ));
+
+    const transitionsInput = Array.isArray(raw?.transitions) ? raw.transitions : [];
+    const sanitizedTransitions = transitionsInput
+      .map((transition: any) => {
+        if (!transition) return null;
+        const fromRaw = transition.from === undefined ? '*' : transition.from;
+        const from = fromRaw === '*' || fromRaw === 'any'
+          ? '*'
+          : sanitizeStateName(fromRaw);
+        const to = sanitizeStateName(transition.to);
+        if (!to) return null;
+        if (from !== '*' && !uniqueStates.includes(from)) return null;
+        if (!uniqueStates.includes(to)) return null;
+        return {
+          id: transition.id || makeRandomId(),
+          from,
+          to,
+          label: transition.label || '',
+          description: transition.description || '',
+          required_bundles: Array.isArray(transition.required_bundles) ? transition.required_bundles.filter(Boolean) : [],
+          optional_bundles: Array.isArray(transition.optional_bundles) ? transition.optional_bundles.filter(Boolean) : [],
+          pre_prompt_template: transition.pre_prompt_template || '',
+          post_prompt_template: transition.post_prompt_template || '',
+          gate: transition.gate
+            ? {
+                require_acknowledgement: Boolean(transition.gate.require_acknowledgement),
+                acknowledgement_prompt_template: transition.gate.acknowledgement_prompt_template || '',
+                auto_checklist: transition.gate.auto_checklist || undefined
+              }
+            : undefined
+        };
+      })
+      .filter((transition): transition is any => !!transition);
+
+    const initialCandidate = sanitizeStateName(raw?.initial_state);
+    const initial = initialCandidate && uniqueStates.includes(initialCandidate)
+      ? initialCandidate
+      : (sanitizedTransitions.find((transition) => transition.from !== '*' && uniqueStates.includes(transition.from))?.from
+        || uniqueStates[0]
+        || '');
+
+    return {
+      initial_state: initial,
+      states: uniqueStates,
+      transitions: sanitizedTransitions
+    };
+  }, [fallbackStatuses, makeRandomId, sanitizeStateName]);
   const [configSection, setConfigSection] = useState<ConfigSection>('mapping');
   const [mappingKey, setMappingKey] = useState<number>(0);
   const [showNewDialog, setShowNewDialog] = useState<boolean>(false);
@@ -161,6 +313,27 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     });
   }, [loadInitialConfig]);
 
+  const exportSnapshot = useCallback(async (filePath?: string) => {
+    try {
+      const result = await felixService.exportWorkflowSnapshot(filePath);
+      window.alert(`Exported ${result.workflowCount} workflow(s) to ${result.filePath}`);
+    } catch (err) {
+      console.error('[Felix] Failed to export workflow snapshot', err);
+      setError('Failed to export workflow snapshot');
+    }
+  }, []);
+
+  const importSnapshot = useCallback(async (options: { filePath?: string; overwrite?: boolean } = {}) => {
+    try {
+      const result = await felixService.importWorkflowSnapshot(options);
+      window.alert(`Imported ${result.workflowCount} workflow(s) (created ${result.created}, updated ${result.updated}) from ${result.filePath}`);
+      await reloadWorkflows();
+    } catch (err) {
+      console.error('[Felix] Failed to import workflow snapshot', err);
+      setError('Failed to import workflow snapshot');
+    }
+  }, [reloadWorkflows]);
+
   useEffect(() => {
     try {
       localStorage.setItem('workflows-tab', tab);
@@ -179,7 +352,7 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
 
     window.addEventListener('beforeunload', beforeUnload);
     return () => window.removeEventListener('beforeunload', beforeUnload);
-  }, [dirty]);
+  }, [dirty, normalizeBundles, sanitizeStatusFlow]);
 
   const handleSelect = useCallback(async (workflowName: string, options?: { bypassDirtyCheck?: boolean }) => {
     if (dirty && !options?.bypassDirtyCheck && !confirm('Discard unsaved changes?')) {
@@ -194,6 +367,9 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
       return;
     }
 
+    const normalizedBundles = normalizeBundles(wf.validation_bundles);
+    const statusFlow = sanitizeStatusFlow(wf.status_flow);
+
     const safe = {
       name: wf.name || workflowName,
       display_name: wf.display_name || workflowName,
@@ -202,6 +378,9 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
       conditional_requirements: Array.isArray(wf.conditional_requirements) ? wf.conditional_requirements : [],
       validation_rules: Array.isArray(wf.validation_rules) ? wf.validation_rules : [],
       use_cases: Array.isArray((wf as any).use_cases) ? (wf as any).use_cases : [],
+      status_flow_ref: wf.status_flow_ref || null,
+      validation_bundles: normalizedBundles,
+      status_flow: statusFlow
     } as WorkflowDefinition;
 
     setSelected(safe);
@@ -214,7 +393,8 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     setParseOk(true);
     setDirty(false);
     setEditorSection('basic');
-  }, [dirty]);
+    setConfigPanel('sections');
+  }, [dirty, normalizeBundles, sanitizeStatusFlow]);
 
   const handleNew = useCallback(() => {
     setShowNewDialog(true);
@@ -227,6 +407,7 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     }
 
     const workflowName = slugify(newWorkflowName);
+    const initialFlow = sanitizeStatusFlow({ states: fallbackStatuses });
     const definition = {
       name: workflowName,
       display_name: newWorkflowName,
@@ -234,6 +415,9 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
       required_sections: [],
       conditional_requirements: [],
       validation_rules: [],
+      validation_bundles: [],
+      status_flow_ref: null,
+      status_flow: initialFlow,
     } as WorkflowDefinition;
 
     setSelected(definition);
@@ -247,7 +431,8 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     setDirty(true);
     setShowNewDialog(false);
     setEditorSection('basic');
-  }, [newWorkflowName, slugify]);
+    setConfigPanel('sections');
+  }, [fallbackStatuses, newWorkflowName, sanitizeStatusFlow, slugify]);
 
   const handleSave = useCallback(async () => {
     try {
@@ -279,6 +464,9 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
         ? normalizedSections.map((section: any) => ({ name: section.section_type || section.name, required: !!section.required, ...section }))
         : normalizedSections;
 
+      const sanitizedBundles = normalizeBundles((form as any).validation_bundles || base.validation_bundles);
+      const sanitizedFlow = sanitizeStatusFlow((form as any).status_flow || base.status_flow);
+
       const merged = {
         ...base,
         name: normalizedName,
@@ -287,6 +475,9 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
         required_sections: mergedSections || base.required_sections || [],
         conditional_requirements: (form as any).conditional_requirements || base.conditional_requirements || [],
         validation_rules: (form as any).validation_rules || base.validation_rules || [],
+        validation_bundles: sanitizedBundles,
+        status_flow_ref: (form as any).status_flow_ref ?? base.status_flow_ref ?? null,
+        status_flow: sanitizedFlow,
         use_cases: (form as any).use_cases || base.use_cases,
       };
 
@@ -306,7 +497,7 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     } catch (err: any) {
       setError(err.message || 'Failed to save');
     }
-  }, [description, displayName, editor, form, handleSelect, name, rawObj, reloadWorkflows, slugify]);
+  }, [description, displayName, editor, form, handleSelect, name, normalizeBundles, rawObj, reloadWorkflows, sanitizeStatusFlow, slugify]);
 
   const handleDelete = useCallback(async () => {
     if (!selected?.name) {
@@ -377,7 +568,10 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
           }))
         : [];
 
-      setForm({
+      const normalizedBundles = normalizeBundles(obj.validation_bundles);
+      const normalizedFlow = sanitizeStatusFlow(obj.status_flow);
+
+      const nextForm = {
         name: obj.name || '',
         display_name: obj.display_name || '',
         description: obj.description || '',
@@ -385,15 +579,20 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
         conditional_requirements: obj.conditional_requirements || [],
         validation_rules: obj.validation_rules || [],
         use_cases: obj.use_cases || [],
-      } as any);
-      setRawObj(obj);
+        status_flow_ref: obj.status_flow_ref || null,
+        validation_bundles: normalizedBundles,
+        status_flow: normalizedFlow,
+      } as any;
+
+      setForm(nextForm);
+      setRawObj({ ...obj, validation_bundles: normalizedBundles, status_flow: normalizedFlow });
       setParseOk(true);
       setError('');
       setDirty(true);
     } catch {
       setParseOk(false);
     }
-  }, [description, displayName, name]);
+  }, [description, displayName, name, normalizeBundles, sanitizeStatusFlow]);
 
   const loadTasks = useCallback(async () => {
     const resp = await felixService.listTasks({ limit: 200 });
@@ -405,6 +604,26 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
       /* ignore */
     });
   }, [loadTasks]);
+
+  const saveStatus = useCallback(async (status: Partial<TaskStatusRecord> & { name: string }) => {
+    await felixService.saveWorkflowStatus(status);
+    await loadStatusMetadata();
+  }, [loadStatusMetadata]);
+
+  const removeStatus = useCallback(async (id: string) => {
+    await felixService.deleteWorkflowStatus(id);
+    await loadStatusMetadata();
+  }, [loadStatusMetadata]);
+
+  const saveStatusFlow = useCallback(async (flow: Partial<TaskStatusFlowRecord> & { name: string; status_ids: string[] }) => {
+    await felixService.saveWorkflowStatusFlow(flow);
+    await loadStatusMetadata();
+  }, [loadStatusMetadata]);
+
+  const removeStatusFlow = useCallback(async (id: string) => {
+    await felixService.deleteWorkflowStatusFlow(id);
+    await loadStatusMetadata();
+  }, [loadStatusMetadata]);
 
   const runValidation = useCallback(async () => {
     setValidation(null);
@@ -518,6 +737,9 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     enforceMapping,
     tab,
     editorSection,
+    configPanel,
+    statusHints: availableStatuses,
+    statusPresets,
     configSection,
     mappingKey,
     showNewDialog,
@@ -526,6 +748,7 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     filteredItems,
     setTab,
     setEditorSection,
+    setConfigPanel,
     setConfigSection,
     setMappingKey,
     setShowNewDialog,
@@ -539,6 +762,8 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     updateDefaultWorkflow,
     toggleEnforceMapping,
     restoreBuiltInWorkflows,
+    exportSnapshot,
+    importSnapshot,
     handleSelect,
     handleNew,
     createNewWorkflow,
@@ -550,5 +775,11 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     reloadWorkflows,
     getWorkflowIcon,
     getSectionIcon,
+    statusCatalog,
+    statusFlows,
+    saveStatus,
+    removeStatus,
+    saveStatusFlow,
+    removeStatusFlow,
   };
 }

@@ -218,9 +218,7 @@ export function TaskDetailsModal({
                     Description
                   </h3>
                   {task.description ? (
-                    <div className="prose prose-sm  max-w-none">
-                      <MarkdownRenderer content={task.description} />
-                    </div>
+                    <MarkdownRenderer content={task.description} />
                   ) : (
                     <p className="text-muted-foreground italic">No description provided</p>
                   )}

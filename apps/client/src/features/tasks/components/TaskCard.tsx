@@ -22,6 +22,9 @@ import { TaskWorkflowGates } from './task-card/components/TaskWorkflowGates';
 import { getTaskTypeColors, getNoteTypeColors, getRuleTypeColors, getTaskStatusColors, getTaskPriorityColors, getSpecStateColors, useTheme } from '@felix/theme-system';
 import { getDefaultWorkflow } from './task-card/utils/workflow';
 import type { TaskData } from '@/types/api';
+import { useTasksStore } from '../state/tasksStore';
+import { TaskTransitionGateBanner } from './task-card/components/TaskTransitionGateBanner';
+import { TaskTransitionPromptPanel } from './task-card/components/TaskTransitionPromptPanel';
 
 interface TaskCardProps {
   task: TaskData;
@@ -58,6 +61,10 @@ export function TaskCard({
   completedChildTasksCount = 0,
 }: TaskCardProps) {
   const { theme } = useTheme();
+  const pendingGate = useTasksStore((state) => state.pendingGates[task.id]);
+  const acknowledgeGate = useTasksStore((state) => state.acknowledgeGate);
+  const dismissGate = useTasksStore((state) => state.dismissGate);
+  const tasksLoading = useTasksStore((state) => state.loading);
 
   const [copiedId, setCopiedId] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -487,6 +494,29 @@ export function TaskCard({
 
       {task.workflow && task.workflow !== 'simple' && (
         <TaskWorkflowGates strictStatus={strictStatus} validation={validation} />
+      )}
+
+      {pendingGate && (
+        <TaskTransitionGateBanner
+          gate={pendingGate.gate}
+          message={pendingGate.message}
+          loading={tasksLoading}
+          onAcknowledge={async () => {
+            try {
+              await acknowledgeGate(task.id);
+            } catch (error) {
+              console.error('Failed to acknowledge transition gate', error);
+            }
+          }}
+          onDismiss={() => dismissGate(task.id)}
+        />
+      )}
+
+      {!pendingGate && task.transition_prompt && (
+        <TaskTransitionPromptPanel
+          prompt={task.transition_prompt}
+          bundleResults={task.transition_bundle_results}
+        />
       )}
 
       {!isExpanded && !isEditing && (

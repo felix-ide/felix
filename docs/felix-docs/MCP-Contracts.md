@@ -59,6 +59,20 @@ Response: `{ total, offset, limit, items: [{ id, title, task_status, task_type, 
 - `get_stats` returns `{ project, stats }` JSON.
 - `index`/`set` return success messages only.
 
+## Workflows Tool
+
+Workflows expose configuration and validation controls for AI parity with the UI. Supported `action` values:
+
+- `list|get|create|update|delete` – CRUD for workflow definitions.
+- `get_default|set_default|resolve` – inspect or change defaults and per-task-type resolution.
+- `get_config|update_config|reseed|guide|validate|scaffold` – existing behavioural controls (unchanged).
+- `set_type_mapping|get_type_mapping` – legacy workflow ↔ task-type mapping helpers.
+- `list_statuses|upsert_status|delete_status` – manage the global task status catalog. `upsert_status` expects `{ status: { name, id?, display_label?, emoji?, color?, description? } }`.
+- `list_status_flows|upsert_status_flow|delete_status_flow` – CRUD reusable status flows. `status_ids` must reference existing statuses; responses include any built-in presets.
+- `get_flow_mapping|set_flow_mapping` – read or update `task_type → status_flow` assignments. Bulk updates pass `flow_map: { task_type: flow_id }`; single updates use `task_type` + `flow_id` (or `flow_id_for_type`).
+
+Every response includes both a human-readable text `content` entry and a JSON `payload` mirroring the data (`{ statuses }`, `{ flow }`, `{ map }`, etc.) so clients can parse deterministically.
+
 ## Search Tool
 
 - Primary search accepts filters (`entity_types`, `component_types`, `path_include`, `path_exclude`, `max_results`, `context_window_size`, etc.).
@@ -79,4 +93,3 @@ Every handler responds with
 ```
 
 Clients can rely on the JSON text payload for deterministic parsing while still supporting plain-text fallbacks. The `payload` property mirrors JSON for convenience in environments where direct access is simpler.
-

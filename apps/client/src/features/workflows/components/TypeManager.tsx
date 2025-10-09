@@ -28,7 +28,9 @@ interface TypeManagerProps {
 
 export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
   const [mapping, setMapping] = useState<Record<string,string>>({});
+  const [flowMapping, setFlowMapping] = useState<Record<string,string>>({});
   const [workflows, setWorkflows] = useState<Array<{ value: string; label: string }>>([]);
+  const [statusFlowOptions, setStatusFlowOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [meta, setMeta] = useState<TypesMeta>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -42,6 +44,7 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
   const [newEmoji, setNewEmoji] = useState('');
   const [newColor, setNewColor] = useState('#6366f1');
   const [newWorkflow, setNewWorkflow] = useState('feature_development');
+  const [newFlow, setNewFlow] = useState<string>('');
   const [newDefaultPriority, setNewDefaultPriority] = useState<'low'|'medium'|'high'|'critical'>('medium');
   const [newDefaultTags, setNewDefaultTags] = useState('');
   const [newDescriptionTemplate, setNewDescriptionTemplate] = useState('');
@@ -53,25 +56,47 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
   useEffect(() => {
     (async () => {
       try {
-        const [wfList, map, cfg] = await Promise.all([
+        const [wfList, mappingPayload, cfg, flows] = await Promise.all([
           felixService.listWorkflows(),
           felixService.getWorkflowMapping(),
-          felixService.getWorkflowConfig()
+          felixService.getWorkflowConfig(),
+          felixService.getWorkflowStatusFlows()
         ]);
-        setWorkflows((wfList.items||[]).map((w:any)=>({ value: w.name, label: w.display_name || w.name })));
-        setMapping(map || {});
+        setWorkflows((wfList.items || []).map((w: any) => ({ value: w.name, label: w.display_name || w.name })));
+        setMapping(mappingPayload.workflowMap || {});
+        setFlowMapping(mappingPayload.flowMap || {});
+        setStatusFlowOptions(
+          (flows.flows || []).map((flow: any) => ({
+            value: flow.id,
+            label: flow.display_label || flow.name
+          }))
+        );
+        if (!newFlow && (flows.flows || []).length) {
+          setNewFlow((flows.flows || [])[0].id);
+        }
         try {
-          const m = (cfg.config && (cfg.config as any).types_metadata);
-          const parsed = typeof m === 'string' ? JSON.parse(m) : (m || {});
+          const m = cfg.config && (cfg.config as any).types_metadata;
+          const parsed = typeof m === 'string' ? JSON.parse(m) : m || {};
           setMeta(parsed);
-        } catch { setMeta({}); }
-      } catch (e:any) {
-        setError(e.message||'Failed to load type metadata');
+        } catch {
+          setMeta({});
+        }
+      } catch (e: any) {
+        setError(e.message || 'Failed to load type metadata');
       }
     })();
   }, []);
 
-  const customTypes = useMemo(() => Object.keys(mapping || {}).filter(t => !BUILTIN.has(t)), [mapping]);
+  const customTypes = useMemo(() => {
+    const names = new Set<string>();
+    Object.keys(mapping || {}).forEach((name) => {
+      if (!BUILTIN.has(name)) names.add(name);
+    });
+    Object.keys(flowMapping || {}).forEach((name) => {
+      if (!BUILTIN.has(name)) names.add(name);
+    });
+    return Array.from(names).sort();
+  }, [mapping, flowMapping]);
 
   const saveMeta = async (next: TypesMeta) => {
     setBusy(true); setError('');
@@ -89,6 +114,40 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
     onUpdate?.();
   };
 
+  const updateTypeWorkflow = async (type: string, workflowName: string) => {
+    setBusy(true); setError('');
+    try {
+      await felixService.setWorkflowMapping(type, workflowName);
+      setMapping((prev) => ({ ...prev, [type]: workflowName }));
+      onUpdate?.();
+    } catch (e:any) {
+      setError(e.message || 'Failed to update workflow');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const updateTypeFlow = async (type: string, flowId: string | null) => {
+    setBusy(true); setError('');
+    try {
+      await felixService.setStatusFlowMapping(type, flowId);
+      setFlowMapping((prev) => {
+        const next = { ...prev };
+        if (flowId) {
+          next[type] = flowId;
+        } else {
+          delete next[type];
+        }
+        return next;
+      });
+      onUpdate?.();
+    } catch (e:any) {
+      setError(e.message || 'Failed to update status flow');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onRemoveType = async (type: string) => {
     if (!confirm(`Delete task type "${type}"?`)) return;
     setBusy(true); setError('');
@@ -98,12 +157,17 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
       delete newMapping[type];
       await felixService.setWorkflowMappingBulk(newMapping);
 
+      await felixService.setStatusFlowMapping(type, null);
+
       // Remove from metadata
       const newMeta = { ...meta };
       delete newMeta[type];
       await felixService.setWorkflowConfig({ types_metadata: JSON.stringify(newMeta) });
 
       setMapping(newMapping);
+      const nextFlowMapping = { ...flowMapping };
+      delete nextFlowMapping[type];
+      setFlowMapping(nextFlowMapping);
       setMeta(newMeta);
       onUpdate?.();
     } catch (e:any) {
@@ -119,6 +183,7 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
     setError('');
     try {
       await felixService.setWorkflowMapping(t, newWorkflow);
+      await felixService.setStatusFlowMapping(t, newFlow || null);
       const nextMeta = {
         ...meta,
         [t]: {
@@ -132,12 +197,23 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
       await felixService.setWorkflowConfig({ types_metadata: JSON.stringify(nextMeta) });
       setMeta(nextMeta);
       setMapping({ ...mapping, [t]: newWorkflow });
+      setFlowMapping((prev) => {
+        const next = { ...prev };
+        if (newFlow) {
+          next[t] = newFlow;
+        } else {
+          delete next[t];
+        }
+        return next;
+      });
       onUpdate?.();
 
       // Reset form
       setNewType('');
       setNewEmoji('');
       setNewColor('#6366f1');
+      setNewWorkflow('feature_development');
+      setNewFlow(statusFlowOptions[0]?.value || '');
       setNewDefaultPriority('medium');
       setNewDefaultTags('');
       setNewDescriptionTemplate('');
@@ -148,7 +224,7 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
   };
 
   const exportJson = () => {
-    const payload = { mapping, types_metadata: meta };
+    const payload = { mapping, flow_mapping: flowMapping, types_metadata: meta };
     const text = JSON.stringify(payload, null, 2);
     const blob = new Blob([text], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -168,6 +244,10 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
       if (obj.mapping && typeof obj.mapping === 'object') {
         await felixService.setWorkflowMappingBulk(obj.mapping);
         setMapping(obj.mapping);
+      }
+      if (obj.flow_mapping && typeof obj.flow_mapping === 'object') {
+        await felixService.setStatusFlowMappingBulk(obj.flow_mapping);
+        setFlowMapping(obj.flow_mapping);
       }
       if (obj.types_metadata && typeof obj.types_metadata === 'object') {
         await felixService.setWorkflowConfig({ types_metadata: JSON.stringify(obj.types_metadata) });
@@ -272,7 +352,7 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-3">
+              <div className="col-span-2">
                 <Input
                   label="Type Name"
                   value={newType}
@@ -313,6 +393,20 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
                 >
                   {workflows.map(o => (
                     <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="col-span-3">
+                <Select
+                  label="Status Flow"
+                  value={newFlow}
+                  onChange={(e) => setNewFlow(e.target.value)}
+                >
+                  <option value="">(not set)</option>
+                  {statusFlowOptions.length === 0 && <option value="">No flows available</option>}
+                  {statusFlowOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </Select>
               </div>
@@ -404,9 +498,31 @@ export function TypeManager({ onUpdate }: TypeManagerProps = {}) {
                     <span className="text-2xl">{meta[t]?.emoji || '📋'}</span>
                     <div>
                       <h3 className="font-semibold">{t}</h3>
-                      <p className="text-xs text-muted-foreground">
-                        → {workflows.find(w => w.value === mapping[t])?.label || mapping[t]}
+                      <p className="text-xs text-muted-foreground space-x-2">
+                        <span>Workflow: {workflows.find(w => w.value === mapping[t])?.label || mapping[t] || '—'}</span>
+                        <span>• Flow: {statusFlowOptions.find(o => o.value === flowMapping[t])?.label || flowMapping[t] || '—'}</span>
                       </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        label="Workflow"
+                        value={mapping[t] || ''}
+                        onChange={(e) => updateTypeWorkflow(t, e.target.value)}
+                      >
+                        {workflows.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </Select>
+                      <Select
+                        label="Status Flow"
+                        value={flowMapping[t] || ''}
+                        onChange={(e) => updateTypeFlow(t, e.target.value || null)}
+                      >
+                        <option value="">(not set)</option>
+                        {statusFlowOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </Select>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">

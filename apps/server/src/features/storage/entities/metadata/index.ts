@@ -22,6 +22,9 @@ export { WorkflowConfiguration } from './WorkflowConfiguration.entity.js';
 export type { RequiredSection, ConditionalRequirement, ValidationRule } from './WorkflowConfiguration.entity.js';
 
 export { GlobalWorkflowSetting } from './GlobalWorkflowSetting.entity.js';
+export { TransitionGate } from './TransitionGate.entity.js';
+export { TaskStatus } from './TaskStatus.entity.js';
+export { TaskStatusFlow } from './TaskStatusFlow.entity.js';
 
 // Array of all metadata entities for DataSource configuration
 export const METADATA_ENTITIES = [
@@ -34,5 +37,8 @@ export const METADATA_ENTITIES = [
   'RuleRelationship',
   'RuleApplication',
   'WorkflowConfiguration',
-  'GlobalWorkflowSetting'
+  'GlobalWorkflowSetting',
+  'TransitionGate',
+  'TaskStatus',
+  'TaskStatusFlow'
 ];

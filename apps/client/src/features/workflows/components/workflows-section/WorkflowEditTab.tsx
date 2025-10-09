@@ -1,11 +1,30 @@
-import { AlertCircle, Bug, ChevronRight, Code, FileCode, Search as SearchIcon, Sparkles, Trash2, Save, Plus } from 'lucide-react';
+import {
+  AlertCircle,
+  Bug,
+  ChevronRight,
+  Code,
+  FileCode,
+  Search as SearchIcon,
+  Sparkles,
+  Trash2,
+  Save,
+  Plus,
+  GitBranch,
+  Boxes,
+  ListChecks,
+  ScrollText
+} from 'lucide-react';
 import { Button } from '@client/shared/ui/Button';
 import { Input } from '@client/shared/ui/Input';
 import { Textarea } from '@client/shared/ui/Textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@client/shared/ui/Card';
 import { WorkflowForm, type WorkflowDefinition } from '@client/features/workflows/components/WorkflowForm';
+import type { TaskStatusRecord, TaskStatusFlowRecord } from '@/shared/api/workflowsClient';
 import { cn } from '@/utils/cn';
 import type { EditorSection, WorkflowListItem } from './hooks/useWorkflowsSectionState';
+import type { ComponentType } from 'react';
+
+type ConfigPanel = 'sections' | 'status' | 'bundles' | 'rules';
 
 interface WorkflowEditTabProps {
   filteredItems: WorkflowListItem[];
@@ -16,6 +35,8 @@ interface WorkflowEditTabProps {
   onNewWorkflow: () => void;
   editorSection: EditorSection;
   onEditorSectionChange: (section: EditorSection) => void;
+  configPanel: ConfigPanel;
+  onConfigPanelChange: (panel: ConfigPanel) => void;
   error: string;
   parseOk: boolean;
   name: string;
@@ -32,6 +53,10 @@ interface WorkflowEditTabProps {
   getWorkflowIcon: (name: string) => JSX.Element;
   getSectionIcon: (section: EditorSection) => JSX.Element | null;
   onTemplateSelect: (template: string) => void;
+  statusHints: string[];
+  statePresets: Array<{ id: string; label: string; states: string[] }>;
+  statusCatalog: TaskStatusRecord[];
+  statusFlows: TaskStatusFlowRecord[];
 }
 
 export function WorkflowEditTab({
@@ -43,6 +68,8 @@ export function WorkflowEditTab({
   onNewWorkflow,
   editorSection,
   onEditorSectionChange,
+  configPanel,
+  onConfigPanelChange,
   error,
   parseOk,
   name,
@@ -59,7 +86,47 @@ export function WorkflowEditTab({
   getWorkflowIcon,
   getSectionIcon,
   onTemplateSelect,
+  statusHints,
+  statePresets,
+  statusCatalog,
+  statusFlows,
 }: WorkflowEditTabProps) {
+  const configurationPanels: Array<{ id: ConfigPanel; label: string; description: string; icon: ComponentType<{ className?: string }> }> = [
+    {
+      id: 'sections',
+      label: 'Sections',
+      description: 'Define the sections, formats, and guidance each task must complete.',
+      icon: ListChecks
+    },
+    {
+      id: 'status',
+      label: 'Status Flow',
+      description: 'Manage shared statuses, transitions, prompts, and gates.',
+      icon: GitBranch
+    },
+    {
+      id: 'bundles',
+      label: 'Validation Bundles',
+      description: 'Create reusable bundles to attach to transitions and gates.',
+      icon: Boxes
+    },
+    {
+      id: 'rules',
+      label: 'Rules',
+      description: 'Add conditional requirements and custom validation rules.',
+      icon: ScrollText
+    }
+  ];
+
+  const combinedPresets = [
+    ...statePresets,
+    ...statusFlows.map((flow) => ({
+      id: flow.id,
+      label: flow.display_label || flow.name,
+      states: Array.isArray(flow.status_ids) ? flow.status_ids : []
+    }))
+  ];
+
   return (
     <>
       <div className="w-80 border-r border-border bg-muted/30 flex flex-col">
@@ -214,10 +281,51 @@ export function WorkflowEditTab({
                 )}
 
                 {editorSection === 'configuration' && (
-                  <WorkflowForm
-                    value={form}
-                    onChange={onFormChange}
-                  />
+                  <div className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {configurationPanels.map((panel) => {
+                        const Icon = panel.icon;
+                        const isActive = configPanel === panel.id;
+                        return (
+                          <button
+                            key={panel.id}
+                            onClick={() => onConfigPanelChange(panel.id)}
+                            className={cn(
+                              'p-4 rounded-lg border text-left transition-all flex gap-3 items-start',
+                              isActive
+                                ? 'border-primary bg-primary/10'
+                                : 'border-border bg-card hover:border-primary/40 hover:bg-primary/5'
+                            )}
+                          >
+                            <Icon
+                              className={cn(
+                                'h-5 w-5 mt-0.5',
+                                isActive ? 'text-primary' : 'text-muted-foreground'
+                              )}
+                            />
+                            <div>
+                              <div className={cn('text-sm font-semibold', isActive ? 'text-primary' : 'text-foreground')}>
+                                {panel.label}
+                              </div>
+                              <p className={cn('text-xs mt-1 leading-snug', isActive ? 'text-primary/80' : 'text-muted-foreground')}>
+                                {panel.description}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <WorkflowForm
+                      value={form}
+                      onChange={onFormChange}
+                      activePanel={configPanel}
+                      statusHints={statusHints}
+                      statePresets={combinedPresets}
+                      statusCatalog={statusCatalog}
+                      statusFlows={statusFlows}
+                    />
+                  </div>
                 )}
 
                 {editorSection === 'json' && (

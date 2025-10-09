@@ -72,7 +72,7 @@ export const buildUrl = (
 /**
  * Add project header to request init if project is set
  */
-const addProjectHeader = (init: RequestInit = {}): RequestInit => {
+export const addProjectHeader = (init: RequestInit = {}): RequestInit => {
   const projectPath = getCurrentProjectPath();
   if (!projectPath) return init;
 

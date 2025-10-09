@@ -8,29 +8,102 @@
  */
 
 import { execSync, spawn, spawnSync } from 'child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import https from 'https';
 import { join } from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
 import readline from 'readline';
 
+const MIN_PYTHON_MAJOR = 3;
+const MIN_PYTHON_MINOR = 10;
+
 const pythonCandidates = () => {
   const candidates = [];
-  if (process.platform === 'win32') {
-    candidates.push({ command: 'py', args: ['-3'] });
+  const seen = new Set();
+
+  const addCandidate = (command, args = []) => {
+    if (!command) return;
+    const key = `${command} ${args.join(' ')}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push({ command, args });
+  };
+
+  const envPython = process.env.FELIX_PYTHON || process.env.PYTHON_BIN || process.env.PYTHON;
+  if (envPython) {
+    const parts = envPython.trim().split(/\s+/);
+    addCandidate(parts[0], parts.slice(1));
   }
-  candidates.push({ command: 'python3', args: [] }, { command: 'python', args: [] });
+
+  if (process.platform === 'win32') {
+    addCandidate('py', ['-3.13']);
+    addCandidate('py', ['-3.12']);
+    addCandidate('py', ['-3.11']);
+    addCandidate('py', ['-3']);
+    addCandidate('python3.13');
+    addCandidate('python3.12');
+    addCandidate('python3.11');
+    addCandidate('python3');
+    addCandidate('python');
+  } else {
+    const versioned = ['python3.13', 'python3.12', 'python3.11', 'python3.10', 'python3'];
+    versioned.forEach(cmd => addCandidate(cmd));
+    ['/opt/homebrew/bin/python3.13', '/opt/homebrew/bin/python3.12', '/opt/homebrew/bin/python3', '/usr/local/bin/python3.13', '/usr/local/bin/python3.12', '/usr/local/bin/python3'].forEach(path => addCandidate(path));
+    addCandidate('python');
+  }
+
   return candidates;
 };
 
+const parsePythonVersion = (text) => {
+  if (!text) return null;
+  const match = text.match(/Python\s+(\d+)\.(\d+)\.(\d+)/i);
+  if (!match) return null;
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    micro: Number(match[3])
+  };
+};
+
+const comparePythonVersions = (a, b) => {
+  if (!a || !b) return 0;
+  if (a.major !== b.major) return a.major - b.major;
+  if (a.minor !== b.minor) return a.minor - b.minor;
+  return (a.micro || 0) - (b.micro || 0);
+};
+
 const findSystemPython = () => {
+  let best = null;
+  let bestVersion = null;
+  let fallback = null;
+  let fallbackVersion = null;
+
   for (const candidate of pythonCandidates()) {
-    const result = spawnSync(candidate.command, [...candidate.args, '--version'], { stdio: 'ignore' });
-    if (!result.error && result.status === 0) {
-      return candidate;
+    try {
+      const result = spawnSync(candidate.command, [...candidate.args, '--version'], { stdio: 'pipe' });
+      if (result.error || result.status !== 0) continue;
+      const output = `${result.stdout?.toString() ?? ''}${result.stderr?.toString() ?? ''}`;
+      const version = parsePythonVersion(output);
+      const candidateWithVersion = { ...candidate, version };
+      if (version && (version.major > MIN_PYTHON_MAJOR || (version.major === MIN_PYTHON_MAJOR && version.minor >= MIN_PYTHON_MINOR))) {
+        if (!bestVersion || comparePythonVersions(version, bestVersion) > 0) {
+          best = candidateWithVersion;
+          bestVersion = version;
+        }
+      }
+      if (!fallbackVersion || (version && comparePythonVersions(version, fallbackVersion) > 0)) {
+        fallback = candidateWithVersion;
+        fallbackVersion = version;
+      }
+    } catch {
+      // ignore candidate failure
     }
   }
+
+  if (best) return best;
+  if (fallback) return fallback;
   throw new Error('Python interpreter not found. Install Python 3 and try again.');
 };
 
@@ -38,6 +111,8 @@ const runPython = (python, args, options = {}) => {
   const result = spawnSync(python.command, [...python.args, ...args], { stdio: 'pipe', ...options });
   if (result.error || result.status !== 0) {
     const error = result.error ?? new Error(result.stderr?.toString() || `Command failed with exit code ${result.status}`);
+    if (result.stdout) error.stdout = result.stdout.toString();
+    if (result.stderr) error.stderr = result.stderr.toString();
     throw error;
   }
   return result;
@@ -48,13 +123,27 @@ const getVenvPythonPath = (venvPath) => (process.platform === 'win32'
   : join(venvPath, 'bin', 'python'));
 
 const runVenvPython = (venvPath, args, options = {}) => {
-  const pythonPath = getVenvPythonPath(venvPath);
+  const absVenvPath = join(process.cwd(), venvPath);
+  const pythonPath = getVenvPythonPath(absVenvPath);
   const result = spawnSync(pythonPath, args, { stdio: 'pipe', ...options });
   if (result.error || result.status !== 0) {
     const error = result.error ?? new Error(result.stderr?.toString() || `Command failed with exit code ${result.status}`);
+    if (result.stdout) error.stdout = result.stdout.toString();
+    if (result.stderr) error.stderr = result.stderr.toString();
     throw error;
   }
   return result;
+};
+
+const resolvePythonDetails = (python) => {
+  try {
+    const script = 'import sys, os, json; sys.stdout.write(json.dumps({"executable": sys.executable, "realpath": os.path.realpath(sys.executable)}))';
+    const result = spawnSync(python.command, [...python.args, '-c', script], { stdio: 'pipe' });
+    if (result.error || result.status !== 0) return null;
+    return JSON.parse(result.stdout.toString() || '{}');
+  } catch {
+    return null;
+  }
 };
 
 class SetupValidator {
@@ -62,8 +151,10 @@ class SetupValidator {
     this.issues = [];
     this.warnings = [];
     this.successes = [];
+    this.criticalErrors = []; // Errors that will prevent app from running
     const autoInstallEnv = process.env.FELIX_AUTO_INSTALL ?? process.env.FELIX_AUTO_INSTALL;
     this.autoInstall = process.argv.includes('--auto') || autoInstallEnv === '1';
+    this.runningPostinstall = process.env.npm_lifecycle_event === 'postinstall';
     this.isInteractive = process.stdin.isTTY === true;
     this.rl = readline.createInterface({
       input: process.stdin,
@@ -72,8 +163,8 @@ class SetupValidator {
   }
 
   async prompt(question) {
-    if (this.autoInstall) return true;
-    if (!this.isInteractive) return false; // default to "no" in non-interactive (postinstall/CI)
+    if (this.autoInstall || this.runningPostinstall) return true;
+    if (!this.isInteractive) return false; // default to "no" in non-interactive (CI)
 
     return new Promise((resolve) => {
       this.rl.question(chalk.cyan(question + ' (y/N): '), (answer) => {
@@ -101,12 +192,77 @@ class SetupValidator {
     console.log(chalk.red('❌ ' + message));
   }
 
+  critical(message) {
+    this.criticalErrors.push(message);
+    this.issues.push(message);
+    console.log(chalk.red.bold('🚨 CRITICAL: ' + message));
+  }
+
   info(message) {
     console.log(chalk.blue('ℹ️  ' + message));
   }
 
   header(title) {
     console.log('\n' + chalk.bold.underline(title));
+  }
+
+  formatPythonError(error, fallback = 'Unknown Python error') {
+    if (!error) return fallback;
+
+    const segments = [];
+    if (typeof error.message === 'string' && error.message.trim()) {
+      segments.push(error.message);
+    }
+    if (error.stderr) {
+      const stderrText = typeof error.stderr === 'string' ? error.stderr : error.stderr.toString();
+      if (stderrText.trim()) segments.push(stderrText);
+    }
+    if (error.stdout) {
+      const stdoutText = typeof error.stdout === 'string' ? error.stdout : error.stdout.toString();
+      if (stdoutText.trim()) segments.push(stdoutText);
+    }
+
+    const trimmed = segments
+      .join('\n')
+      .split('\n')
+      .map((line) => line.trimEnd())
+      .filter(Boolean)
+      .slice(-20)
+      .join('\n');
+
+    return trimmed || fallback;
+  }
+
+  analyzeDependencyIssues(details = {}) {
+    if (!details) return [];
+
+    const hints = [];
+    const torch = details.torch;
+    if (torch?.status === 'error') {
+      const message = (torch.message || '').toLowerCase();
+      if (message.includes('mach-o') || message.includes('wrong architecture') || message.includes('no suitable image found')) {
+        hints.push('Torch import failed due to an architecture mismatch. Install an ARM64 Python 3.11+ (for example, via Homebrew `brew install python@3.11` or python.org) and rerun setup.');
+      }
+      if (message.includes('libressl')) {
+        hints.push('Torch import failed because the current Python is linked against LibreSSL. Install Python from python.org (built with OpenSSL) and rerun setup.');
+      }
+    }
+
+    const sentenceTx = details.sentence_transformers;
+    if (sentenceTx?.status === 'error' && sentenceTx?.type === 'VersionMismatch') {
+      const version = sentenceTx.version || 'unknown';
+      hints.push(`sentence-transformers ${version} detected, but >=5.0 is required. Delete python-sidecar/.venv and rerun setup.`);
+    }
+
+    const numpy = details.numpy;
+    if (numpy?.status === 'error') {
+      const msg = (numpy.message || '').toLowerCase();
+      if (msg.includes('not a supported wheel on this platform')) {
+        hints.push('NumPy wheel is not available for this Python build. Install Python 3.10+ (ARM64) and rerun setup.');
+      }
+    }
+
+    return hints;
   }
 
   async run() {
@@ -118,11 +274,14 @@ class SetupValidator {
 
     if (this.autoInstall) {
       console.log(chalk.green('🚀 Auto-install mode enabled\n'));
+    } else if (this.runningPostinstall) {
+      console.log(chalk.green('🚀 Postinstall detected: continuing with automatic dependency fixes\n'));
     } else {
       console.log(chalk.dim('Tip: Use --auto flag or set FELIX_AUTO_INSTALL=1 (legacy: FELIX_AUTO_INSTALL=1) to auto-install missing components\n'));
     }
 
     await this.checkNodeVersion();
+    await this.checkPhpRuntime();
     await this.fixWindowsRollup();
     await this.checkNpmPackages();
     await this.checkTreeSitterGrammars();
@@ -228,6 +387,50 @@ class SetupValidator {
       }
     } catch (error) {
       this.error('Could not determine Node.js version');
+    }
+  }
+
+  async checkPhpRuntime() {
+    this.header('PHP Runtime');
+
+    try {
+      const phpVersion = execSync('php --version', { encoding: 'utf8' }).split('\n')[0];
+      this.success(`PHP installed: ${phpVersion}`);
+      return true;
+    } catch (error) {
+      this.critical('PHP is not installed or not in PATH - app will crash when parsing PHP files');
+      this.info('PHP is required for parsing PHP code');
+
+      if (process.platform === 'darwin') {
+        this.info('Install PHP with: brew install php');
+      } else if (process.platform === 'win32') {
+        this.info('Install PHP from: https://windows.php.net/download/');
+      } else {
+        this.info('Install PHP with: sudo apt install php-cli');
+      }
+
+      if (this.autoInstall || await this.prompt('Install PHP now?')) {
+        const spinner = ora('Installing PHP...').start();
+        try {
+          if (process.platform === 'darwin') {
+            execSync('brew install php', { encoding: 'utf8', stdio: 'pipe' });
+          } else if (process.platform === 'linux') {
+            execSync('sudo apt-get install -y php-cli', { encoding: 'utf8', stdio: 'pipe' });
+          } else {
+            spinner.fail('Automatic installation not supported on this platform');
+            return false;
+          }
+          spinner.succeed('PHP installed successfully');
+          this.successes.push('Installed PHP');
+          this.criticalErrors = this.criticalErrors.filter(e => !e.includes('PHP'));
+          return true;
+        } catch (installError) {
+          spinner.fail('Failed to install PHP');
+          this.error('Please install PHP manually before running the app');
+          return false;
+        }
+      }
+      return false;
     }
   }
 
@@ -365,6 +568,12 @@ class SetupValidator {
 
   async checkLSPServers() {
     this.header('Language Server Protocol (LSP) Servers');
+
+    if (this.runningPostinstall) {
+      this.info('Skipping automatic LSP installation during npm postinstall to avoid repeated global installs.');
+      this.info('Run `npm run setup -- --lsp` later if you want to install recommended language servers.');
+      return;
+    }
 
     const servers = [
       {
@@ -571,132 +780,374 @@ class SetupValidator {
     }
 
     // Check if virtual environment exists
-    const venvPath = `${sidecarDir}/.venv`;
+    const venvPath = join(sidecarDir, '.venv');
     let venvExists = existsSync(venvPath);
+
+    const createVenv = () => {
+      const spinner = ora('Creating Python virtual environment...').start();
+
+      try {
+        let python;
+        try {
+          python = findSystemPython();
+        } catch (error) {
+          spinner.fail('Python not found. Please install Python 3.10+');
+          this.critical('Python 3.10+ is required - app will crash when parsing Python files or using embeddings');
+          this.info('Install Python from: https://www.python.org/downloads/');
+          if (process.platform === 'darwin') {
+            this.info('Or install via Homebrew: brew install python@3.13');
+          }
+          return false;
+        }
+
+        const details = resolvePythonDetails(python);
+        if (details?.realpath) {
+          this.info(`Using Python interpreter: ${details.realpath}`);
+        } else if (python.version) {
+          this.info(`Using Python interpreter command: ${python.command} (version ${python.version.major}.${python.version.minor}.${python.version.micro ?? 0})`);
+        } else {
+          this.info(`Using Python interpreter command: ${python.command}`);
+        }
+
+        runPython(python, ['-m', 'venv', '--copies', '.venv'], { cwd: sidecarDir });
+        spinner.succeed('Python virtual environment created');
+        venvExists = true;
+        return true;
+      } catch (error) {
+        spinner.fail('Failed to create virtual environment');
+        this.error(`Virtual environment creation failed: ${error.message}`);
+        return false;
+      }
+    };
 
     if (!venvExists) {
       const shouldCreate = await this.prompt('Python virtual environment not found. Create it now?');
 
-      if (shouldCreate || this.autoInstall) {
-        const spinner = ora('Creating Python virtual environment...').start();
-
-        try {
-          // Check for Python
-          let python;
-          try {
-            python = findSystemPython();
-          } catch (error) {
-            spinner.fail('Python not found. Please install Python 3.8+');
-            this.error('Python is required for the embedding service');
-            return;
-          }
-
-          // Create virtual environment
-          runPython(python, ['-m', 'venv', venvPath], { cwd: sidecarDir });
-          spinner.succeed('Python virtual environment created');
-          venvExists = true;
-        } catch (error) {
-          spinner.fail('Failed to create virtual environment');
-          this.error(`Virtual environment creation failed: ${error.message}`);
+      if (shouldCreate || this.autoInstall || this.runningPostinstall) {
+        if (!createVenv()) {
           return;
         }
+      } else {
+        this.warning('Python virtual environment missing; embeddings disabled');
+        return;
       }
     } else {
       this.success('Python virtual environment exists');
     }
 
+    const venvPythonPath = getVenvPythonPath(venvPath);
+    if (!existsSync(venvPythonPath)) {
+      this.warning('Python virtual environment is missing its interpreter; recreating...');
+      try {
+        rmSync(venvPath, { recursive: true, force: true });
+      } catch {}
+      venvExists = false;
+      if (!createVenv()) {
+        return;
+      }
+    }
+
+    let pythonVersion = null;
+    try {
+      const versionResult = runVenvPython(venvPath, [
+        '-c',
+        'import sys, json; sys.stdout.write(json.dumps({"major": sys.version_info.major, "minor": sys.version_info.minor, "micro": sys.version_info.micro}))'
+      ], { cwd: sidecarDir });
+      pythonVersion = JSON.parse(versionResult.stdout.toString());
+      this.info(`Python sidecar interpreter: ${pythonVersion.major}.${pythonVersion.minor}.${pythonVersion.micro}`);
+    } catch (error) {
+      this.warning('Unable to determine Python version for sidecar environment');
+    }
+
+    if (pythonVersion && pythonVersion.major === 3 && pythonVersion.minor < 10) {
+      const detected = `${pythonVersion.major}.${pythonVersion.minor}.${pythonVersion.micro ?? 0}`;
+      this.error(`Python ${detected} detected, but embeddings require Python 3.10 or newer.`);
+      if (process.platform === 'darwin') {
+        this.info('Install a newer Python with Homebrew: brew install python@3.11 && brew link python@3.11 --overwrite');
+        this.info('Alternatively, download Python 3.11+ from https://www.python.org/downloads/');
+      } else if (process.platform === 'win32') {
+        this.info('Install Python 3.11+ from https://www.python.org/downloads/windows/ and rerun setup.');
+      } else {
+        this.info('Install Python 3.11+ using your package manager (for example: sudo apt install python3.11) and rerun setup.');
+      }
+      this.info('After upgrading, delete python-sidecar/.venv and rerun npm install (or node scripts/setup.js --auto).');
+      return;
+    }
+
     // Check and install dependencies
     if (venvExists) {
-      const requirementsPath = `${sidecarDir}/requirements.txt`;
+      let requirementsFile = 'requirements.txt';
+      let requirementNote = 'default dependency set';
+
+      const requirementsPath = join(sidecarDir, requirementsFile);
 
       if (existsSync(requirementsPath)) {
-        // Check if packages are installed and at correct versions
-        let needsInstall = false;
-        let needsRebuild = false;
+        this.info(`Using ${requirementsFile} for Python dependency installation (${requirementNote}).`);
 
-        try {
-          // Check for key packages
-          const checkScript = `
-import importlib, sys
-mods = ["fastapi", "uvicorn", "numpy"]
-missing = [m for m in mods if importlib.util.find_spec(m) is None]
+        let lastVerification = null;
+
+        const verifyDependencies = ({ logStatus = true } = {}) => {
+          const verifyScript = `
+import json, sys, platform, ssl
+mods = ["fastapi", "uvicorn", "numpy", "torch", "sentence_transformers"]
+details = {}
+missing = []
+for name in mods:
+  record = {"status": "ok"}
+  try:
+    module = __import__(name)
+    record["version"] = getattr(module, "__version__", None)
+    if name == "sentence_transformers":
+      version = record["version"]
+      if version is not None:
+        try:
+          major = int(str(version).split(".")[0])
+          if major < 5:
+            record["status"] = "error"
+            record["type"] = "VersionMismatch"
+            record["message"] = f"sentence-transformers {version} detected, need >=5.0"
+            missing.append(name)
+        except Exception:
+          pass
+  except Exception as exc:
+    record["status"] = "error"
+    record["type"] = exc.__class__.__name__
+    record["message"] = str(exc)
+    missing.append(name)
+  details[name] = record
+
+payload = {
+  "missing": missing,
+  "details": details,
+  "python_version": platform.python_version(),
+  "platform": platform.platform(),
+  "architecture": platform.machine(),
+  "ssl": getattr(ssl, "OPENSSL_VERSION", "unknown")
+}
+sys.stdout.write(json.dumps(payload))
 sys.exit(1 if missing else 0)
 `;
-          runVenvPython(venvPath, ['-c', checkScript], { cwd: sidecarDir });
 
-          // Check sentence-transformers version (must be 5.x for compatibility)
+          const parsePayload = (buffer) => {
+            if (!buffer) return null;
+            try {
+              return JSON.parse(buffer.toString() || '');
+            } catch {
+              return null;
+            }
+          };
+
+          const logCompatibilityHints = (details) => {
+            const hints = this.analyzeDependencyIssues(details);
+            if (hints.length > 0) {
+              hints.forEach((hint) => this.warning(hint));
+            }
+          };
+
           try {
-            const versionCheck = `
-import importlib.metadata
-version = importlib.metadata.version("sentence-transformers")
-major = int(version.split('.')[0])
-sys.exit(0 if major >= 5 else 1)
-`;
-            runVenvPython(venvPath, ['-c', versionCheck], { cwd: sidecarDir });
-            this.success('Python dependencies installed (sentence-transformers 5.x)');
-          } catch {
-            this.warning('sentence-transformers is outdated (need 5.x), will reinstall dependencies');
-            needsInstall = true;
+            const result = runVenvPython(venvPath, ['-c', verifyScript], { cwd: sidecarDir });
+            const payload = parsePayload(result.stdout) || {};
+            const missing = Array.isArray(payload.missing) ? payload.missing : [];
+            if (missing.length > 0) {
+              if (logStatus) {
+                this.warning(`Python dependencies not installed (missing ${missing.join('/')})`);
+              }
+              logCompatibilityHints(payload.details);
+              lastVerification = { ok: false, missing, details: payload.details, payload };
+              return lastVerification;
+            }
+            if (logStatus) {
+              this.success('Python dependencies installed (sentence-transformers 5.x)');
+            }
+            lastVerification = { ok: true, missing: [], details: payload.details, payload };
+            return lastVerification;
+          } catch (error) {
+            const payload = parsePayload(error?.stderr) || parsePayload(error?.stdout);
+            const missing = Array.isArray(payload?.missing) ? payload.missing : [];
+            const display = missing.length > 0
+              ? missing.join('/')
+              : 'fastapi/uvicorn/numpy/torch/sentence-transformers';
+            if (logStatus) {
+              this.warning(`Python dependencies not installed (missing ${display})`);
+            }
+            if (payload?.details) {
+              logCompatibilityHints(payload.details);
+            }
+            lastVerification = { ok: false, missing, details: payload?.details, payload, error };
+            return lastVerification;
           }
-        } catch {
-          needsInstall = true;
-          this.warning('Python dependencies not installed');
-        }
+        };
 
-        if (needsInstall) {
-          const shouldInstall = await this.prompt('Install Python sidecar dependencies? (Required for embeddings)');
+        const installDependencies = (attempt = 1) => {
+          const attemptLabel = attempt > 1 ? ` (retry ${attempt})` : '';
+          const spinner = ora(`Installing Python dependencies${attemptLabel} (this may take a while)...`).start();
 
-          if (shouldInstall || this.autoInstall) {
-            const spinner = ora('Installing Python dependencies (this may take a while)...').start();
+          const safeRunVenv = (args, options) => {
+            try {
+              return runVenvPython(venvPath, args, options);
+            } catch (error) {
+              if (error?.code === 'ENOENT') {
+                this.warning('Virtual environment Python interpreter missing; recreating environment...');
+                try {
+                  rmSync(venvPath, { recursive: true, force: true });
+                } catch {}
+                if (!createVenv()) {
+                  throw error;
+                }
+                return runVenvPython(venvPath, args, options);
+              }
+              throw error;
+            }
+          };
+
+          try {
+            spinner.text = 'Upgrading pip and build tooling...';
+            safeRunVenv(['-m', 'pip', 'install', '--upgrade', 'pip', 'setuptools', 'wheel'], { cwd: sidecarDir });
+
+            spinner.text = 'Detecting GPU support...';
+            let torchIndex = 'https://download.pytorch.org/whl/cpu';
+            let macArchMessage;
+
+            if (process.platform === 'win32' || process.platform === 'linux') {
+              try {
+                execSync('nvidia-smi', { encoding: 'utf8', stdio: 'ignore' });
+                torchIndex = 'https://download.pytorch.org/whl/cu124';
+                this.info('✨ NVIDIA GPU detected! Installing CUDA-enabled PyTorch...');
+              } catch {
+                this.info('No NVIDIA GPU detected, installing CPU-only PyTorch');
+              }
+            } else if (process.platform === 'darwin') {
+              try {
+                const arch = execSync('uname -m', { encoding: 'utf8' }).trim();
+                if (arch === 'arm64') {
+                  macArchMessage = '✨ Apple Silicon detected! PyTorch will use Metal (MPS)...';
+                } else {
+                  macArchMessage = 'Intel macOS detected. Installing CPU-only PyTorch...';
+                }
+              } catch {
+                macArchMessage = 'Installing PyTorch from the default macOS index...';
+              }
+              if (macArchMessage) {
+                this.info(macArchMessage);
+              }
+            }
+
+            spinner.text = 'Installing PyTorch...';
+            const torchArgs = ['-m', 'pip', 'install', 'torch>=2.3.0'];
+            let usedCustomIndex = false;
+
+            if (process.platform === 'win32' || process.platform === 'linux') {
+              usedCustomIndex = true;
+              torchArgs.push('--index-url', torchIndex);
+            } else if (process.platform === 'darwin' && !macArchMessage) {
+              this.info('Installing PyTorch from the default macOS index...');
+            }
+
+            const reinstallTorchFromDefault = (reason) => {
+              if (reason) {
+                this.warning(reason);
+              }
+              spinner.text = 'Cleaning up previous PyTorch install...';
+              try {
+                safeRunVenv(['-m', 'pip', 'uninstall', '-y', 'torch'], { cwd: sidecarDir });
+              } catch {}
+              try {
+                safeRunVenv(['-m', 'pip', 'cache', 'purge'], { cwd: sidecarDir });
+              } catch {}
+              spinner.text = 'Installing PyTorch from PyPI...';
+              safeRunVenv([
+                '-m', 'pip', 'install',
+                '--no-cache-dir',
+                '--force-reinstall',
+                'torch>=2.3.0'
+              ], { cwd: sidecarDir });
+            };
 
             try {
-              // Upgrade pip first
-              runVenvPython(venvPath, ['-m', 'pip', 'install', '--upgrade', 'pip'], { cwd: sidecarDir });
+              safeRunVenv(torchArgs, { cwd: sidecarDir });
+            } catch {
+              if (usedCustomIndex) {
+                reinstallTorchFromDefault('PyTorch install via custom index failed, retrying with a clean install from the default PyPI index');
+              } else {
+                reinstallTorchFromDefault('PyTorch install failed, attempting clean reinstall from the default PyPI index');
+              }
+            }
 
-              // Detect GPU and install appropriate PyTorch
-              spinner.text = 'Detecting GPU support...';
-              let torchIndex = 'https://download.pytorch.org/whl/cpu'; // default to CPU
+            try {
+              safeRunVenv(['-c', 'import torch'], { cwd: sidecarDir });
+              this.success('PyTorch installed successfully');
+            } catch {
+              reinstallTorchFromDefault('PyTorch verification failed, performing clean reinstall');
+              safeRunVenv(['-c', 'import torch'], { cwd: sidecarDir });
+              this.success('PyTorch installed successfully');
+            }
 
-              // Check for NVIDIA GPU on Windows/Linux
-              if (process.platform === 'win32' || process.platform === 'linux') {
+            spinner.text = `Installing other Python dependencies from ${requirementsFile}...`;
+            safeRunVenv(['-m', 'pip', 'install', '-r', requirementsFile], { cwd: sidecarDir });
+
+            const verifyResult = verifyDependencies({ logStatus: false });
+            if (!verifyResult.ok) {
+              const err = new Error('Dependency verification failed');
+              err.missing = verifyResult.missing;
+              err.details = verifyResult.details;
+              err.payload = verifyResult.payload;
+              throw err;
+            }
+
+            spinner.succeed('Python dependencies installed successfully');
+            this.successes.push('Installed Python sidecar dependencies');
+            this.success('Python dependencies installed (sentence-transformers 5.x)');
+            return true;
+          } catch (error) {
+            spinner.fail('Failed to install Python dependencies');
+            const missingInfo = error?.missing?.length ? `Missing after install: ${error.missing.join('/')}\n` : '';
+            const detail = this.formatPythonError(error, `${missingInfo}Unknown Python error`);
+            this.error(`Python dependency installation failed:\n${detail}`);
+            if (error?.details) {
+              this.analyzeDependencyIssues(error.details).forEach((hint) => this.warning(hint));
+            }
+            return false;
+          }
+        };
+
+        let verification = verifyDependencies({ logStatus: true });
+        if (!verification.ok) {
+          const shouldInstall = await this.prompt('Install Python sidecar dependencies? (Required for embeddings)');
+
+          if (shouldInstall || this.autoInstall || this.runningPostinstall) {
+            let attempt = 1;
+            let installSuccess = false;
+
+            while (attempt <= 2) {
+              if (installDependencies(attempt)) {
+                installSuccess = true;
+                verification = lastVerification || verification;
+                break;
+              }
+
+              if (attempt === 1) {
+                this.info('Recreating Python virtual environment and retrying (python-sidecar/.venv)...');
                 try {
-                  execSync('nvidia-smi', { encoding: 'utf8', stdio: 'ignore' });
-                  torchIndex = 'https://download.pytorch.org/whl/cu124'; // CUDA 12.4 (supports Python 3.13)
-                  this.info('✨ NVIDIA GPU detected! Installing CUDA-enabled PyTorch...');
-                } catch {
-                  this.info('No NVIDIA GPU detected, installing CPU-only PyTorch');
+                  rmSync(venvPath, { recursive: true, force: true });
+                } catch {}
+                venvExists = false;
+                if (!createVenv()) {
+                  break;
                 }
               }
-              // Check for Apple Silicon on macOS
-              else if (process.platform === 'darwin') {
-                try {
-                  const arch = execSync('uname -m', { encoding: 'utf8' }).trim();
-                  if (arch === 'arm64') {
-                    this.info('✨ Apple Silicon detected! PyTorch will use Metal (MPS)...');
-                  }
-                } catch {}
-                torchIndex = 'https://download.pytorch.org/whl/cpu'; // macOS uses same index
-              }
 
-              // Install PyTorch with appropriate index
-              spinner.text = 'Installing PyTorch...';
-              runVenvPython(venvPath, [
-                '-m', 'pip', 'install',
-                'torch>=2.3.0',
-                '--index-url', torchIndex
-              ], { cwd: sidecarDir });
-
-              // Install other requirements
-              spinner.text = 'Installing other Python dependencies...';
-              runVenvPython(venvPath, ['-m', 'pip', 'install', '-r', 'requirements.txt'], { cwd: sidecarDir });
-
-              spinner.succeed('Python dependencies installed successfully');
-              this.successes.push('Installed Python sidecar dependencies');
-            } catch (error) {
-              spinner.fail('Failed to install Python dependencies');
-              this.warning('Embeddings will not work without Python dependencies');
-              this.info(`  Manual install: cd ${sidecarDir} && source .venv/bin/activate && pip install -r requirements.txt`);
+              attempt += 1;
             }
+
+            if (!installSuccess) {
+              this.warning('Embeddings will not work without Python dependencies');
+              if (lastVerification?.details) {
+                this.analyzeDependencyIssues(lastVerification.details).forEach((hint) => this.warning(hint));
+              }
+              this.info(`  Manual install: cd ${sidecarDir} && source .venv/bin/activate && pip install -r ${requirementsFile}`);
+            }
+          } else {
+            this.info(`  Manual install: cd ${sidecarDir} && source .venv/bin/activate && pip install -r ${requirementsFile}`);
           }
         }
       }
@@ -761,6 +1212,13 @@ except: sys.exit(1)`;
     console.log(chalk.bold.cyan('SETUP SUMMARY'));
     console.log(chalk.bold('═══════════════════════════════════════════════════'));
 
+    if (this.criticalErrors.length > 0) {
+      console.log(chalk.red.bold(`\n🚨 CRITICAL ERRORS: ${this.criticalErrors.length}`));
+      console.log(chalk.red.bold('THE APP WILL NOT RUN UNTIL THESE ARE FIXED:\n'));
+      this.criticalErrors.forEach(e => console.log(chalk.red.bold(`   ⛔ ${e}`)));
+      console.log('');
+    }
+
     if (this.successes.length > 0) {
       console.log(chalk.green(`\n✅ Successful checks: ${this.successes.length}`));
     }
@@ -772,13 +1230,22 @@ except: sys.exit(1)`;
 
     if (this.issues.length > 0) {
       console.log(chalk.red(`\n❌ Issues found: ${this.issues.length}`));
-      this.issues.forEach(i => console.log(chalk.red(`   - ${i}`)));
+      this.issues.forEach(i => {
+        if (!this.criticalErrors.includes(i)) {
+          console.log(chalk.red(`   - ${i}`));
+        }
+      });
 
       console.log(chalk.yellow('\n📝 Next Steps:'));
-      console.log('1. Fix the issues listed above');
-      console.log('2. Run: npm install');
-      console.log('3. Run: npm run build');
-      console.log('4. Run this setup script again to verify');
+      if (this.criticalErrors.length > 0) {
+        console.log(chalk.red.bold('1. FIX THE CRITICAL ERRORS ABOVE FIRST'));
+        console.log('2. Run this setup script again to verify: node scripts/setup.js --auto');
+      } else {
+        console.log('1. Fix the issues listed above');
+        console.log('2. Run: npm install');
+        console.log('3. Run: npm run build');
+        console.log('4. Run this setup script again to verify');
+      }
     } else {
       console.log(chalk.green('\n🎉 All checks passed! Felix is ready to use.'));
       console.log(chalk.cyan('\nTo start the development server:'));
@@ -796,7 +1263,12 @@ except: sys.exit(1)`;
 
 // Run the setup validator
 const validator = new SetupValidator();
-validator.run().catch(error => {
-  console.error(chalk.red('Setup script failed:'), error);
-  process.exit(1);
-});
+validator.run()
+  .then(() => {
+    const exitCode = validator.issues.length > 0 ? 1 : 0;
+    process.exit(exitCode);
+  })
+  .catch(error => {
+    console.error(chalk.red('Setup script failed:'), error);
+    process.exit(1);
+  });

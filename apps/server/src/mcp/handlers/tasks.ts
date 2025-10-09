@@ -5,6 +5,7 @@ import { DEFAULT_WORKFLOW_CONFIG } from '../../validation/WorkflowDefinitions.js
 import type { CreateTaskParams } from '../../types/WorkflowTypes.js';
 import { handleTasksList } from './tasks.list.js';
 import { createJsonContent, createTextContent, type TasksAddDependencyRequest, type TasksAddRequest, type TasksDeleteRequest, type TasksGetDependenciesRequest, type TasksGetRequest, type TasksGetTreeRequest, type TasksListRequest, type TasksSuggestNextRequest, type TasksToolRequest, type TasksUpdateRequest } from '../types/contracts.js';
+import { TransitionGateError } from '../../features/workflows/errors/TransitionGateError.js';
 
 export async function handleTasksTools(request: TasksToolRequest) {
   const projectInfo = await projectManager.getProject(request.project);
@@ -120,48 +121,69 @@ export async function handleTasksTools(request: TasksToolRequest) {
       if (!task_id) throw new Error('Task ID is required for update action');
 
       const updates: any = {};
-      ['title','description','task_status','task_priority','task_type','assigned_to','estimated_effort','actual_effort','due_date','stable_tags','entity_links','parent_id','sort_order'].forEach(k => {
+      ['title','description','task_status','task_priority','task_type','assigned_to','estimated_effort','actual_effort','due_date','stable_tags','entity_links','parent_id','sort_order','transition_gate_token','transition_gate_response'].forEach(k => {
         if (updateFields[k] !== undefined) updates[k] = updateFields[k];
       });
       ['workflow','spec_state','spec_waivers','last_validated_at','validated_by','checklists'].forEach(k => {
         if (updateFields[k] !== undefined) updates[k] = updateFields[k];
       });
 
-      const updatedTask = await projectInfo.codeIndexer.updateTask(task_id, updates);
-      let responseText = `Task ${task_id} updated successfully`;
+      try {
+        const updatedTask = await projectInfo.codeIndexer.updateTask(task_id, updates);
+        let responseText = `Task ${task_id} updated successfully`;
 
-      if (!skip_validation) {
-        const fullTask = await projectInfo.codeIndexer.getTask(task_id);
-        if (fullTask) {
-          let taskWorkflow = (fullTask as any).workflow;
-          if (!taskWorkflow) {
-            try {
-              const ds = (projectInfo as any).codeIndexer?.dbManager?.getMetadataDataSource?.();
-              const { WorkflowConfigManager } = await import('../../storage/WorkflowConfigManager.js');
-              const mgr = new WorkflowConfigManager(ds);
-              await mgr.initialize();
-              taskWorkflow = await mgr.getWorkflowForTaskType(fullTask.task_type) || await mgr.getDefaultWorkflow();
-            } catch {
-              taskWorkflow = DEFAULT_WORKFLOW_CONFIG.default_workflow;
+        if (!skip_validation) {
+          const fullTask = await projectInfo.codeIndexer.getTask(task_id);
+          if (fullTask) {
+            let taskWorkflow = (fullTask as any).workflow;
+            if (!taskWorkflow) {
+              try {
+                const ds = (projectInfo as any).codeIndexer?.dbManager?.getMetadataDataSource?.();
+                const { WorkflowConfigManager } = await import('../../storage/WorkflowConfigManager.js');
+                const mgr = new WorkflowConfigManager(ds);
+                await mgr.initialize();
+                taskWorkflow = await mgr.getWorkflowForTaskType(fullTask.task_type) || await mgr.getDefaultWorkflow();
+              } catch {
+                taskWorkflow = DEFAULT_WORKFLOW_CONFIG.default_workflow;
+              }
             }
+            const { WorkflowService } = await import('../../features/workflows/services/WorkflowService.js');
+            const { GuidanceService } = await import('../../features/workflows/services/GuidanceService.js');
+            const db: any = (projectInfo.codeIndexer as any).dbManager;
+            const wfSvc = new WorkflowService(db);
+            const guideSvc = new GuidanceService(db);
+            const validationStatus = await wfSvc.validate(fullTask as any, taskWorkflow);
+            const guidance = await guideSvc.build({ ...(fullTask as any), workflow: taskWorkflow } as any);
+            if (!validationStatus.is_valid) responseText += `\n\n⚠️ WORKFLOW WARNING: Missing items remain. See guidance JSON for exact actions.`;
+            return {
+              content: [
+                createTextContent(responseText),
+                createJsonContent({ task: updatedTask, validation: validationStatus, guidance })
+              ]
+            };
           }
-          const { WorkflowService } = await import('../../features/workflows/services/WorkflowService.js');
-          const { GuidanceService } = await import('../../features/workflows/services/GuidanceService.js');
-          const db: any = (projectInfo.codeIndexer as any).dbManager;
-          const wfSvc = new WorkflowService(db);
-          const guideSvc = new GuidanceService(db);
-          const validationStatus = await wfSvc.validate(fullTask as any, taskWorkflow);
-          const guidance = await guideSvc.build({ ...(fullTask as any), workflow: taskWorkflow } as any);
-          if (!validationStatus.is_valid) responseText += `\n\n⚠️ WORKFLOW WARNING: Missing items remain. See guidance JSON for exact actions.`;
+        }
+        const extraContent = [];
+        if ((updatedTask as any).transition_prompt || (updatedTask as any).transition_bundle_results) {
+          extraContent.push(createJsonContent({ task: updatedTask }));
+          if ((updatedTask as any).transition_prompt) {
+            responseText += `\n\n${(updatedTask as any).transition_prompt}`;
+          }
+        }
+        return { content: [createTextContent(responseText), ...extraContent] };
+      } catch (error) {
+        if (error instanceof TransitionGateError) {
+          const details = error.details;
+          const prompt = details.prompt ? `\n\n${details.prompt}` : '';
           return {
             content: [
-              createTextContent(responseText),
-              createJsonContent({ task: updatedTask, validation: validationStatus, guidance })
+              createTextContent(`${error.message}${prompt}`.trim()),
+              createJsonContent({ gate: details })
             ]
           };
         }
+        throw error;
       }
-      return { content: [createTextContent(responseText)] };
     }
 
     case 'delete': {

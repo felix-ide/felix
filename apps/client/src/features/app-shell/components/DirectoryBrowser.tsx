@@ -80,6 +80,11 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
     const parentParts = parts.slice(0, -1);
     let parentPath = parentParts.join(separator);
 
+    // On Unix, prepend leading slash
+    if (!isWindows) {
+      parentPath = separator + parentPath;
+    }
+
     // On Windows, ensure drive letter has backslash (C:\ not C:)
     if (isWindows && parentParts.length === 1 && /^[A-Z]:$/i.test(parentPath)) {
       parentPath += separator;
@@ -90,12 +95,12 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
   };
 
   return (
-    <Card className={cn('w-full max-w-3xl bg-background/90 shadow-xl backdrop-blur-xl border-border/70', className)}>
-      <CardContent className="p-6 space-y-5">
-        <div className="flex items-center justify-between border-b border-border/70 pb-4">
+    <Card className={cn('w-full max-w-3xl', className)}>
+      <CardContent className="p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-4">
           <div>
-            <h3 className="text-lg font-semibold text-primary-foreground">Choose Project Directory</h3>
-            <p className="text-xs text-muted-foreground/80 mt-1">
+            <h3 className="text-lg font-semibold">Choose Project Directory</h3>
+            <p className="text-sm text-muted-foreground mt-1">
               Click to select, double-click or use the arrow to open a folder.
             </p>
           </div>
@@ -114,12 +119,12 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
           </div>
         </div>
 
-        <div className="rounded-lg border border-border/70 bg-card/80 p-3 font-mono text-xs text-primary-foreground/90">
+        <div className="rounded-md border border-border bg-muted p-3 font-mono text-sm">
           {currentPath}
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr,1fr] md:items-start">
-          <div className="rounded-xl border border-border/60 bg-card/70">
+          <div className="rounded-md border border-border bg-card">
             {loading ? (
               <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">Loading directories…</div>
             ) : directories.length === 0 ? (
@@ -130,18 +135,18 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
                   <div
                     key={dir.path}
                     className={cn(
-                      'group flex items-center gap-3 rounded-lg border border-transparent px-3 py-2 transition-colors',
+                      'group flex items-center gap-3 rounded-md px-3 py-2 transition-colors cursor-pointer',
                       selectedPath === dir.path
-                        ? 'border-primary/60 bg-primary/10'
-                        : 'hover:border-primary/30 hover:bg-primary/5'
+                        ? 'bg-accent'
+                        : 'hover:bg-accent/50'
                     )}
                     onClick={() => handleDirectoryClick(dir)}
                     onDoubleClick={() => handleNavigateInto(dir)}
                   >
-                    <Folder className="h-4 w-4 text-primary/80" />
+                    <Folder className="h-4 w-4 text-foreground" />
                     <div className="flex-1 min-w-0">
-                      <div className="truncate text-sm font-medium text-primary-foreground">{dir.name}</div>
-                      <div className="text-[0.7rem] text-muted-foreground/80">{dir.path}</div>
+                      <div className="truncate text-sm font-medium">{dir.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{dir.path}</div>
                     </div>
                     <button
                       type="button"
@@ -149,7 +154,7 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
                         e.stopPropagation();
                         handleNavigateInto(dir);
                       }}
-                      className="rounded-full p-1 text-muted-foreground/70 transition-colors hover:bg-primary/20 hover:text-primary"
+                      className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                       title="Open"
                     >
                       <ChevronRight className="h-4 w-4" />
@@ -161,20 +166,20 @@ export function DirectoryBrowser({ onSelectDirectory, className }: DirectoryBrow
           </div>
 
           <div className="flex h-full flex-col gap-3">
-            <div className="rounded-xl border border-border/70 bg-card/60 p-3 text-sm text-muted-foreground/80">
-              <p className="mb-2 font-medium text-primary-foreground/90">Tips</p>
-              <ul className="space-y-2 text-xs">
-                <li>• Click once to highlight a directory.</li>
-                <li>• Double-click or use the arrow to enter a folder.</li>
-                <li>• Use the Up button to move to the parent directory.</li>
+            <div className="rounded-md border border-border bg-muted p-3 text-sm">
+              <p className="mb-2 font-medium">Tips</p>
+              <ul className="space-y-1 text-xs text-muted-foreground">
+                <li>• Click once to highlight a directory</li>
+                <li>• Double-click or use the arrow to enter a folder</li>
+                <li>• Use the Up button to move to the parent directory</li>
               </ul>
             </div>
 
             {selectedPath && (
-              <div className="rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-primary-foreground">
-                <p className="mb-2 text-xs uppercase tracking-[0.2rem] text-primary-foreground/70">Selected Directory</p>
-                <p className="font-mono text-xs break-all">{selectedPath}</p>
-                <Button onClick={handleSelect} className="mt-3 w-full">
+              <div className="rounded-md border border-border bg-muted p-4 text-sm">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Selected Directory</p>
+                <p className="font-mono text-xs break-all mb-3">{selectedPath}</p>
+                <Button onClick={handleSelect} className="w-full">
                   Use This Directory
                 </Button>
               </div>

@@ -132,6 +132,8 @@ export interface UpdateTaskParams {
     actual_effort?: string;
     due_date?: Date;
     stable_tags?: string[];
+    transition_gate_token?: string;
+    transition_gate_response?: string;
     entity_links?: Array<{
         entity_type: EntityType;
         entity_id: string;

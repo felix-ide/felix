@@ -123,6 +123,65 @@
         </div>
       </section>
 
+      <section class="surface-card section" id="transitions">
+        <div class="section-header">
+          <h2 class="section-title">Reusable bundles & status transitions</h2>
+          <p class="section-subtitle">Guide the AI with human-authored prompts and gated checkpoints</p>
+        </div>
+
+        <div class="grid-two">
+          <article class="card">
+            <h3>Validation bundles</h3>
+            <p>
+              Group required sections, checklists, rules, and subtasks into reusable bundles like
+              <em>spec_ready_checklist</em>. Reference the same bundle while drafting the spec, or when moving
+              a task into implementation.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Status flows</h3>
+            <p>
+              Define ordered transitions (e.g. <code>spec_ready → in_progress</code>) once, reuse them across
+              every task type. The global status catalog and flow library keep names consistent, and the mapping
+              UI lets you assign both a workflow and a flow per task type.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Transition prompts & gates</h3>
+            <p>
+              Add pre- and post-transition prompts to nudge the AI (“Double-check unit tests before reviewing”).
+              Require acknowledgement tokens to block the status change until the agent confirms its work.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Validation phases</h3>
+            <p>
+              Attach auto-generated checklists to critical transitions. When a gate fires, Felix can drop
+              checklist items (“Write ERD”, “Capture regression tests”) onto the task before the status change
+              completes, so nothing slips through.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Manual snapshots</h3>
+            <p>
+              Workflows stay project-local. Export/import snapshots to keep them backed up or share with teammates:
+            </p>
+            <pre class="code-block"><code>felix workflows export --project /path/to/repo \ 
+  --file .felix/workflows.snapshot.json
+
+felix workflows import --project /path/to/repo \
+  --file ./workflow-template.json</code></pre>
+            <p>
+              The UI exposes the same controls in the <strong>System Settings → Workflow Snapshots</strong> panel.
+            </p>
+          </article>
+        </div>
+      </section>
+
       <section class="callout">
         <h2>Ready to start?</h2>
         <p>Install Felix, connect to Claude Code, and start building with AI guardrails.</p>

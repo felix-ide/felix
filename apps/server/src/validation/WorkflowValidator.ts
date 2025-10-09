@@ -11,7 +11,8 @@ import {
   WorkflowValidationError,
   TaskContext,
   ConditionalRequirement,
-  WorkflowSectionType
+  WorkflowSectionType,
+  WorkflowValidationBundle
 } from '../types/WorkflowTypes.js';
 import { logger } from '../shared/logger.js';
 
@@ -476,6 +477,83 @@ export class WorkflowValidator {
   }
 
   /**
+   * Validate a named validation bundle against the current task parameters.
+   */
+  async validateBundle(
+    bundle: WorkflowValidationBundle,
+    workflow: WorkflowDefinition,
+    taskParams: CreateTaskParams,
+    context?: TaskContext,
+    opts?: { notes?: Array<{ id: string; title?: string; note_type?: string; content?: string }> }
+  ): Promise<ValidationStatus> {
+    this.currentNotes = opts?.notes || undefined;
+    const requiredSections = bundle.sections || [];
+    const optionalSections = bundle.optional_sections || [];
+    const missingRequirements: MissingRequirement[] = [];
+    const completedRequirements: string[] = [];
+    let completedRequiredCount = 0;
+
+    for (const sectionType of requiredSections) {
+      const section = this.findSection(workflow, sectionType);
+      if (!section) {
+        missingRequirements.push({
+          section_type: sectionType,
+          description: `${sectionType} (missing section definition)`,
+          action_needed: `Add section definition for ${sectionType}`,
+          is_conditional: false
+        });
+        continue;
+      }
+
+      const isRequired = this.isSectionRequired(section, workflow, context);
+      if (!isRequired) {
+        completedRequirements.push(`${section.section_type} (not required in context)`);
+        completedRequiredCount += 1;
+        continue;
+      }
+
+      const sectionValid = await this.validateSection(section, taskParams);
+      if (sectionValid) {
+        completedRequirements.push(section.section_type);
+        completedRequiredCount += 1;
+      } else {
+        missingRequirements.push({
+          section_type: section.section_type,
+          description: this.getSectionDescription(section),
+          action_needed: this.getActionNeeded(section),
+          is_conditional: !!section.conditional_logic,
+          condition_not_met: section.conditional_logic
+        });
+      }
+    }
+
+    for (const optionalSection of optionalSections) {
+      const section = this.findSection(workflow, optionalSection);
+      if (!section) continue;
+      const sectionValid = await this.validateSection(section, taskParams);
+      if (sectionValid) {
+        completedRequirements.push(section.section_type);
+      }
+    }
+
+    const requiredCount = requiredSections.length;
+    const completionPercentage = requiredCount > 0
+      ? (completedRequiredCount / requiredCount) * 100
+      : 100;
+
+    return {
+      is_valid: missingRequirements.length === 0,
+      completion_percentage: completionPercentage,
+      missing_requirements: missingRequirements,
+      completed_requirements: completedRequirements,
+      workflow: workflow.name,
+      can_override: true,
+      bundle_id: bundle.id,
+      bundle_name: bundle.name
+    };
+  }
+
+  /**
    * Format validation error for response
    */
   formatValidationError(status: ValidationStatus): WorkflowValidationError {
@@ -513,5 +591,9 @@ export class WorkflowValidator {
     }
 
     return suggestions;
+  }
+
+  private findSection(workflow: WorkflowDefinition, sectionType: WorkflowSectionType): WorkflowSection | undefined {
+    return workflow.required_sections.find(section => section.section_type === sectionType);
   }
 }

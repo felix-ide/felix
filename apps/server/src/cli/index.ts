@@ -18,6 +18,7 @@ import { createStatsCommand } from './commands/stats.js';
 import { createServeCommand } from './commands/serve.js';
 import { createServeStdioCommand } from './commands/serve-stdio.js';
 import { createDocsCommand } from './commands/docs.js';
+import { createWorkflowsCommand } from './commands/workflows.js';
 
 // Get package.json info
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -46,6 +47,7 @@ export function createCLI(): Command {
   program.addCommand(createServeCommand());
   program.addCommand(createServeStdioCommand());
   program.addCommand(createDocsCommand());
+  program.addCommand(createWorkflowsCommand());
   
   // Add global error handler
   program.configureOutput({
@@ -80,5 +82,6 @@ export {
   createStatsCommand,
   createServeCommand,
   createServeStdioCommand,
-  createDocsCommand
+  createDocsCommand,
+  createWorkflowsCommand
 };

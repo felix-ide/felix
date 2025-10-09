@@ -16,7 +16,10 @@ import {
   Task, Note, Rule, 
   TaskDependency, TaskCodeLink, TaskMetric,
   RuleRelationship, RuleApplication,
-  WorkflowConfiguration, GlobalWorkflowSetting 
+  WorkflowConfiguration, GlobalWorkflowSetting,
+  TransitionGate,
+  TaskStatus,
+  TaskStatusFlow
 } from './entities/metadata/index.js';
 
 // Import repositories
@@ -96,7 +99,8 @@ export class DatabaseManager {
         database: metadataDbPath,
         entities: [
           Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
-          RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting
+          RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate,
+          TaskStatus, TaskStatusFlow
         ],
         synchronize: true,
         logging: false

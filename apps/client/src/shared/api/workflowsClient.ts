@@ -41,10 +41,17 @@ export const setWorkflowConfig = (updates: Record<string, unknown>) =>
 
 export const getWorkflowMapping = async () => {
   try {
-    const data = await fetchJson<{ map?: Record<string, string> }>(`${API_BASE}/workflows/mapping`, undefined, 'Failed to get workflow mapping');
-    return data.map || {};
+    const data = await fetchJson<{ map?: Record<string, string>; flow_map?: Record<string, string> }>(
+      `${API_BASE}/workflows/mapping`,
+      undefined,
+      'Failed to get workflow mapping'
+    );
+    return {
+      workflowMap: data.map || {},
+      flowMap: data.flow_map || {}
+    };
   } catch {
-    return {};
+    return { workflowMap: {}, flowMap: {} };
   }
 };
 
@@ -60,6 +67,28 @@ export const setWorkflowMappingBulk = (map: Record<string, string>) =>
     `${API_BASE}/workflows/mapping`,
     { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ map }) },
     'Failed to set workflow mapping'
+  );
+
+export const setStatusFlowMapping = (task_type: string, flow_id: string | null) =>
+  fetchJson<{ ok: boolean }>(
+    `${API_BASE}/workflows/mapping`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ task_type, flow_id })
+    },
+    'Failed to set status flow mapping'
+  );
+
+export const setStatusFlowMappingBulk = (flow_map: Record<string, string | null | undefined>) =>
+  fetchJson<{ ok: boolean }>(
+    `${API_BASE}/workflows/mapping`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ flow_map })
+    },
+    'Failed to set status flow mapping'
   );
 
 export const reseedBuiltInWorkflows = (force = false) =>
@@ -115,3 +144,96 @@ export const scaffoldWorkflow = (
     'Scaffold failed'
   );
 };
+
+export const exportWorkflowSnapshot = (filePath?: string) =>
+  fetchJson<{ filePath: string; workflowCount: number; exportedAt: string }>(
+    `${API_BASE}/workflows/export`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(filePath ? { file_path: filePath } : {})
+    },
+    'Failed to export workflow snapshot'
+  );
+
+export const importWorkflowSnapshot = (options: { filePath?: string; overwrite?: boolean } = {}) =>
+  fetchJson<{ filePath: string; workflowCount: number; created: number; updated: number }>(
+    `${API_BASE}/workflows/import`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({
+        file_path: options.filePath,
+        overwrite: options.overwrite !== false
+      })
+    },
+    'Failed to import workflow snapshot'
+  );
+
+export interface TaskStatusRecord {
+  id: string;
+  name: string;
+  display_label?: string;
+  emoji?: string;
+  color?: string;
+  description?: string;
+}
+
+export interface TaskStatusFlowRecord {
+  id: string;
+  name: string;
+  display_label?: string;
+  description?: string;
+  status_ids: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export const getWorkflowStatuses = () =>
+  fetchJson<{ statuses: TaskStatusRecord[] }>(
+    `${API_BASE}/workflows/statuses`,
+    undefined,
+    'Failed to load workflow statuses'
+  );
+
+export const saveWorkflowStatus = (status: Partial<TaskStatusRecord> & { name: string }) =>
+  fetchJson<{ status: TaskStatusRecord }>(
+    `${API_BASE}/workflows/statuses`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(status)
+    },
+    'Failed to save workflow status'
+  );
+
+export const deleteWorkflowStatus = (id: string) =>
+  fetchJson<{ ok: boolean }>(
+    `${API_BASE}/workflows/statuses/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+    'Failed to delete workflow status'
+  );
+
+export const getWorkflowStatusFlows = () =>
+  fetchJson<{ flows: TaskStatusFlowRecord[]; presets: Array<{ id: string; label: string; states: string[] }> }>(
+    `${API_BASE}/workflows/status-flows`,
+    undefined,
+    'Failed to load workflow status flows'
+  );
+
+export const saveWorkflowStatusFlow = (flow: Partial<TaskStatusFlowRecord> & { name: string; status_ids: string[] }) =>
+  fetchJson<{ flow: TaskStatusFlowRecord }>(
+    `${API_BASE}/workflows/status-flows`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(flow)
+    },
+    'Failed to save workflow status flow'
+  );
+
+export const deleteWorkflowStatusFlow = (id: string) =>
+  fetchJson<{ ok: boolean }>(
+    `${API_BASE}/workflows/status-flows/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+    'Failed to delete workflow status flow'
+  );

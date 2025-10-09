@@ -18,6 +18,8 @@ export function WorkflowsSection() {
     handleNew,
     editorSection,
     setEditorSection,
+    configPanel,
+    setConfigPanel,
     parseOk,
     name,
     displayName,
@@ -56,6 +58,16 @@ export function WorkflowsSection() {
     mappingKey,
     setMappingKey,
     restoreBuiltInWorkflows,
+    exportSnapshot,
+    importSnapshot,
+    statusHints,
+    statusPresets,
+    statusCatalog,
+    statusFlows,
+    saveStatus,
+    removeStatus,
+    saveStatusFlow,
+    removeStatusFlow,
   } = useWorkflowsSectionState();
 
   const handleSearchChange = (value: string) => {
@@ -98,6 +110,8 @@ export function WorkflowsSection() {
             onNewWorkflow={handleNew}
             editorSection={editorSection}
             onEditorSectionChange={setEditorSection}
+            configPanel={configPanel}
+            onConfigPanelChange={setConfigPanel}
             error={error}
             parseOk={parseOk}
             name={name}
@@ -114,6 +128,10 @@ export function WorkflowsSection() {
             getWorkflowIcon={getWorkflowIcon}
             getSectionIcon={getSectionIcon}
             onTemplateSelect={handleTemplateSelect}
+            statusHints={statusHints}
+            statePresets={statusPresets}
+            statusCatalog={statusCatalog}
+            statusFlows={statusFlows}
           />
         )}
 
@@ -144,6 +162,14 @@ export function WorkflowsSection() {
             mappingKey={mappingKey}
             onReloadMapping={() => setMappingKey((key) => key + 1)}
             restoreBuiltInWorkflows={handleRestoreBuiltIns}
+            exportSnapshot={(filePath) => void exportSnapshot(filePath)}
+            importSnapshot={(options) => void importSnapshot(options)}
+            statusCatalog={statusCatalog}
+            statusFlows={statusFlows}
+            onSaveStatus={saveStatus}
+            onDeleteStatus={removeStatus}
+            onSaveStatusFlow={saveStatusFlow}
+            onDeleteStatusFlow={removeStatusFlow}
           />
         )}
       </div>

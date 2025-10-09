@@ -7,11 +7,13 @@ describe('tasksClient', () => {
   beforeEach(() => { g.fetch = vi.fn(); });
   afterEach(() => vi.restoreAllMocks());
 
-  it('listTasks builds URL with params', async () => {
-    const payload = { tasks: [{ id: 't1' }], total: 1 };
+  it('listTasks builds URL with params and normalizes response shape', async () => {
+    const payload = { items: [{ id: 't1' }], total: 1, hasMore: true, offset: 0, limit: 5 };
     g.fetch.mockResolvedValueOnce({ ok: true, json: async () => payload });
     const res = await tasks.listTasks({ status: 'open', limit: 5 } as any);
     expect(res.total).toBe(1);
+    expect(res.tasks).toHaveLength(1);
+    expect(res.hasMore).toBe(true);
     expect(g.fetch.mock.calls[0][0]).toMatch(/\/tasks\?/);
   });
 
@@ -21,4 +23,3 @@ describe('tasksClient', () => {
     expect(res.compact).toBe(true);
   });
 });
-

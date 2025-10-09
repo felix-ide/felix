@@ -5,6 +5,26 @@ import { WorkflowService } from '../../features/workflows/services/WorkflowServi
 import { WorkflowScaffoldingService } from '../../features/workflows/services/WorkflowScaffoldingService.js';
 import { DatabaseManager } from '../../features/storage/DatabaseManager.js';
 import { GuidanceService } from '../../features/workflows/services/GuidanceService.js';
+import { WorkflowSnapshotService } from '../../features/workflows/services/WorkflowSnapshotService.js';
+
+const DEFAULT_STATE_PRESETS = [
+  {
+    id: 'kanban',
+    label: 'Kanban (Todo → In Progress → Blocked → Done)',
+    states: ['todo', 'in_progress', 'blocked', 'done']
+  },
+  {
+    id: 'spec_gate',
+    label: 'Spec Gate (Todo → Spec Ready → In Progress → Done)',
+    states: ['todo', 'spec_ready', 'in_progress', 'done']
+  },
+  {
+    id: 'simple',
+    label: 'Simple (Todo → Done)',
+    states: ['todo', 'done']
+  }
+] as const;
+const DEFAULT_STATUSES = Array.from(new Set(DEFAULT_STATE_PRESETS.flatMap((preset) => preset.states)));
 
 const router = express.Router();
 
@@ -79,8 +99,39 @@ router.get('/workflows/registry', async (req: ProjectRequest, res: any) => {
     res.status(500).json({ error: (error as Error).message });
   }
 });
+router.post('/workflows/export', async (req: ProjectRequest, res: any) => {
+  try {
+    const indexer = requireProjectIndexer(req, res);
+    if (!indexer) return;
+    if (!req.projectPath) {
+      return res.status(400).json({ error: 'Project path is required for workflow export' });
+    }
+    const dbManager: DatabaseManager = (indexer as any).dbManager;
+    const snapshotService = new WorkflowSnapshotService(dbManager);
+    const result = await snapshotService.exportSnapshot(req.projectPath, { filePath: (req.body || {}).file_path });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
 
-export default router;
+router.post('/workflows/import', async (req: ProjectRequest, res: any) => {
+  try {
+    const indexer = requireProjectIndexer(req, res);
+    if (!indexer) return;
+    if (!req.projectPath) {
+      return res.status(400).json({ error: 'Project path is required for workflow import' });
+    }
+    const { file_path, overwrite } = req.body || {};
+    const dbManager: DatabaseManager = (indexer as any).dbManager;
+    const snapshotService = new WorkflowSnapshotService(dbManager);
+    const result = await snapshotService.importSnapshot(req.projectPath, { filePath: file_path, overwrite });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 // Create/Update workflow (upsert)
 router.post('/workflows', async (req: ProjectRequest, res: any) => {
   try {
@@ -141,6 +192,116 @@ router.get('/workflows/config', async (req: ProjectRequest, res: any) => {
   }
 });
 
+router.get('/workflows/statuses', async (req: ProjectRequest, res: any) => {
+  try {
+    const indexer = (req as any).projectIndexer;
+    if (!indexer) {
+      return res.json({ statuses: DEFAULT_STATUSES.map((id) => ({ id, name: id })) });
+    }
+    const dbManager: DatabaseManager = (indexer as any).dbManager;
+    const dataSource = dbManager.getMetadataDataSource();
+    const { WorkflowConfigManager } = await import('../../storage/WorkflowConfigManager.js');
+    const manager = new WorkflowConfigManager(dataSource);
+    const statuses = await manager.listTaskStatuses();
+    res.json({ statuses });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.post('/workflows/statuses', async (req: ProjectRequest, res: any) => {
+  try {
+    const indexer = requireProjectIndexer(req, res);
+    if (!indexer) return;
+    const payload = req.body || {};
+    const dbManager: DatabaseManager = (indexer as any).dbManager;
+    const dataSource = dbManager.getMetadataDataSource();
+    const { WorkflowConfigManager } = await import('../../storage/WorkflowConfigManager.js');
+    const manager = new WorkflowConfigManager(dataSource);
+    const status = await manager.upsertTaskStatus({
+      id: payload.id,
+      name: payload.name,
+      display_label: payload.display_label,
+      emoji: payload.emoji,
+      color: payload.color,
+      description: payload.description
+    });
+    res.json({ status });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.delete('/workflows/statuses/:id', async (req: ProjectRequest, res: any) => {
+  try {
+    const indexer = requireProjectIndexer(req, res);
+    if (!indexer) return;
+    const dbManager: DatabaseManager = (indexer as any).dbManager;
+    const dataSource = dbManager.getMetadataDataSource();
+    const { WorkflowConfigManager } = await import('../../storage/WorkflowConfigManager.js');
+    const manager = new WorkflowConfigManager(dataSource);
+    await manager.deleteTaskStatus(String(req.params.id));
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.get('/workflows/status-flows', async (req: ProjectRequest, res: any) => {
+  try {
+    const indexer = (req as any).projectIndexer;
+    if (!indexer) {
+      return res.json({ flows: [] });
+    }
+    const dbManager: DatabaseManager = (indexer as any).dbManager;
+    const dataSource = dbManager.getMetadataDataSource();
+    const { WorkflowConfigManager } = await import('../../storage/WorkflowConfigManager.js');
+    const manager = new WorkflowConfigManager(dataSource);
+    const flows = await manager.listTaskStatusFlows();
+    res.json({ flows, presets: DEFAULT_STATE_PRESETS });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.post('/workflows/status-flows', async (req: ProjectRequest, res: any) => {
+  try {
+    const indexer = requireProjectIndexer(req, res);
+    if (!indexer) return;
+    const payload = req.body || {};
+    const dbManager: DatabaseManager = (indexer as any).dbManager;
+    const dataSource = dbManager.getMetadataDataSource();
+    const { WorkflowConfigManager } = await import('../../storage/WorkflowConfigManager.js');
+    const manager = new WorkflowConfigManager(dataSource);
+    const flow = await manager.upsertTaskStatusFlow({
+      id: payload.id,
+      name: payload.name,
+      display_label: payload.display_label,
+      description: payload.description,
+      status_ids: Array.isArray(payload.status_ids) ? payload.status_ids : [],
+      metadata: payload.metadata
+    });
+    res.json({ flow });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.delete('/workflows/status-flows/:id', async (req: ProjectRequest, res: any) => {
+  try {
+    const indexer = requireProjectIndexer(req, res);
+    if (!indexer) return;
+    const dbManager: DatabaseManager = (indexer as any).dbManager;
+    const dataSource = dbManager.getMetadataDataSource();
+    const { WorkflowConfigManager } = await import('../../storage/WorkflowConfigManager.js');
+    const manager = new WorkflowConfigManager(dataSource);
+    await manager.deleteTaskStatusFlow(String(req.params.id));
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 // Update global workflow config (boolean flags etc.)
 router.post('/workflows/config', async (req: ProjectRequest, res: any) => {
   try {
@@ -163,15 +324,17 @@ router.get('/workflows/mapping', async (req: ProjectRequest, res: any) => {
   try {
     const indexer = (req as any).projectIndexer;
     if (!indexer) {
-      return res.json({ map: {} });
+      return res.json({ map: {}, flow_map: {} });
     }
     const db: any = (indexer as any).dbManager.getMetadataDataSource();
     const mgr = new (await import('../../storage/WorkflowConfigManager.js')).WorkflowConfigManager(db);
     await mgr.initialize();
     const cfg = await mgr.getGlobalConfig();
     let map: Record<string,string> = {};
+    let flowMap: Record<string,string> = {};
     try { map = JSON.parse((cfg as any).defaults_by_task_type || '{}'); } catch {}
-    res.json({ map });
+    try { flowMap = JSON.parse((cfg as any).status_flow_by_task_type || '{}'); } catch {}
+    res.json({ map, flow_map: flowMap });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }
@@ -186,18 +349,36 @@ router.post('/workflows/mapping', async (req: ProjectRequest, res: any) => {
     const mgrModule = await import('../../storage/WorkflowConfigManager.js');
     const mgr = new mgrModule.WorkflowConfigManager(db);
     await mgr.initialize();
-    const { task_type, workflow_name, map } = req.body || {};
+    const { task_type, workflow_name, map, flow_map, flow_id } = req.body || {};
     if (map && typeof map === 'object') {
       // Bulk: merge existing with provided
       const cfg = await mgr.getGlobalConfig();
       let existing: Record<string,string> = {};
       try { existing = JSON.parse((cfg as any).defaults_by_task_type || '{}'); } catch {}
       const merged = { ...existing, ...map };
-      await mgrModule.WorkflowConfigManager.prototype.updateGlobalConfig.call(mgr, { defaults_by_task_type: JSON.stringify(merged) } as any);
+      await mgr.updateGlobalConfig({ defaults_by_task_type: merged });
+      return res.json({ ok: true });
+    }
+    if (flow_map && typeof flow_map === 'object') {
+      const cfg = await mgr.getGlobalConfig();
+      let existingFlow: Record<string,string> = {};
+      try { existingFlow = JSON.parse((cfg as any).status_flow_by_task_type || '{}'); } catch {}
+      const mergedFlow = { ...existingFlow };
+      Object.entries(flow_map as Record<string, unknown>).forEach(([type, value]) => {
+        if (!value) {
+          delete mergedFlow[type];
+        } else {
+          mergedFlow[type] = String(value);
+        }
+      });
+      await mgr.updateGlobalConfig({ status_flow_by_task_type: mergedFlow });
       return res.json({ ok: true });
     }
     if (!task_type || !workflow_name) return res.status(400).json({ error: 'task_type and workflow_name required' });
     await mgr.setWorkflowForTaskType(task_type, workflow_name);
+    if (flow_id !== undefined) {
+      await mgr.setStatusFlowForTaskType(task_type, flow_id);
+    }
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
@@ -296,3 +477,5 @@ router.post('/workflows/:name/guide', async (req: ProjectRequest, res: any) => {
     res.status(500).json({ error: (error as Error).message });
   }
 });
+
+export default router;

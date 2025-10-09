@@ -81,7 +81,7 @@ export function TaskEditor({
   useEffect(() => {
     if (isOpen) {
       // Load mapping for default workflow resolution
-      felixService.getWorkflowMapping().then(setTypeMapping).catch((error) => {
+      felixService.getWorkflowMapping().then(({ workflowMap }) => setTypeMapping(workflowMap || {})).catch((error) => {
         console.error('[Felix] Failed to load workflow mapping', error);
       });
       felixService.listWorkflows().then((resp) => {

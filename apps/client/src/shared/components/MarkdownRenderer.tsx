@@ -65,24 +65,19 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
     securityLevel: 'loose' as const,
   }) as const, []);
 
-  return (
-    <ExtendedMarkdownRenderer
-      content={content}
-      className={cn(
-        prose && 'prose prose-sm  max-w-none text-sm text-muted-foreground',
-        className
-      )}
-      prose={prose}
-      options={{
-        mermaid: mermaidConfig,
-        excalidraw: {
-          theme: 'light',
-          viewModeEnabled: true,
-          minHeight: 300,
-          maxHeight: 500,
-        },
-      }}
-      components={{
+  const excalidrawConfig = useMemo(() => ({
+    theme: 'light' as const,
+    viewModeEnabled: true,
+    minHeight: 300,
+    maxHeight: 500,
+  }), []);
+
+  const options = useMemo(() => ({
+    mermaid: mermaidConfig,
+    excalidraw: excalidrawConfig,
+  }), [mermaidConfig, excalidrawConfig]);
+
+  const components = useMemo(() => ({
         // Customize markdown components to fit in cards  
         h1: ({ children }: any) => <h3 className="text-base font-semibold mt-2 mb-1">{children}</h3>,
         h2: ({ children }: any) => <h4 className="text-sm font-semibold mt-2 mb-1">{children}</h4>,
@@ -99,7 +94,7 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
           if (!inline && language === 'mermaid') {
             return (
               <MermaidRenderer
-                code={normalizeDiagramSource(String(children))}
+                code={String(children).replace(/\n$/, '')}
                 options={mermaidConfig}
               />
             );
@@ -189,7 +184,18 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
             {children}
           </a>
         ),
-      }}
+  }), [mermaidConfig]);
+
+  return (
+    <ExtendedMarkdownRenderer
+      content={content}
+      className={cn(
+        prose && 'prose prose-sm  max-w-none text-sm text-muted-foreground',
+        className
+      )}
+      prose={prose}
+      options={options}
+      components={components}
     />
   );
 });
