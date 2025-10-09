@@ -64,6 +64,7 @@ class SetupValidator {
     this.successes = [];
     const autoInstallEnv = process.env.FELIX_AUTO_INSTALL ?? process.env.FELIX_AUTO_INSTALL;
     this.autoInstall = process.argv.includes('--auto') || autoInstallEnv === '1';
+    this.runningPostinstall = process.env.npm_lifecycle_event === 'postinstall';
     this.isInteractive = process.stdin.isTTY === true;
     this.rl = readline.createInterface({
       input: process.stdin,
@@ -72,8 +73,8 @@ class SetupValidator {
   }
 
   async prompt(question) {
-    if (this.autoInstall) return true;
-    if (!this.isInteractive) return false; // default to "no" in non-interactive (postinstall/CI)
+    if (this.autoInstall || this.runningPostinstall) return true;
+    if (!this.isInteractive) return false; // default to "no" in non-interactive (CI)
 
     return new Promise((resolve) => {
       this.rl.question(chalk.cyan(question + ' (y/N): '), (answer) => {
@@ -118,6 +119,8 @@ class SetupValidator {
 
     if (this.autoInstall) {
       console.log(chalk.green('🚀 Auto-install mode enabled\n'));
+    } else if (this.runningPostinstall) {
+      console.log(chalk.green('🚀 Postinstall detected: continuing with automatic dependency fixes\n'));
     } else {
       console.log(chalk.dim('Tip: Use --auto flag or set FELIX_AUTO_INSTALL=1 (legacy: FELIX_AUTO_INSTALL=1) to auto-install missing components\n'));
     }
@@ -616,9 +619,9 @@ class SetupValidator {
 
         try {
           // Check for key packages
-          const checkScript = `
+        const checkScript = `
 import importlib, sys
-mods = ["fastapi", "uvicorn", "numpy"]
+mods = ["fastapi", "uvicorn", "numpy", "torch", "sentence_transformers"]
 missing = [m for m in mods if importlib.util.find_spec(m) is None]
 sys.exit(1 if missing else 0)
 `;
@@ -640,7 +643,7 @@ sys.exit(0 if major >= 5 else 1)
           }
         } catch {
           needsInstall = true;
-          this.warning('Python dependencies not installed');
+          this.warning('Python dependencies not installed (missing fastapi/uvicorn/numpy/torch/sentence-transformers)');
         }
 
         if (needsInstall) {
