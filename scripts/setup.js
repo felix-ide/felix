@@ -709,6 +709,21 @@ class SetupValidator {
       this.warning('Unable to determine Python version for sidecar environment');
     }
 
+    if (pythonVersion && pythonVersion.major === 3 && pythonVersion.minor < 10) {
+      const detected = `${pythonVersion.major}.${pythonVersion.minor}.${pythonVersion.micro ?? 0}`;
+      this.error(`Python ${detected} detected, but embeddings require Python 3.10 or newer.`);
+      if (process.platform === 'darwin') {
+        this.info('Install a newer Python with Homebrew: brew install python@3.11 && brew link python@3.11 --overwrite');
+        this.info('Alternatively, download Python 3.11+ from https://www.python.org/downloads/');
+      } else if (process.platform === 'win32') {
+        this.info('Install Python 3.11+ from https://www.python.org/downloads/windows/ and rerun setup.');
+      } else {
+        this.info('Install Python 3.11+ using your package manager (for example: sudo apt install python3.11) and rerun setup.');
+      }
+      this.info('After upgrading, delete python-sidecar/.venv and rerun npm install (or node scripts/setup.js --auto).');
+      return;
+    }
+
     // Check and install dependencies
     if (venvExists) {
       let requirementsFile = 'requirements.txt';
@@ -1092,7 +1107,12 @@ except: sys.exit(1)`;
 
 // Run the setup validator
 const validator = new SetupValidator();
-validator.run().catch(error => {
-  console.error(chalk.red('Setup script failed:'), error);
-  process.exit(1);
-});
+validator.run()
+  .then(() => {
+    const exitCode = validator.issues.length > 0 ? 1 : 0;
+    process.exit(exitCode);
+  })
+  .catch(error => {
+    console.error(chalk.red('Setup script failed:'), error);
+    process.exit(1);
+  });
