@@ -141,6 +141,38 @@ class SetupValidator {
     return trimmed || fallback;
   }
 
+  analyzeDependencyIssues(details = {}) {
+    if (!details) return [];
+
+    const hints = [];
+    const torch = details.torch;
+    if (torch?.status === 'error') {
+      const message = (torch.message || '').toLowerCase();
+      if (message.includes('mach-o') || message.includes('wrong architecture') || message.includes('no suitable image found')) {
+        hints.push('Torch import failed due to an architecture mismatch. Install an ARM64 Python 3.11+ (for example, via Homebrew `brew install python@3.11` or python.org) and rerun setup.');
+      }
+      if (message.includes('libressl')) {
+        hints.push('Torch import failed because the current Python is linked against LibreSSL. Install Python from python.org (built with OpenSSL) and rerun setup.');
+      }
+    }
+
+    const sentenceTx = details.sentence_transformers;
+    if (sentenceTx?.status === 'error' && sentenceTx?.type === 'VersionMismatch') {
+      const version = sentenceTx.version || 'unknown';
+      hints.push(`sentence-transformers ${version} detected, but >=5.0 is required. Delete python-sidecar/.venv and rerun setup.`);
+    }
+
+    const numpy = details.numpy;
+    if (numpy?.status === 'error') {
+      const msg = (numpy.message || '').toLowerCase();
+      if (msg.includes('not a supported wheel on this platform')) {
+        hints.push('NumPy wheel is not available for this Python build. Install Python 3.10+ (ARM64) and rerun setup.');
+      }
+    }
+
+    return hints;
+  }
+
   async run() {
     console.log(chalk.bold.cyan(`
 ╔═══════════════════════════════════════════════════╗
@@ -653,60 +685,141 @@ class SetupValidator {
       this.success('Python virtual environment exists');
     }
 
+    const venvPythonPath = getVenvPythonPath(venvPath);
+    if (!existsSync(venvPythonPath)) {
+      this.warning('Python virtual environment is missing its interpreter; recreating...');
+      try {
+        rmSync(venvPath, { recursive: true, force: true });
+      } catch {}
+      venvExists = false;
+      if (!createVenv()) {
+        return;
+      }
+    }
+
+    let pythonVersion = null;
+    try {
+      const versionResult = runVenvPython(venvPath, [
+        '-c',
+        'import sys, json; sys.stdout.write(json.dumps({"major": sys.version_info.major, "minor": sys.version_info.minor, "micro": sys.version_info.micro}))'
+      ], { cwd: sidecarDir });
+      pythonVersion = JSON.parse(versionResult.stdout.toString());
+      this.info(`Python sidecar interpreter: ${pythonVersion.major}.${pythonVersion.minor}.${pythonVersion.micro}`);
+    } catch (error) {
+      this.warning('Unable to determine Python version for sidecar environment');
+    }
+
     // Check and install dependencies
     if (venvExists) {
-      const requirementsPath = join(sidecarDir, 'requirements.txt');
+      let requirementsFile = 'requirements.txt';
+      let requirementNote = 'default dependency set';
+
+      if (pythonVersion && pythonVersion.major === 3 && pythonVersion.minor <= 9) {
+        const compatFile = 'requirements.py39.txt';
+        if (existsSync(join(sidecarDir, compatFile))) {
+          requirementsFile = compatFile;
+          requirementNote = 'Python 3.9 compatibility set (NumPy 1.26 / SciPy 1.10)';
+        } else {
+          this.warning('Python 3.9 detected but compatibility dependency file is missing. Falling back to default requirements.');
+        }
+      }
+
+      const requirementsPath = join(sidecarDir, requirementsFile);
 
       if (existsSync(requirementsPath)) {
+        this.info(`Using ${requirementsFile} for Python dependency installation (${requirementNote}).`);
+
+        let lastVerification = null;
+
         const verifyDependencies = ({ logStatus = true } = {}) => {
-          const checkScript = `
-import importlib, sys
+          const verifyScript = `
+import json, sys, platform, ssl
 mods = ["fastapi", "uvicorn", "numpy", "torch", "sentence_transformers"]
-missing = [m for m in mods if importlib.util.find_spec(m) is None]
-if missing:
-  sys.stdout.write(",".join(missing))
-  sys.exit(1)
+details = {}
+missing = []
+for name in mods:
+  record = {"status": "ok"}
+  try:
+    module = __import__(name)
+    record["version"] = getattr(module, "__version__", None)
+    if name == "sentence_transformers":
+      version = record["version"]
+      if version is not None:
+        try:
+          major = int(str(version).split(".")[0])
+          if major < 5:
+            record["status"] = "error"
+            record["type"] = "VersionMismatch"
+            record["message"] = f"sentence-transformers {version} detected, need >=5.0"
+            missing.append(name)
+        except Exception:
+          pass
+  except Exception as exc:
+    record["status"] = "error"
+    record["type"] = exc.__class__.__name__
+    record["message"] = str(exc)
+    missing.append(name)
+  details[name] = record
+
+payload = {
+  "missing": missing,
+  "details": details,
+  "python_version": platform.python_version(),
+  "platform": platform.platform(),
+  "architecture": platform.machine(),
+  "ssl": getattr(ssl, "OPENSSL_VERSION", "unknown")
+}
+sys.stdout.write(json.dumps(payload))
+sys.exit(1 if missing else 0)
 `;
-          const versionCheck = `
-import importlib.metadata, sys
-try:
-  version = importlib.metadata.version("sentence-transformers")
-  major = int(version.split('.')[0])
-  if major < 5:
-    sys.stdout.write("sentence-transformers-outdated")
-    sys.exit(1)
-except importlib.metadata.PackageNotFoundError:
-  sys.stdout.write("sentence-transformers")
-  sys.exit(1)
-`;
+
+          const parsePayload = (buffer) => {
+            if (!buffer) return null;
+            try {
+              return JSON.parse(buffer.toString() || '');
+            } catch {
+              return null;
+            }
+          };
+
+          const logCompatibilityHints = (details) => {
+            const hints = this.analyzeDependencyIssues(details);
+            if (hints.length > 0) {
+              hints.forEach((hint) => this.warning(hint));
+            }
+          };
+
           try {
-            runVenvPython(venvPath, ['-c', checkScript], { cwd: sidecarDir });
-            runVenvPython(venvPath, ['-c', versionCheck], { cwd: sidecarDir });
+            const result = runVenvPython(venvPath, ['-c', verifyScript], { cwd: sidecarDir });
+            const payload = parsePayload(result.stdout) || {};
+            const missing = Array.isArray(payload.missing) ? payload.missing : [];
+            if (missing.length > 0) {
+              if (logStatus) {
+                this.warning(`Python dependencies not installed (missing ${missing.join('/')})`);
+              }
+              logCompatibilityHints(payload.details);
+              lastVerification = { ok: false, missing, details: payload.details, payload };
+              return lastVerification;
+            }
             if (logStatus) {
               this.success('Python dependencies installed (sentence-transformers 5.x)');
             }
-            return { ok: true, missing: [] };
+            lastVerification = { ok: true, missing: [], details: payload.details, payload };
+            return lastVerification;
           } catch (error) {
-            const missingList = [];
-            if (error && error.stdout) {
-              const text = error.stdout.toString().trim();
-              if (text) {
-                for (const piece of text.split(',')) {
-                  const item = piece.trim();
-                  if (item) missingList.push(item);
-                }
-              }
-            }
-            const normalizedMissing = missingList.map((item) => (
-              item === 'sentence-transformers-outdated' ? 'sentence-transformers>=5' : item
-            ));
+            const payload = parsePayload(error?.stderr) || parsePayload(error?.stdout);
+            const missing = Array.isArray(payload?.missing) ? payload.missing : [];
+            const display = missing.length > 0
+              ? missing.join('/')
+              : 'fastapi/uvicorn/numpy/torch/sentence-transformers';
             if (logStatus) {
-              const display = normalizedMissing.length > 0
-                ? normalizedMissing.join('/')
-                : 'fastapi/uvicorn/numpy/torch/sentence-transformers';
               this.warning(`Python dependencies not installed (missing ${display})`);
             }
-            return { ok: false, missing: normalizedMissing, error };
+            if (payload?.details) {
+              logCompatibilityHints(payload.details);
+            }
+            lastVerification = { ok: false, missing, details: payload?.details, payload, error };
+            return lastVerification;
           }
         };
 
@@ -714,9 +827,27 @@ except importlib.metadata.PackageNotFoundError:
           const attemptLabel = attempt > 1 ? ` (retry ${attempt})` : '';
           const spinner = ora(`Installing Python dependencies${attemptLabel} (this may take a while)...`).start();
 
+          const safeRunVenv = (args, options) => {
+            try {
+              return runVenvPython(venvPath, args, options);
+            } catch (error) {
+              if (error?.code === 'ENOENT') {
+                this.warning('Virtual environment Python interpreter missing; recreating environment...');
+                try {
+                  rmSync(venvPath, { recursive: true, force: true });
+                } catch {}
+                if (!createVenv()) {
+                  throw error;
+                }
+                return runVenvPython(venvPath, args, options);
+              }
+              throw error;
+            }
+          };
+
           try {
             spinner.text = 'Upgrading pip and build tooling...';
-            runVenvPython(venvPath, ['-m', 'pip', 'install', '--upgrade', 'pip', 'setuptools', 'wheel'], { cwd: sidecarDir });
+            safeRunVenv(['-m', 'pip', 'install', '--upgrade', 'pip', 'setuptools', 'wheel'], { cwd: sidecarDir });
 
             spinner.text = 'Detecting GPU support...';
             let torchIndex = 'https://download.pytorch.org/whl/cpu';
@@ -763,13 +894,13 @@ except importlib.metadata.PackageNotFoundError:
               }
               spinner.text = 'Cleaning up previous PyTorch install...';
               try {
-                runVenvPython(venvPath, ['-m', 'pip', 'uninstall', '-y', 'torch'], { cwd: sidecarDir });
+                safeRunVenv(['-m', 'pip', 'uninstall', '-y', 'torch'], { cwd: sidecarDir });
               } catch {}
               try {
-                runVenvPython(venvPath, ['-m', 'pip', 'cache', 'purge'], { cwd: sidecarDir });
+                safeRunVenv(['-m', 'pip', 'cache', 'purge'], { cwd: sidecarDir });
               } catch {}
               spinner.text = 'Installing PyTorch from PyPI...';
-              runVenvPython(venvPath, [
+              safeRunVenv([
                 '-m', 'pip', 'install',
                 '--no-cache-dir',
                 '--force-reinstall',
@@ -778,7 +909,7 @@ except importlib.metadata.PackageNotFoundError:
             };
 
             try {
-              runVenvPython(venvPath, torchArgs, { cwd: sidecarDir });
+              safeRunVenv(torchArgs, { cwd: sidecarDir });
             } catch {
               if (usedCustomIndex) {
                 reinstallTorchFromDefault('PyTorch install via custom index failed, retrying with a clean install from the default PyPI index');
@@ -788,21 +919,23 @@ except importlib.metadata.PackageNotFoundError:
             }
 
             try {
-              runVenvPython(venvPath, ['-c', 'import torch'], { cwd: sidecarDir });
+              safeRunVenv(['-c', 'import torch'], { cwd: sidecarDir });
               this.success('PyTorch installed successfully');
             } catch {
               reinstallTorchFromDefault('PyTorch verification failed, performing clean reinstall');
-              runVenvPython(venvPath, ['-c', 'import torch'], { cwd: sidecarDir });
+              safeRunVenv(['-c', 'import torch'], { cwd: sidecarDir });
               this.success('PyTorch installed successfully');
             }
 
-            spinner.text = 'Installing other Python dependencies...';
-            runVenvPython(venvPath, ['-m', 'pip', 'install', '-r', 'requirements.txt'], { cwd: sidecarDir });
+            spinner.text = `Installing other Python dependencies from ${requirementsFile}...`;
+            safeRunVenv(['-m', 'pip', 'install', '-r', requirementsFile], { cwd: sidecarDir });
 
             const verifyResult = verifyDependencies({ logStatus: false });
             if (!verifyResult.ok) {
               const err = new Error('Dependency verification failed');
               err.missing = verifyResult.missing;
+              err.details = verifyResult.details;
+              err.payload = verifyResult.payload;
               throw err;
             }
 
@@ -815,6 +948,9 @@ except importlib.metadata.PackageNotFoundError:
             const missingInfo = error?.missing?.length ? `Missing after install: ${error.missing.join('/')}\n` : '';
             const detail = this.formatPythonError(error, `${missingInfo}Unknown Python error`);
             this.error(`Python dependency installation failed:\n${detail}`);
+            if (error?.details) {
+              this.analyzeDependencyIssues(error.details).forEach((hint) => this.warning(hint));
+            }
             return false;
           }
         };
@@ -830,6 +966,7 @@ except importlib.metadata.PackageNotFoundError:
             while (attempt <= 2) {
               if (installDependencies(attempt)) {
                 installSuccess = true;
+                verification = lastVerification || verification;
                 break;
               }
 
@@ -849,10 +986,13 @@ except importlib.metadata.PackageNotFoundError:
 
             if (!installSuccess) {
               this.warning('Embeddings will not work without Python dependencies');
-              this.info(`  Manual install: cd ${sidecarDir} && source .venv/bin/activate && pip install -r requirements.txt`);
+              if (lastVerification?.details) {
+                this.analyzeDependencyIssues(lastVerification.details).forEach((hint) => this.warning(hint));
+              }
+              this.info(`  Manual install: cd ${sidecarDir} && source .venv/bin/activate && pip install -r ${requirementsFile}`);
             }
           } else {
-            this.info(`  Manual install: cd ${sidecarDir} && source .venv/bin/activate && pip install -r requirements.txt`);
+            this.info(`  Manual install: cd ${sidecarDir} && source .venv/bin/activate && pip install -r ${requirementsFile}`);
           }
         }
       }
