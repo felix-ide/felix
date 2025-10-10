@@ -41,14 +41,7 @@ export class RuleApplication {
   @Column({ type: 'text', nullable: true })
   generated_code?: string;
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: any) => value ? JSON.stringify(value) : null,
-      from: (value: string | null) => value ? JSON.parse(value) : null
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   applied_context?: any;
 
   @Column({ type: 'text', nullable: true })

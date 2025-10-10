@@ -77,26 +77,7 @@ export class Component {
   @Column({ type: 'datetime', nullable: true })
   content_updated_at?: Date;
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string') return value;
-        return JSON.stringify(value);
-      },
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'object') return value;
-        try {
-          return JSON.parse(value);
-        } catch {
-          return value;
-        }
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   metadata?: any;
 
   @Column({ type: 'blob', nullable: true })

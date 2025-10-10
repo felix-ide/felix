@@ -53,52 +53,13 @@ export class Rule {
   @Column({ type: 'text' })
   guidance_text!: string;
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: TriggerPattern | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string' && value.trim()) {
-          return JSON.parse(value);
-        }
-        return null;
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   trigger_patterns?: TriggerPattern;
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: SemanticTrigger | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string' && value.trim()) {
-          return JSON.parse(value);
-        }
-        return null;
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   semantic_triggers?: SemanticTrigger;
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: any) => value ? JSON.stringify(value) : null,
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string' && value.trim()) {
-          return JSON.parse(value);
-        }
-        return null;
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   context_conditions?: any;
 
   @Column({ type: 'text', nullable: true })
@@ -134,52 +95,13 @@ export class Rule {
   entity_id?: string;
 
   // JSON columns
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: EntityLink[] | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string' && value.trim()) {
-          return JSON.parse(value);
-        }
-        return null;
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   entity_links?: EntityLink[];
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: any) => value ? JSON.stringify(value) : null,
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string' && value.trim()) {
-          return JSON.parse(value);
-        }
-        return null;
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   stable_links?: any;
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: any) => value ? JSON.stringify(value) : null,
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string' && value.trim()) {
-          return JSON.parse(value);
-        }
-        return null;
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   fragile_links?: any;
 
   @Column({ type: 'text', nullable: true })
@@ -188,68 +110,16 @@ export class Rule {
   @Column({ type: 'blob', nullable: true })
   semantic_embedding?: Buffer;
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: string[] | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string' && value.trim()) {
-          return JSON.parse(value);
-        }
-        return null;
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   stable_tags?: string[];
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: string[] | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string' && value.trim()) {
-          return JSON.parse(value);
-        }
-        return null;
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   auto_tags?: string[];
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: string[] | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string' && value.trim()) {
-          return JSON.parse(value);
-        }
-        return null;
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   contextual_tags?: string[];
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: string[] | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: any) => {
-        if (!value) return null;
-        if (typeof value === 'string' && value.trim()) {
-          return JSON.parse(value);
-        }
-        return null;
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   exclusion_patterns?: string[];
 
   @Column({ type: 'integer', default: 0 })
