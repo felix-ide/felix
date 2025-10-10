@@ -12,11 +12,48 @@ export interface WorkflowDefinition {
   conditional_requirements: ConditionalRequirement[];
   validation_rules: ValidationRule[];
   use_cases?: string[];
-  // Optional structural requirements
+  // Hierarchical task structure requirements
+  child_requirements?: ChildTaskRequirement[];
+  // Optional structural requirements (deprecated in favor of child_requirements)
   subtasks_required?: SubtaskRequirement[];
   validation_bundles?: WorkflowValidationBundle[];
   status_flow_ref?: string | null;
   status_flow?: WorkflowStatusFlow;
+}
+
+/**
+ * Defines what child tasks are required under this workflow
+ */
+export interface ChildTaskRequirement {
+  // What type of child task is required
+  child_task_type: string; // e.g., 'story', 'task', 'subtask'
+
+  // What workflow the child must follow
+  required_workflow: string;
+
+  // Minimum number required
+  min_count?: number;
+
+  // Maximum number allowed (optional)
+  max_count?: number;
+
+  // Label for UI/guidance
+  label?: string;
+
+  // Description for why these children are needed
+  description?: string;
+
+  // Additional validation for children
+  validation?: {
+    // All children must be in these statuses for parent to advance
+    all_must_be_in?: Array<'todo'|'in_progress'|'blocked'|'done'|'cancelled'>;
+
+    // At least one child must be in these statuses
+    at_least_one_in?: Array<'todo'|'in_progress'|'blocked'|'done'|'cancelled'>;
+
+    // Children must have specific tags
+    required_tags?: string[];
+  };
 }
 
 export interface WorkflowSection {
@@ -46,7 +83,7 @@ export interface ValidationCriteria {
   rule_types?: string[];
 }
 
-export type WorkflowSectionType = 
+export type WorkflowSectionType =
   | 'title'
   | 'description'
   | 'architecture'
@@ -65,15 +102,18 @@ export type WorkflowSectionType =
   | 'regression_testing'
   | 'research_goals'
   | 'findings_documentation'
+  | 'findings'
   | 'conclusions'
   | 'next_steps'
   | 'knowledge_rules'
-  | 'rules_creation';
+  | 'rules_creation'
+  | 'scope_definition';
 
 export interface SubtaskRequirement {
   label?: string;
   min?: number;
   task_type?: string;
+  required_workflow?: string; // Workflow that child tasks must follow
   status_in?: Array<'todo'|'in_progress'|'blocked'|'done'|'cancelled'>;
   tags_any?: string[];
   with_checklist?: string;
@@ -233,3 +273,4 @@ export interface TransitionGatePayload {
   issued_token: string;
   created_at: string;
 }
+

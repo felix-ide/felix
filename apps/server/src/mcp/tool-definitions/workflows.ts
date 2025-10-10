@@ -17,6 +17,7 @@ Common validation workflow:
 Actions:
 Validation:
 - validate: Check if task meets workflow requirements {is_valid, completion_percentage, missing_requirements, can_override}
+  Note: Pass childTasks array in task object to validate child_requirements (e.g., task: { childTasks: [{id, task_type, task_status}] })
 - scaffold: Get guidance for missing requirements (dry_run=true default, set false to create items)
 
 Configuration (admin):
@@ -37,6 +38,7 @@ Example workflow requirements (feature_development):
 - Notes: Architecture (mermaid), ERD (erDiagram), API Contract (openapi 3.1)
 - Checklists: "Acceptance Criteria" (≥3 G/W/T), "Implementation Checklist" (≥3), "Test Verification" (≥2 unit+integration/e2e), "Regression Testing" (≥1)
 - Rules: entity_links with ≥1 {entity_type:'rule', entity_id}
+- Child Requirements: Tasks can require specific child tasks (e.g., feature requires child tasks of type 'task' using 'simple' workflow)
 `,
   // Quick Ref for AIs:
   // Spec Readiness (feature_development):

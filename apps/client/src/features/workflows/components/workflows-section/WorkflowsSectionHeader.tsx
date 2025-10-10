@@ -12,7 +12,6 @@ export function WorkflowsSectionHeader({ tab, onTabChange }: WorkflowsSectionHea
     <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/95 backdrop-blur">
       <div>
         <h2 className="text-2xl font-semibold">Workflows</h2>
-        <p className="text-sm text-muted-foreground mt-1">Manage task workflows and validation rules</p>
       </div>
       <div className="flex items-center gap-3">
         <div className="flex rounded-lg bg-card border border-border p-1">

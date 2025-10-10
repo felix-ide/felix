@@ -47,7 +47,7 @@ export interface UseWorkflowsSectionStateResult {
   tab: WorkflowsTab;
   editorSection: EditorSection;
   configSection: ConfigSection;
-  configPanel: 'sections' | 'status' | 'bundles' | 'rules';
+  configPanel: 'sections' | 'status' | 'bundles' | 'rules' | 'hierarchy';
   statusHints: string[];
   statusPresets: Array<{ id: string; label: string; states: string[] }>;
   statusCatalog: TaskStatusRecord[];
@@ -64,7 +64,7 @@ export interface UseWorkflowsSectionStateResult {
   setTab: (tab: WorkflowsTab) => void;
   setEditorSection: (section: EditorSection) => void;
   setConfigSection: (section: ConfigSection) => void;
-  setConfigPanel: (panel: 'sections' | 'status' | 'bundles' | 'rules') => void;
+  setConfigPanel: (panel: 'sections' | 'status' | 'bundles' | 'rules' | 'hierarchy') => void;
   setMappingKey: Dispatch<SetStateAction<number>>;
   setShowNewDialog: (value: boolean) => void;
   setNewWorkflowName: (value: string) => void;
@@ -129,7 +129,7 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
     }
   });
   const [editorSection, setEditorSection] = useState<EditorSection>('basic');
-  const [configPanel, setConfigPanel] = useState<'sections' | 'status' | 'bundles' | 'rules'>('sections');
+  const [configPanel, setConfigPanel] = useState<'sections' | 'status' | 'bundles' | 'rules' | 'hierarchy'>('sections');
   const [availableStatuses, setAvailableStatuses] = useState<string[]>(['todo', 'in_progress', 'blocked', 'done']);
   const [statusCatalog, setStatusCatalog] = useState<TaskStatusRecord[]>([]);
   const [statusFlows, setStatusFlows] = useState<TaskStatusFlowRecord[]>([]);
@@ -378,6 +378,7 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
       conditional_requirements: Array.isArray(wf.conditional_requirements) ? wf.conditional_requirements : [],
       validation_rules: Array.isArray(wf.validation_rules) ? wf.validation_rules : [],
       use_cases: Array.isArray((wf as any).use_cases) ? (wf as any).use_cases : [],
+      child_requirements: Array.isArray((wf as any).child_requirements) ? (wf as any).child_requirements : [],
       status_flow_ref: wf.status_flow_ref || null,
       validation_bundles: normalizedBundles,
       status_flow: statusFlow
@@ -479,6 +480,7 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
         status_flow_ref: (form as any).status_flow_ref ?? base.status_flow_ref ?? null,
         status_flow: sanitizedFlow,
         use_cases: (form as any).use_cases || base.use_cases,
+        child_requirements: (form as any).child_requirements || base.child_requirements || [],
       };
 
       definition = merged;
@@ -579,6 +581,7 @@ export function useWorkflowsSectionState(): UseWorkflowsSectionStateResult {
         conditional_requirements: obj.conditional_requirements || [],
         validation_rules: obj.validation_rules || [],
         use_cases: obj.use_cases || [],
+        child_requirements: obj.child_requirements || [],
         status_flow_ref: obj.status_flow_ref || null,
         validation_bundles: normalizedBundles,
         status_flow: normalizedFlow,

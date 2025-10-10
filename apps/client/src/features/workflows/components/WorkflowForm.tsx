@@ -89,6 +89,20 @@ export interface ValidationRule {
   error_message?: string;
 }
 
+export interface ChildTaskRequirement {
+  child_task_type: string;
+  required_workflow: string;
+  min_count?: number;
+  max_count?: number;
+  label?: string;
+  description?: string;
+  validation?: {
+    all_must_be_in?: Array<'todo'|'in_progress'|'blocked'|'done'|'cancelled'>;
+    at_least_one_in?: Array<'todo'|'in_progress'|'blocked'|'done'|'cancelled'>;
+    required_tags?: string[];
+  };
+}
+
 export interface WorkflowDefinition {
   name: string;
   display_name: string;
@@ -97,6 +111,7 @@ export interface WorkflowDefinition {
   conditional_requirements: ConditionalRequirement[];
   validation_rules: ValidationRule[];
   use_cases?: string[];
+  child_requirements?: ChildTaskRequirement[];
   subtasks_required?: SubtaskRequirement[];
   validation_bundles?: WorkflowValidationBundle[];
   status_flow?: WorkflowStatusFlow;
@@ -145,11 +160,12 @@ export interface WorkflowTransitionGateConfig {
 export interface WorkflowFormProps {
   value: WorkflowDefinition;
   onChange: (next: WorkflowDefinition) => void;
-  activePanel?: 'sections' | 'status' | 'bundles' | 'rules';
+  activePanel?: 'sections' | 'status' | 'bundles' | 'rules' | 'hierarchy';
   statusHints?: string[];
   statePresets?: Array<{ id: string; label: string; states: string[] }>;
   statusCatalog?: TaskStatusRecord[];
   statusFlows?: TaskStatusFlowRecord[];
+  availableWorkflows?: string[]; // List of workflow names for child requirements
 }
 
 const SECTION_TYPES: WorkflowSectionType[] = [
@@ -174,10 +190,11 @@ export function WorkflowForm({
   statusHints,
   statePresets,
   statusCatalog = [],
-  statusFlows = []
+  statusFlows = [],
+  availableWorkflows = []
 }: WorkflowFormProps) {
   const wf = value;
-  const panel: 'sections' | 'status' | 'bundles' | 'rules' = activePanel ?? 'sections';
+  const panel: 'sections' | 'status' | 'bundles' | 'rules' | 'hierarchy' = activePanel ?? 'sections';
   const panelMeta = {
     sections: {
       title: 'Sections & Guidance',
@@ -194,6 +211,10 @@ export function WorkflowForm({
     rules: {
       title: 'Conditional Requirements & Rules',
       description: 'Add conditional requirements and custom validation rules that the validator runs before transitions.'
+    },
+    hierarchy: {
+      title: 'Task Hierarchy',
+      description: 'Define required child tasks and their workflows to create hierarchical task structures.'
     }
   } as const;
   const computedStatusHints = statusHints ?? [];
@@ -646,6 +667,37 @@ export function WorkflowForm({
     const copy = [...(wf.validation_rules||[])];
     copy.splice(idx,1);
     update({ validation_rules: copy });
+  };
+
+  // Child requirements (hierarchy)
+  const addChildRequirement = () => {
+    update({ child_requirements: [...(wf.child_requirements||[]), {
+      child_task_type: 'task',
+      required_workflow: 'simple',
+      min_count: 1,
+      label: '',
+      description: ''
+    }] });
+  };
+  const updateChildRequirement = (idx: number, patch: Partial<ChildTaskRequirement>) => {
+    const copy = [...(wf.child_requirements||[])];
+    copy[idx] = { ...copy[idx], ...patch } as ChildTaskRequirement;
+    update({ child_requirements: copy });
+  };
+  const removeChildRequirement = (idx: number) => {
+    const copy = [...(wf.child_requirements||[])];
+    copy.splice(idx,1);
+    update({ child_requirements: copy });
+  };
+  const updateChildValidation = (idx: number, field: 'all_must_be_in' | 'at_least_one_in' | 'required_tags', value: any) => {
+    const child = wf.child_requirements?.[idx];
+    if (!child) return;
+    updateChildRequirement(idx, {
+      validation: {
+        ...(child.validation || {}),
+        [field]: value
+      }
+    });
   };
   const sectionsEditor = (
     <div className="space-y-4">
@@ -1501,6 +1553,136 @@ export function WorkflowForm({
     </>
   );
 
+  const hierarchyEditor = (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Child Task Requirements</h3>
+        <Button size="sm" onClick={addChildRequirement} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Add Child Requirement
+        </Button>
+      </div>
+
+      <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 mb-4">
+        <div className="flex items-start gap-2">
+          <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+          <div className="text-xs text-foreground">
+            <strong>Define hierarchical task structures</strong> by requiring specific child tasks. For example, a feature_development workflow can require child tasks of type 'task' using the 'simple' workflow.
+          </div>
+        </div>
+      </div>
+
+      {(wf.child_requirements||[]).length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed border-border rounded-lg">
+          No child task requirements defined.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {(wf.child_requirements||[]).map((child, idx) => (
+            <div key={idx} className="border border-border rounded-lg p-4 bg-card">
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-3">
+                  <Input
+                    label="Child Task Type"
+                    value={child.child_task_type || ''}
+                    onChange={(e) => updateChildRequirement(idx, { child_task_type: e.target.value })}
+                    placeholder="e.g., task, story, subtask"
+                  />
+                </div>
+
+                <div className="col-span-3">
+                  <Select
+                    label="Required Workflow"
+                    value={child.required_workflow || 'simple'}
+                    onChange={(e) => updateChildRequirement(idx, { required_workflow: e.target.value })}
+                  >
+                    {availableWorkflows.length > 0 ? (
+                      availableWorkflows.map(w => <option key={w} value={w}>{w}</option>)
+                    ) : (
+                      <>
+                        <option value="simple">simple</option>
+                        <option value="feature_development">feature_development</option>
+                        <option value="bugfix">bugfix</option>
+                      </>
+                    )}
+                  </Select>
+                </div>
+
+                <div className="col-span-2">
+                  <Input
+                    label="Min Count"
+                    type="number"
+                    value={child.min_count ?? ''}
+                    onChange={(e) => updateChildRequirement(idx, { min_count: e.target.value ? Number(e.target.value) : undefined })}
+                    placeholder="1"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <Input
+                    label="Max Count"
+                    type="number"
+                    value={child.max_count ?? ''}
+                    onChange={(e) => updateChildRequirement(idx, { max_count: e.target.value ? Number(e.target.value) : undefined })}
+                    placeholder="(optional)"
+                  />
+                </div>
+
+                <div className="col-span-2 flex items-end">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeChildRequirement(idx)}
+                    className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                    title="Remove"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <Input
+                  label="Label"
+                  value={child.label || ''}
+                  onChange={(e) => updateChildRequirement(idx, { label: e.target.value })}
+                  placeholder="e.g., Implementation Tasks"
+                />
+                <Input
+                  label="Description"
+                  value={child.description || ''}
+                  onChange={(e) => updateChildRequirement(idx, { description: e.target.value })}
+                  placeholder="Describe why these child tasks are needed"
+                />
+              </div>
+
+              <div className="mt-3 p-3 bg-muted/30 rounded-md border border-border space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Status Validation (Optional)</p>
+                <div className="text-xs text-muted-foreground mb-2">
+                  Define status requirements for child tasks
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="All Must Be In (comma-separated)"
+                    value={child.validation?.all_must_be_in?.join(', ') || ''}
+                    onChange={(e) => updateChildValidation(idx, 'all_must_be_in', e.target.value ? e.target.value.split(',').map(s => s.trim()) : undefined)}
+                    placeholder="e.g., done"
+                  />
+                  <Input
+                    label="At Least One In (comma-separated)"
+                    value={child.validation?.at_least_one_in?.join(', ') || ''}
+                    onChange={(e) => updateChildValidation(idx, 'at_least_one_in', e.target.value ? e.target.value.split(',').map(s => s.trim()) : undefined)}
+                    placeholder="e.g., in_progress, done"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-border bg-muted/30 p-4">
@@ -1512,6 +1694,7 @@ export function WorkflowForm({
       {panel === 'bundles' && bundlesEditor}
       {panel === 'status' && statusEditor}
       {panel === 'rules' && rulesEditor}
+      {panel === 'hierarchy' && hierarchyEditor}
     </div>
   );
 }

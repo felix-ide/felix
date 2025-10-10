@@ -66,6 +66,7 @@ export class WorkflowConfigManager {
           validation_rules: workflow.validation_rules as any || [],
           validation_bundles: workflow.validation_bundles as WorkflowValidationBundle[] | undefined,
           status_flow: workflow.status_flow as WorkflowStatusFlow | undefined,
+          child_requirements: workflow.child_requirements as any || [],
           use_cases: workflow.use_cases || []
         });
       } else {
@@ -91,6 +92,7 @@ export class WorkflowConfigManager {
             validation_rules: workflow.validation_rules as any || [],
             validation_bundles: workflow.validation_bundles as WorkflowValidationBundle[] | undefined,
             status_flow: workflow.status_flow as WorkflowStatusFlow | undefined,
+            child_requirements: workflow.child_requirements as any || [],
             use_cases: workflow.use_cases || []
           });
         }
@@ -100,8 +102,8 @@ export class WorkflowConfigManager {
 
   private async ensureDefaultTaskTypeMapping(): Promise<void> {
     const DEFAULTS_BY_TASK_TYPE: Record<string, string> = {
-      epic: 'feature_development',
-      story: 'feature_development',
+      epic: 'epic',
+      story: 'story',
       feature: 'feature_development',
       task: 'simple',
       subtask: 'simple',
@@ -151,9 +153,9 @@ export class WorkflowConfigManager {
       task: 'flow_kanban',
       subtask: 'flow_simple',
       milestone: 'flow_kanban',
-      bug: 'flow_spec_gate',
-      fix: 'flow_spec_gate',
-      hotfix: 'flow_spec_gate',
+      bug: 'flow_kanban',
+      fix: 'flow_kanban',
+      hotfix: 'flow_kanban',
       spike: 'flow_simple',
       research: 'flow_simple',
       chore: 'flow_simple',
@@ -182,8 +184,7 @@ export class WorkflowConfigManager {
       { id: 'todo', name: 'todo', display_label: 'To Do', emoji: '📝' },
       { id: 'in_progress', name: 'in_progress', display_label: 'In Progress', emoji: '🚧' },
       { id: 'blocked', name: 'blocked', display_label: 'Blocked', emoji: '⛔️' },
-      { id: 'done', name: 'done', display_label: 'Done', emoji: '✅' },
-      { id: 'spec_ready', name: 'spec_ready', display_label: 'Spec Ready', emoji: '📋' }
+      { id: 'done', name: 'done', display_label: 'Done', emoji: '✅' }
     ];
     await repo.save(defaults.map((status) => repo.create(status)));
   }
@@ -199,13 +200,6 @@ export class WorkflowConfigManager {
         display_label: 'Kanban',
         description: 'Todo → In Progress → Blocked → Done',
         status_ids: ['todo', 'in_progress', 'blocked', 'done']
-      },
-      {
-        id: 'flow_spec_gate',
-        name: 'spec_gate',
-        display_label: 'Spec Gate',
-        description: 'Todo → Spec Ready → In Progress → Done',
-        status_ids: ['todo', 'spec_ready', 'in_progress', 'done']
       },
       {
         id: 'flow_simple',
@@ -235,6 +229,7 @@ export class WorkflowConfigManager {
           validation_rules: w.validation_rules as any || [],
           validation_bundles: w.validation_bundles as WorkflowValidationBundle[] | undefined,
           status_flow: w.status_flow as WorkflowStatusFlow | undefined,
+          child_requirements: w.child_requirements as any || [],
           use_cases: w.use_cases || []
         });
       } else if (force) {
@@ -246,6 +241,7 @@ export class WorkflowConfigManager {
           validation_rules: w.validation_rules as any || [],
           validation_bundles: w.validation_bundles as WorkflowValidationBundle[] | undefined,
           status_flow: w.status_flow as WorkflowStatusFlow | undefined,
+          child_requirements: w.child_requirements as any || [],
           use_cases: w.use_cases || []
         });
       }
@@ -316,11 +312,6 @@ export class WorkflowConfigManager {
         states: ['todo', 'in_progress', 'blocked', 'done']
       },
       {
-        id: 'spec_gate',
-        label: 'Spec Gate (Todo → Spec Ready → In Progress → Done)',
-        states: ['todo', 'spec_ready', 'in_progress', 'done']
-      },
-      {
         id: 'simple',
         label: 'Simple (Todo → Done)',
         states: ['todo', 'done']
@@ -349,6 +340,7 @@ export class WorkflowConfigManager {
       validation_bundles: (result.validation_bundles || undefined) as any,
       status_flow_ref: result.status_flow_ref || null,
       status_flow: result.status_flow as any,
+      child_requirements: result.child_requirements as any,
       use_cases: result.use_cases || []
     };
   }
@@ -409,6 +401,10 @@ export class WorkflowConfigManager {
       updateData.use_cases = config.use_cases;
     }
 
+    if (config.child_requirements !== undefined) {
+      updateData.child_requirements = config.child_requirements as any;
+    }
+
     if (Object.keys(updateData).length > 0) {
       await workflowRepo.update({ name }, updateData);
     }
@@ -433,6 +429,7 @@ export class WorkflowConfigManager {
       validation_bundles: (r.validation_bundles || undefined) as any,
       status_flow_ref: r.status_flow_ref || null,
       status_flow: r.status_flow as any,
+      child_requirements: r.child_requirements as any,
       use_cases: r.use_cases || []
     }));
   }
@@ -542,6 +539,7 @@ export class WorkflowConfigManager {
       validation_bundles: workflow.validation_bundles as WorkflowValidationBundle[] | undefined,
       status_flow_ref: workflow.status_flow_ref || null,
       status_flow: workflow.status_flow_ref ? undefined : workflow.status_flow as WorkflowStatusFlow | undefined,
+      child_requirements: workflow.child_requirements as any || [],
       use_cases: workflow.use_cases || []
     });
   }
