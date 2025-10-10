@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { DocumentPreview } from '../../previews/DocumentPreview';
 
 interface TaskDocumentsSectionProps {
@@ -21,14 +22,20 @@ export function TaskDocumentsSection({ notes, expandedDocId, onToggleDocument }:
       <div className="space-y-2">
         {notes.map((note) => {
           const isExpanded = expandedDocId === note.id;
+          // Memoize the expand handler to prevent DocumentPreview re-renders
+          const handleExpand = useCallback(() => {
+            onToggleDocument(isExpanded ? null : note.id);
+          }, [isExpanded, note.id]);
+
           return (
             <div key={note.id} className="relative">
               <DocumentPreview
+                key={note.id}
                 content={note.content}
                 type={mapNoteType(note)}
                 title={note.title || 'Untitled'}
                 size={isExpanded ? 'lg' : 'sm'}
-                onExpand={() => onToggleDocument(isExpanded ? null : note.id)}
+                onExpand={handleExpand}
                 metadata={{
                   fileName: `${note.note_type}: ${note.id}`,
                   createdAt: note.created_at,

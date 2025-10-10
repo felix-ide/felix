@@ -2,29 +2,41 @@ import type { McpToolDefinition } from './common.js';
 
 export const WORKFLOWS_TOOL: McpToolDefinition = {
   name: 'workflows',
-  description: `Workflow registry + validate (compact).
+  description: `Workflow configuration and task validation. Workflows are templates that define requirements for different task types.
+
+What this tool does:
+- Validates tasks against workflow requirements (most common use)
+- Configures workflow definitions and status flows (admin/setup)
+- Most projects have workflows pre-configured - use 'list' to see available workflows
+
+Common validation workflow:
+1. User creates task with tasks tool (action: add)
+2. Optionally validate with workflows tool (action: validate) to check spec readiness
+3. Tasks tool automatically includes validation in add/update responses
 
 Actions:
-- list|get|create|update|delete
-- get_default|set_default
-- get_config|update_config
-- set_type_mapping|get_type_mapping|resolve
-- validate (read-only): returns { is_valid, completion_percentage, missing_requirements[], completed_requirements[], workflow, can_override }
-- scaffold: guidance-first; dry_run=true by default (no writes)
-- list_statuses|upsert_status|delete_status
-- list_status_flows|upsert_status_flow|delete_status_flow
-- get_flow_mapping|set_flow_mapping
+Validation:
+- validate: Check if task meets workflow requirements {is_valid, completion_percentage, missing_requirements, can_override}
+- scaffold: Get guidance for missing requirements (dry_run=true default, set false to create items)
 
-Spec Readiness Quick Ref (feature_development):
-- Architecture note (documentation + mermaid)
-- ERD note (documentation + erDiagram)
-- API Contract note (documentation + openapi: 3.1)
-- Task checklists on the task:
-  • "Acceptance Criteria" (≥3 items with Given/When/Then)
-  • "Implementation Checklist" (≥3 items)
-  • "Test Verification" (≥2 items containing 'unit' and 'integration' or 'e2e')
-  • "Regression Testing" (≥1 item)
-- Rules: tasks.entity_links must include ≥1 { entity_type:'rule', entity_id }
+Configuration (admin):
+- list/get: View available workflows
+- create: Define new workflow template (fails if name exists - use update instead)
+- update: Modify existing workflow definition
+- delete: Remove workflow definition
+- get_default/set_default: Default workflow for new tasks
+- set_type_mapping/get_type_mapping: Map task types to workflows
+- resolve: Get workflow for a task type
+
+Status management:
+- list_statuses/upsert_status/delete_status: Define available task statuses
+- list_status_flows/upsert_status_flow/delete_status_flow: Define status progressions
+- get_flow_mapping/set_flow_mapping: Map task types to status flows
+
+Example workflow requirements (feature_development):
+- Notes: Architecture (mermaid), ERD (erDiagram), API Contract (openapi 3.1)
+- Checklists: "Acceptance Criteria" (≥3 G/W/T), "Implementation Checklist" (≥3), "Test Verification" (≥2 unit+integration/e2e), "Regression Testing" (≥1)
+- Rules: entity_links with ≥1 {entity_type:'rule', entity_id}
 `,
   // Quick Ref for AIs:
   // Spec Readiness (feature_development):

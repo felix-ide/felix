@@ -518,39 +518,37 @@ export function NoteCard({
         </div>
       )}
 
-      {/* Content - Only show when expanded or editing */}
-      {(isContentExpanded || isEditing) && (
-        <div className="mb-3">
-          {isEditing ? (
-            note.note_type === 'excalidraw' ? (
-              <MockupEditor
-                initialContent={editContent || undefined}
-                onSave={(newContent) => setEditContent(newContent)}
-                className="border border-border rounded"
-              />
-            ) : (
-              <>
-                <div className="mb-1 text-xs text-muted-foreground">
-                  Supports markdown formatting
-                </div>
-                <textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  onClick={(e) => e.stopPropagation()}
-                  placeholder="Note content... (supports markdown)"
-                  className="w-full text-sm bg-background border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none font-mono"
-                  rows={6}
-                />
-              </>
-            )
-          ) : note.note_type === 'excalidraw' ? (
-            <MockupViewer content={note.content} minHeight={300} maxHeight={500} />
+      {/* Content - Keep mounted to preserve mermaid diagrams, just hide when collapsed */}
+      <div className={cn("mb-3", !isContentExpanded && !isEditing && "hidden")}>
+        {isEditing ? (
+          note.note_type === 'excalidraw' ? (
+            <MockupEditor
+              initialContent={editContent || undefined}
+              onSave={(newContent) => setEditContent(newContent)}
+              className="border border-border rounded"
+            />
           ) : (
-            <MarkdownRenderer content={note.content} />
-          )}
-        </div>
-      )}
+            <>
+              <div className="mb-1 text-xs text-muted-foreground">
+                Supports markdown formatting
+              </div>
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Note content... (supports markdown)"
+                className="w-full text-sm bg-background border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none font-mono"
+                rows={6}
+              />
+            </>
+          )
+        ) : note.note_type === 'excalidraw' ? (
+          <MockupViewer content={note.content} minHeight={300} maxHeight={500} />
+        ) : (
+          <MarkdownRenderer content={note.content} />
+        )}
+      </div>
 
       {/* Tags */}
       {isEditing ? (

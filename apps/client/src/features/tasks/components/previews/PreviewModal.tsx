@@ -4,6 +4,7 @@ import { Button } from '@client/shared/ui/Button';
 import { MermaidPreview } from './MermaidPreview';
 import { MarkdownRenderer } from '@client/shared/components/MarkdownRenderer';
 import { MockupViewer } from '@client/features/notes/components/MockupViewer';
+import { cn } from '@/utils/cn';
 
 interface PreviewModalProps {
   isOpen: boolean;
@@ -101,11 +102,12 @@ export function PreviewModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-200"
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-200",
+        !isOpen && "hidden"
+      )}
       onClick={handleBackdropClick}
     >
       {/* Backdrop */}

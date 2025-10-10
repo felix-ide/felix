@@ -48,6 +48,18 @@ const ExcalidrawBlock = memo(({ content }: { content: string }) => {
 });
 
 export const MarkdownRenderer = memo(({ content, className, prose = true }: MarkdownRendererProps) => {
+  // Create stable key from content to prevent unnecessary re-renders
+  const contentKey = useMemo(() => {
+    // Use a hash of the content for the key to detect actual content changes
+    let hash = 0;
+    for (let i = 0; i < content.length; i++) {
+      const char = content.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return `md-${hash}`;
+  }, [content]);
+
   const mermaidConfig = useMemo(() => ({
     theme: 'dark' as const,
     themeVariables: {
@@ -188,6 +200,7 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
 
   return (
     <ExtendedMarkdownRenderer
+      key={contentKey}
       content={content}
       className={cn(
         prose && 'prose prose-sm  max-w-none text-sm text-muted-foreground',

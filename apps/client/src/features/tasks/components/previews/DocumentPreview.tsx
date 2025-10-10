@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Maximize2, Expand, AlertCircle, Loader2, Minimize2 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { MermaidPreview } from './MermaidPreview';
@@ -24,7 +24,7 @@ interface DocumentPreviewProps {
   };
 }
 
-export function DocumentPreview({
+export const DocumentPreview = memo(function DocumentPreview({
   content,
   type,
   title,
@@ -119,26 +119,25 @@ export function DocumentPreview({
           />
         );
       case 'document':
-        // Always render full markdown content properly
-        if (isExpanded) {
-          return (
-            <div className="h-full overflow-auto p-4">
-              <MarkdownRenderer content={content} />
-            </div>
-          );
-        } else {
-          // For thumbnail, render full content in scrollable container
-          return (
-            <div className="flex flex-col h-full">
+        // Keep MarkdownRenderer mounted to preserve mermaid diagrams
+        return (
+          <div className={cn(
+            "flex flex-col h-full",
+            isExpanded && "p-4"
+          )}>
+            {!isExpanded && (
               <div className="text-xs font-medium px-2 pt-2 pb-1 border-b border-border">
                 {title || metadata?.fileName || 'Document'}
               </div>
-              <div className="flex-1 overflow-auto p-2">
-                <MarkdownRenderer content={content} />
-              </div>
+            )}
+            <div className={cn(
+              "flex-1 overflow-auto",
+              isExpanded ? "" : "p-2"
+            )}>
+              <MarkdownRenderer content={content} />
             </div>
-          );
-        }
+          </div>
+        );
       default:
         return null;
     }
@@ -234,4 +233,4 @@ export function DocumentPreview({
       />
     </>
   );
-}
+});

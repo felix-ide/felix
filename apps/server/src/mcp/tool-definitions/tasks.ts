@@ -2,30 +2,48 @@ import type { McpToolDefinition } from './common.js';
 
 export const TASKS_TOOL: McpToolDefinition = {
   name: 'tasks',
-  description: `Tasks (compact). Create/list/update; supports hierarchy, dependencies, checklists, and links.
+  description: `Create and manage tasks, epics, stories, and bugs. Supports hierarchy, dependencies, checklists, and code entity links.
 
-AI UX improvements:
-- add/update responses now include structured { task, validation, guidance } so agents do not need to call workflows.validate explicitly.
-- Canonical checklist expectations (validator):
-  • Acceptance Criteria — checklist name "Acceptance Criteria", ≥3 items with Given/When/Then tokens.
-  • Implementation Checklist — checklist name contains "Implementation", ≥3 items.
-  • Test Verification — checklist name "Test Verification", ≥2 items containing 'unit' and 'integration' or 'e2e'.
-  • Regression Testing — checklist name contains "Regression", ≥1 item.
-  • Rules Creation — add entity_links with at least one { entity_type:'rule', entity_id }.
+What this tool does:
+- Create tasks (epics, stories, tasks, bugs, etc) with action: add
+- Update existing tasks with action: update
+- List and query tasks with action: list
+- Get task details with action: get
+- Manage task hierarchies and dependencies
+- Automatically validates tasks and returns guidance
 
-Spec gating:
-- Gate: task_status cannot be 'in_progress' unless spec_state='spec_ready'.
-- Forward-only spec_state: draft → spec_in_progress → spec_ready.
+Common task creation flow:
+1. tasks.add (title, description, task_type, parent_id optional) → returns {task, validation, guidance}
+2. Follow guidance to add notes (notes tool), checklists (checklists tool), or rules (rules tool)
+3. tasks.update(spec_state='spec_ready') when spec complete
+4. tasks.update(task_status='in_progress') to start work
 
-Usage flow:
-- Prefer: tasks.add/update (reads guidance) → notes.add/checklists.add per guidance → tasks.update(spec_state='spec_ready') → tasks.update(task_status='in_progress').
+Actions:
+- add: Create new task (title, description, task_type, parent_id, checklists, entity_links)
+- update: Modify task (task_id, any field to change)
+- get: Get task details (task_id, include_notes, include_children)
+- list: Query tasks (task_status, task_type, limit, offset, view, fields)
+- delete: Remove task (task_id)
+- get_tree: Get task hierarchy (root_task_id, max_depth)
+- get_dependencies: Get task dependencies (task_id, direction)
+- add_dependency: Link tasks (dependent_task_id, dependency_task_id, dependency_type)
+- suggest_next: Get suggested next tasks
+- get_spec_bundle: Get spec package for a task
 
-Allowed actions by spec_state:
-- draft/spec_in_progress: read, update metadata, link notes/rules, manage checklists/subtasks, set spec_state forward; cannot set task_status=in_progress.
-- spec_ready+: all above, and may set task_status=in_progress.
+Task types: epic, story, task, bug, spike (or custom via workflow mapping)
 
-Idempotency: update/add are idempotent by field; repeated calls safe.
-Results may be truncated; use filters + paging.`,
+Spec readiness workflow:
+- spec_state: draft → spec_in_progress → spec_ready (forward only)
+- Gate: Cannot set task_status='in_progress' unless spec_state='spec_ready'
+- Required for spec_ready (feature_development workflow):
+  • Notes: Architecture (mermaid), ERD (erDiagram), API Contract (openapi 3.1)
+  • Checklists: "Acceptance Criteria" (≥3 G/W/T), "Implementation Checklist" (≥3), "Test Verification" (≥2 unit+integration/e2e), "Regression Testing" (≥1)
+  • Rules: entity_links with ≥1 {entity_type:'rule', entity_id}
+
+Response format:
+- add/update return {task, validation, guidance} - validation is automatic
+- list returns optimized text by default (use output_format='json' for raw data)
+- Results may be truncated; use limit/offset for paging`,
   // Payload examples the validator accepts:
   // - Acceptance Criteria
   //   checklists: [{
