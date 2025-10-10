@@ -168,11 +168,9 @@ echo -e "${CYAN}Configuration${NC}"
 echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Get project path
-DEFAULT_PROJECT_PATH="$(pwd)"
-echo -e "${BLUE}Enter your project path (default: $DEFAULT_PROJECT_PATH):${NC}"
-read -r PROJECT_PATH
-PROJECT_PATH="${PROJECT_PATH:-$DEFAULT_PROJECT_PATH}"
+print_status "The hooks will automatically use Claude Code's current project directory."
+print_status "No need to configure a project path manually!"
+echo ""
 
 # Get server URL
 DEFAULT_SERVER_URL="http://localhost:9000"
@@ -184,7 +182,7 @@ SERVER_URL="${SERVER_URL:-$DEFAULT_SERVER_URL}"
 ENV_FILE="$HOME/.felix_claude_config"
 cat > "$ENV_FILE" <<EOF
 # Felix Rule System Configuration for Claude Code
-export FELIX_PROJECT_PATH="$PROJECT_PATH"
+# Project path is automatically detected from Claude Code's working directory
 export FELIX_SERVER_URL="$SERVER_URL"
 export DEBUG_MODE="false"
 EOF
@@ -246,13 +244,13 @@ echo ""
 echo -e "${CYAN}Next steps:${NC}"
 echo ""
 echo "1. Start the Felix server (if not already running):"
-echo -e "   ${YELLOW}cd $PROJECT_PATH${NC}"
-echo -e "   ${YELLOW}npm run server${NC}"
+echo -e "   ${YELLOW}cd <your-project-directory>${NC}"
+echo -e "   ${YELLOW}npm run dev${NC}"
 echo ""
 echo "2. Reload your shell configuration:"
 echo -e "   ${YELLOW}source $SHELL_PROFILE${NC}"
 echo ""
-echo "3. Start Claude Code and the hooks will be active!"
+echo "3. Start Claude Code in your project directory and the hooks will be active!"
 echo ""
 echo -e "${CYAN}To test the installation:${NC}"
 echo -e "   ${YELLOW}bash ~/.claude/hooks/felix-utils.sh${NC}"

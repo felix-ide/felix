@@ -40,38 +40,49 @@ Runs after successful tool execution:
 - Learns from successful patterns
 - Updates rule analytics periodically
 
+## Installation
+
+Run the installation script to set up the hooks:
+
+```bash
+cd integrations/claude-code
+bash install.sh
+```
+
+The installer will:
+- Install hook scripts to `~/.claude/hooks/`
+- Configure Claude Code settings
+- Set up environment variables
+
 ## Configuration
 
 ### Environment Variables
-Set these in your shell profile or before running Claude:
+The hooks automatically use Claude Code's current working directory for the project path.
+
+You can optionally configure:
 
 ```bash
-# Felix server URL (default: http://localhost:3000)
-export FELIX_SERVER_URL="http://localhost:3000"
+# Felix server URL (default: http://localhost:9000)
+export FELIX_SERVER_URL="http://localhost:9000"
 
-# Project path for Felix (change to your project path)
-export FELIX_PROJECT_PATH="/path/to/your/project"
-
-# Enable debug logging
+# Enable debug logging (optional)
 export DEBUG_MODE="true"
 ```
+
+These are automatically added to `~/.felix_claude_config` by the installer.
 
 ### Prerequisites
 
 1. **Felix Server Running**: The Felix server must be running:
    ```bash
-   cd /path/to/felix
+   cd /path/to/your/project
    npm run dev
    ```
 
-2. **Rules Configured**: Add rules using Felix MCP tools:
-   ```bash
-   # Example: Add a React best practices rule
-   mcp__Felix__rules project="/path/to/project" action="add" \
-     name="React Best Practices" \
-     rule_type="pattern" \
-     guidance_text="Use TypeScript interfaces, React.memo for performance..."
-   ```
+2. **Rules Configured**: Add rules using the Felix UI or MCP tools:
+   - Open the Felix UI at http://localhost:9000
+   - Navigate to the Rules section
+   - Create rules for your project
 
 ## Rule Types
 
@@ -147,14 +158,14 @@ bash ~/.claude/hooks/felix-utils.sh
 3. Run Claude with debug: `claude --debug`
 
 ### Felix Server Connection
-1. Ensure server is running: `curl http://localhost:3000/health`
+1. Ensure server is running: `curl http://localhost:9000/api/health`
 2. Check FELIX_SERVER_URL environment variable
-3. Verify project path exists and is indexed
+3. Start Claude Code from your project directory
 
 ### Rule Not Found
-1. Index the project first: `mcp__Felix__projects action="index"`
-2. Add rules using Felix MCP tools
-3. Check rule is active: `mcp__Felix__rules action="list"`
+1. Index the project first using the Felix UI
+2. Add rules using the Felix UI or API
+3. Verify rules are created for your project
 
 ## Advanced Usage
 
@@ -168,11 +179,7 @@ fi
 ```
 
 ### Integration with CI/CD
-Export rule compliance metrics:
-```bash
-# Get analytics
-mcp__Felix__rules action="get_analytics" days_since=7
-```
+View rule compliance metrics in the Felix UI under the Rules section.
 
 ### Rule Learning Pipeline
 The PostToolUse hook tracks:
