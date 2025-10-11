@@ -4,16 +4,40 @@ This directory contains integration packages for various AI-powered coding assis
 
 ## 🎯 Available Integrations
 
-### ✅ Claude Code
+### ✅ Claude Code (Hooks)
 **Status:** Complete and Production-Ready
 
-Full integration with Claude Code using hooks system:
+Original integration with Claude Code using hooks system:
 - Automatic rule context injection
 - Pre-validation of code changes
 - Post-analysis and learning
 - Easy installer script
+- **Note**: Requires separate MCP server setup
 
 [📖 Setup Guide](./claude-code/README.md) | [🚀 Quick Install](./claude-code/install.sh)
+
+### ✅ Claude Code (Plugin)
+**Status:** Complete and Production-Ready
+
+**NEW!** Official Claude Code plugin format:
+- Bundles MCP server + hooks together
+- One-click installation
+- Automatic configuration
+- Easier setup than hooks-only integration
+- Future marketplace support
+
+[📖 Setup Guide](./claude-code-plugin/README.md) | [🚀 Quick Install](./claude-code-plugin/install.sh)
+
+### ✅ OpenAI Codex CLI
+**Status:** Complete and Production-Ready
+
+**NEW!** MCP server integration for OpenAI Codex CLI:
+- TOML-based MCP server configuration (~/.codex/config.toml)
+- Full Felix MCP tools access (search, tasks, workflows, rules, etc.)
+- Simple installer script
+- **Note**: MCP tools only - no automatic rule injection hooks
+
+[📖 Setup Guide](./codex/README.md) | [🚀 Quick Install](./codex/install.sh)
 
 ### 🔄 Cursor (Planned)
 **Status:** Research Phase
@@ -41,21 +65,49 @@ Investigating:
 
 ## 🚀 Quick Start
 
-### For Claude Code Users
+### For Claude Code Users (Plugin - Recommended)
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-repo/code-indexer.git
-cd code-indexer
+# 1. Start Felix server in your project
+cd /path/to/your/project
+npm run dev
 
-# 2. Install dependencies and start server
-npm install
-npm run server
+# 2. Run the plugin installer
+bash integrations/claude-code-plugin/install.sh
 
-# 3. Run the installer
+# 3. Follow the prompts to configure
+
+# 4. Restart Claude Code
+```
+
+### For Claude Code Users (Hooks)
+
+```bash
+# 1. Start Felix server in your project
+cd /path/to/your/project
+npm run dev
+
+# 2. Run the hooks installer
 bash integrations/claude-code/install.sh
 
-# 4. Follow the prompts to configure
+# 3. Follow the prompts to configure
+
+# 4. Configure MCP server separately in settings.json
+```
+
+### For Codex Users
+
+```bash
+# 1. Start Felix server in your project
+cd /path/to/your/project
+npm run dev
+
+# 2. Run the Codex installer
+bash integrations/codex/install.sh
+
+# 3. Follow the prompts to configure
+
+# 4. Start Codex and Felix tools will be available
 ```
 
 ## 🏗️ Architecture
@@ -97,14 +149,19 @@ Each integration can potentially access:
 
 ## 📊 Feature Comparison
 
-| Feature | Claude Code | Cursor | VS Code | Copilot |
-|---------|------------|---------|----------|----------|
-| Rule Context Injection | ✅ Full | 🔄 Planned | 🔄 Planned | 🔄 Research |
-| Pre-validation | ✅ Blocking | - | - | - |
-| Post-analysis | ✅ Learning | - | - | - |
-| Semantic Search | ✅ Via MCP | 🔄 Planned | 🔄 Planned | - |
-| Custom Rules | ✅ Full CRUD | 🔄 Limited | 🔄 Planned | - |
-| Installation | ✅ Script | - | - | - |
+| Feature | Claude Code (Plugin) | Claude Code (Hooks) | Codex | Cursor | VS Code | Copilot |
+|---------|---------------------|---------------------|-------|---------|----------|----------|
+| MCP Server | ✅ Bundled | ⚠️ Manual | ✅ Auto | 🔄 Planned | 🔄 Planned | 🔄 Research |
+| Rule Context Injection | ✅ Hooks | ✅ Hooks | ❌ None | 🔄 Planned | 🔄 Planned | 🔄 Research |
+| Pre-validation | ✅ Blocking | ✅ Blocking | ❌ None | - | - | - |
+| Post-analysis | ✅ Learning | ✅ Learning | ❌ None | - | - | - |
+| Semantic Search | ✅ Via MCP | ✅ Via MCP | ✅ Via MCP | 🔄 Planned | 🔄 Planned | - |
+| Task Management | ✅ Via MCP | ✅ Via MCP | ✅ Via MCP | - | - | - |
+| Rules Management | ✅ Via MCP | ✅ Via MCP | ✅ Via MCP | 🔄 Limited | 🔄 Planned | - |
+| Installation | ✅ One-click | ✅ Script | ✅ Script | - | - | - |
+| Setup Difficulty | ⭐ Easy | ⭐⭐ Medium | ⭐ Easy | - | - | - |
+
+**Note**: Codex only has MCP tools access. It does NOT have automatic rule injection or validation hooks like Claude Code.
 
 ## 🛠️ Creating New Integrations
 
@@ -140,20 +197,24 @@ All integrations communicate with the Felix MCP server:
 
 ### Starting the Server
 ```bash
-cd code-indexer
-npm run server
+cd /path/to/your/project
+npm run dev
 ```
 
 ### API Endpoints
-- `http://localhost:3000/mcp` - MCP protocol endpoint
-- `http://localhost:3000/health` - Health check
+- `http://localhost:9000/api/health` - Health check
+- `http://localhost:9000` - Felix UI
 
 ### Available MCP Tools
-- `mcp__Felix__search` - Semantic code search
-- `mcp__Felix__rules` - Rule management
-- `mcp__Felix__context` - Get component context
-- `mcp__Felix__tasks` - Task management
-- `mcp__Felix__notes` - Documentation
+- `mcp__felix__search` - Semantic code search
+- `mcp__felix__context` - Get component context with relationships
+- `mcp__felix__tasks` - Task and workflow management
+- `mcp__felix__workflows` - Configure and validate workflows
+- `mcp__felix__notes` - Documentation with mermaid/excalidraw
+- `mcp__felix__rules` - Define and enforce coding standards
+- `mcp__felix__checklists` - Manage task checklists
+- `mcp__felix__projects` - Index and manage projects
+- `mcp__felix__degradation` - Automatic metadata cleanup
 
 ## 🔒 Security Considerations
 

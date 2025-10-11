@@ -28,7 +28,7 @@ export class WorkflowService {
         return {
           ...wf,
           status_flow: {
-            initial_state: states[0] || undefined,
+            initial_state: flow.initial_state || states[0] || undefined,
             states,
             transitions: wf.status_flow?.transitions || []
           }

@@ -99,8 +99,54 @@ export class TaskManagementService {
       throw new Error('Task not found');
     }
     const baseTask = currentTask as ITask;
+
+    // FIRST: Check if workflow is changing (before any validation)
+    let workflowChanged = false;
+    let oldWorkflow = (baseTask as any).workflow;
+    try {
+      const cfgMgr = new WorkflowConfigManager(this.dbManager.getMetadataDataSource());
+      await cfgMgr.initialize();
+      const cfg = await cfgMgr.getGlobalConfig();
+      const enforce = (cfg as any).enforce_type_mapping === true || (cfg as any).enforce_type_mapping === 'true';
+      if (enforce) {
+        const wfSvc = new WorkflowService(this.dbManager);
+        const nextType = (updates as any).task_type || baseTask?.task_type;
+        const resolved = await wfSvc.resolveWorkflowName(nextType, undefined);
+        (updateWithChecklists as any).workflow = resolved;
+        if (oldWorkflow && resolved && oldWorkflow !== resolved) {
+          workflowChanged = true;
+        }
+      }
+    } catch {}
+
+    // If workflow is explicitly changed or changed via type mapping, reset status to new workflow's initial_state
+    if ((updates as any).workflow && (updates as any).workflow !== oldWorkflow) {
+      workflowChanged = true;
+    }
+
+    if (workflowChanged) {
+      try {
+        const wfSvc = new WorkflowService(this.dbManager);
+        const newWorkflowName = (updateWithChecklists as any).workflow;
+        const workflowDef = await wfSvc.getWorkflowDefinition(newWorkflowName);
+        if (workflowDef?.status_flow?.initial_state) {
+          // Reset status to new workflow's initial state
+          (updateWithChecklists as any).task_status = workflowDef.status_flow.initial_state;
+          // Reset spec_state to draft
+          (updateWithChecklists as any).spec_state = 'draft';
+          // Clear any validation metadata
+          (updateWithChecklists as any).last_validated_at = null;
+          (updateWithChecklists as any).validated_by = null;
+          logger.info(`Workflow changed from ${oldWorkflow} to ${newWorkflowName}, resetting status to ${workflowDef.status_flow.initial_state}`);
+        }
+      } catch (err) {
+        logger.warn(`Failed to reset task status on workflow change: ${err}`);
+      }
+    }
+
+    // THEN: Skip status validation if workflow changed (status was auto-reset)
     // Guard: prevent moving to in_progress unless spec_state >= spec_ready
-    if (updates.task_status && updates.task_status === 'in_progress') {
+    if (!workflowChanged && updates.task_status && updates.task_status === 'in_progress') {
       const state = (baseTask as any).spec_state || 'draft';
       if (state !== 'spec_ready') {
         throw new Error(`Cannot set task_status=in_progress when spec_state is '${state}'. Gate requires spec_state=spec_ready.`);
@@ -127,7 +173,7 @@ export class TaskManagementService {
     }
 
     let transitionEvaluation: TransitionEvaluationResult | null = null;
-    if (updates.task_status && updates.task_status !== baseTask.task_status) {
+    if (!workflowChanged && updates.task_status && updates.task_status !== baseTask.task_status) {
       const transitionService = new WorkflowTransitionService(this.dbManager);
       const evaluation = await transitionService.evaluateStatusChange(
         baseTask,
@@ -152,19 +198,6 @@ export class TaskManagementService {
       delete (updateWithChecklists as any).spec_state;
       specStateUpdated = true;
     }
-    // Enforce mapping on update if configured
-    try {
-      const cfgMgr = new WorkflowConfigManager(this.dbManager.getMetadataDataSource());
-      await cfgMgr.initialize();
-      const cfg = await cfgMgr.getGlobalConfig();
-      const enforce = (cfg as any).enforce_type_mapping === true || (cfg as any).enforce_type_mapping === 'true';
-      if (enforce) {
-        const wfSvc = new WorkflowService(this.dbManager);
-        const nextType = (updates as any).task_type || baseTask?.task_type;
-        const resolved = await wfSvc.resolveWorkflowName(nextType, undefined);
-        (updateWithChecklists as any).workflow = resolved;
-      }
-    } catch {}
     const result = await this.dbManager.getTasksRepository().updateTask(id, updateWithChecklists);
     
     // If there were no other fields to update but spec_state was already updated above,

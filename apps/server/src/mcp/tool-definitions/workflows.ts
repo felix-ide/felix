@@ -96,6 +96,8 @@ Example workflow requirements (feature_development):
       task_id: { type: 'string', description: 'Parent task id for scaffold' },
       sections: { type: 'array', items: { type: 'string' }, description: 'Sections to scaffold (e.g., ["subtasks"])' },
       dry_run: { type: 'boolean', default: true, description: 'Guidance only when true; only write on false' },
+      // Reseed
+      force: { type: 'boolean', default: false, description: 'Force update existing workflows (for reseed action)' },
       // Status catalog
       status_id: { type: 'string', description: 'Existing status identifier (for delete/update)' },
       status: {

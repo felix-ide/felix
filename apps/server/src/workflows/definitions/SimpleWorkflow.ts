@@ -24,6 +24,34 @@ export const SimpleWorkflow: WorkflowDefinition = {
   ],
   conditional_requirements: [],
   validation_rules: [],
+  status_flow_ref: 'flow_simple',
+
+  status_flow: {
+    transitions: [
+      {
+        id: 'todo_to_in_progress',
+        from: 'todo',
+        to: 'in_progress',
+        label: 'Start Task',
+        description: 'Begin working on the task'
+      },
+      {
+        id: 'in_progress_to_done',
+        from: 'in_progress',
+        to: 'done',
+        label: 'Complete',
+        description: 'Mark task as complete'
+      },
+      {
+        id: 'any_to_cancelled',
+        from: '*',
+        to: 'cancelled',
+        label: 'Cancel',
+        description: 'Cancel task'
+      }
+    ]
+  },
+
   use_cases: [
     'Quick bug fixes',
     'Small updates',

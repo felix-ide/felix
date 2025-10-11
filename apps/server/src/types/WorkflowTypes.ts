@@ -237,7 +237,7 @@ export interface WorkflowValidationBundle {
 
 export interface WorkflowStatusFlow {
   initial_state?: string;
-  states: string[];
+  states?: string[];
   transitions: WorkflowTransition[];
 }
 
