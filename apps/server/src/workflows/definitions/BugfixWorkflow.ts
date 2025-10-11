@@ -213,7 +213,7 @@ export const BugfixWorkflow: WorkflowDefinition = {
   child_requirements: [
     {
       child_task_type: 'task',
-      required_workflow: 'simple',
+      required_workflow: 'bugfix',
       min_count: 0,
       max_count: 3,
       label: 'Fix Tasks (Optional)',

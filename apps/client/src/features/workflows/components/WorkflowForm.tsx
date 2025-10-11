@@ -5,7 +5,7 @@ import { Input } from '@client/shared/ui/Input';
 import { Textarea } from '@client/shared/ui/Textarea';
 import { Checkbox } from '@client/shared/ui/checkbox';
 import {
-  Plus, Trash2, ChevronUp, ChevronDown,
+  Plus, Trash2, ChevronUp, ChevronDown, ChevronRight,
   FileText, Settings, Info,
   Type, ListChecks, SlidersHorizontal
 } from 'lucide-react';
@@ -1067,23 +1067,6 @@ export function WorkflowForm({
         </Button>
       </div>
 
-      {computedPresets.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {computedPresets.map((preset) => (
-            <Button
-              key={preset.id}
-              type="button"
-              variant="outline"
-              size="xs"
-              onClick={() => applyStatePreset(preset.id ?? null, preset.states)}
-              className="h-7"
-            >
-              {preset.label}
-            </Button>
-          ))}
-        </div>
-      )}
-
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -1165,19 +1148,73 @@ export function WorkflowForm({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Initial State</p>
-          <select
-            className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
-            value={statusFlow.initial_state || ''}
-            onChange={(event) => setInitialStateValue(event.target.value)}
-          >
-            <option value="">(none)</option>
-              {(statusFlow.states || []).map((state) => (
-                <option key={state} value={state}>{formatStateLabel(state)}</option>
-              ))}
-            </select>
-          </div>
+        <div className="space-y-3">
+          {computedPresets.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Flow Presets</p>
+              <div className="space-y-2">
+                {computedPresets.map((preset) => {
+                  const isSelected = wf.status_flow_ref === preset.id;
+                  const presetName = preset.label.split('(')[0].trim();
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => applyStatePreset(preset.id ?? null, preset.states)}
+                      className={cn(
+                        "w-full p-2 rounded-md border text-left transition-all",
+                        isSelected
+                          ? "bg-primary/10 border-primary ring-2 ring-primary/50"
+                          : "border-border hover:border-primary/50 hover:bg-accent"
+                      )}
+                    >
+                      <div className="font-medium text-sm">{presetName}</div>
+                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                        {preset.states.map((state, idx) => (
+                          <span key={idx} className="flex items-center gap-1">
+                            {idx > 0 && <ChevronRight className="h-3 w-3 text-primary/60" />}
+                            <span className="text-foreground/80">{formatStateLabel(state)}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </button>
+                  );
+                })}
+                {wf.status_flow_ref === null && (
+                  <button
+                    type="button"
+                    className="w-full p-2 rounded-md border text-left bg-primary/10 border-primary ring-2 ring-primary/50 pointer-events-none"
+                  >
+                    <div className="font-medium text-sm">Custom Flow</div>
+                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                      {statusFlow.states.slice(0, 4).map((state, idx) => (
+                        <span key={idx} className="flex items-center gap-1">
+                          {idx > 0 && <ChevronRight className="h-3 w-3 text-primary/60" />}
+                          <span className="text-foreground/80">{formatStateLabel(state)}</span>
+                        </span>
+                      ))}
+                      {statusFlow.states.length > 4 && <span className="text-muted-foreground">+{statusFlow.states.length - 4}</span>}
+                    </div>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Initial State</p>
+            <select
+              className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
+              value={statusFlow.initial_state || ''}
+              onChange={(event) => setInitialStateValue(event.target.value)}
+            >
+              <option value="">(none)</option>
+                {(statusFlow.states || []).map((state) => (
+                  <option key={state} value={state}>{formatStateLabel(state)}</option>
+                ))}
+              </select>
+            </div>
+        </div>
       </div>
 
       {(statusFlow.transitions || []).length === 0 ? (

@@ -28,8 +28,8 @@ export interface ChildTaskRequirement {
   // What type of child task is required
   child_task_type: string; // e.g., 'story', 'task', 'subtask'
 
-  // What workflow the child must follow
-  required_workflow: string;
+  // What workflow the child must follow (deprecated - children inherit parent workflow)
+  required_workflow?: string;
 
   // Minimum number required
   min_count?: number;

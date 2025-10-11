@@ -77,7 +77,25 @@ export class WorkflowService {
         }
       }
     } catch {}
-    let base = await validator.validateTask(params, undefined, { notes });
+
+    // Query child tasks for child_requirements validation
+    const childTasks: Array<{ id: string; task_type: string; task_status: string; workflow?: string }> = [];
+    const taskId = (params as any).id || (params as any).task_id;
+    if (taskId) {
+      try {
+        const subtasks = await this.dbManager.getTasksRepository().searchTasks({ parent_id: taskId });
+        for (const child of (subtasks.items || [])) {
+          childTasks.push({
+            id: child.id,
+            task_type: child.task_type,
+            task_status: child.task_status,
+            workflow: (child as any).workflow
+          });
+        }
+      } catch {}
+    }
+
+    let base = await validator.validateTask(params, undefined, { notes, childTasks });
     // Apply waivers (if any) to missing requirements
     try {
       const waivers: Array<{ code: string }> = (task as any).spec_waivers || [];

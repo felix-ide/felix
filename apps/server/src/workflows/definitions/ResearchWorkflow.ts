@@ -207,7 +207,7 @@ export const ResearchWorkflow: WorkflowDefinition = {
   child_requirements: [
     {
       child_task_type: 'task',
-      required_workflow: 'simple',
+      required_workflow: 'research',
       min_count: 0,
       max_count: 5,
       label: 'Investigation Tasks (Optional)',

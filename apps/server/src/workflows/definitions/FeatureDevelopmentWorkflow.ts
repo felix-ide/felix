@@ -15,7 +15,7 @@ import { WorkflowDefinition } from '../../types/WorkflowTypes';
  */
 export const FeatureDevelopmentWorkflow: WorkflowDefinition = {
   name: 'feature_development',
-  display_name: 'Feature Development Framework',
+  display_name: 'Feature Development',
   description: 'Comprehensive organizational framework for feature development. Defines rules for using Epic → Story → Task → Subtask hierarchy correctly with validation bundles and quality gates.',
 
   required_sections: [
@@ -302,7 +302,7 @@ export const FeatureDevelopmentWorkflow: WorkflowDefinition = {
   child_requirements: [
     {
       child_task_type: 'epic',
-      required_workflow: 'epic',
+      required_workflow: 'feature_development',
       min_count: 0,
       max_count: 3,
       label: 'Epics (for very large features)',
@@ -313,7 +313,7 @@ export const FeatureDevelopmentWorkflow: WorkflowDefinition = {
     },
     {
       child_task_type: 'story',
-      required_workflow: 'story',
+      required_workflow: 'feature_development',
       min_count: 0,
       max_count: 10,
       label: 'Stories (for medium features)',
@@ -324,7 +324,7 @@ export const FeatureDevelopmentWorkflow: WorkflowDefinition = {
     },
     {
       child_task_type: 'task',
-      required_workflow: 'simple',
+      required_workflow: 'feature_development',
       min_count: 0,
       max_count: 20,
       label: 'Tasks (for small features)',

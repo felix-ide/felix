@@ -124,14 +124,8 @@ export function WorkflowEditTab({
     }
   ];
 
-  const combinedPresets = [
-    ...statePresets,
-    ...statusFlows.map((flow) => ({
-      id: flow.id,
-      label: flow.display_label || flow.name,
-      states: Array.isArray(flow.status_ids) ? flow.status_ids : []
-    }))
-  ];
+  // statePresets already includes all statusFlows from the API, so use it directly to avoid duplicates
+  const combinedPresets = statePresets;
 
   return (
     <>

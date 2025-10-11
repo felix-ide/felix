@@ -6,8 +6,6 @@ import { WorkflowDefinition, WorkflowType } from '../types/WorkflowTypes.js';
 import { FeatureDevelopmentWorkflow as FEATURE_DEVELOPMENT_WORKFLOW } from '../workflows/definitions/FeatureDevelopmentWorkflow.js';
 import { BugfixWorkflow as BUGFIX_WORKFLOW } from '../workflows/definitions/BugfixWorkflow.js';
 import { ResearchWorkflow as RESEARCH_WORKFLOW } from '../workflows/definitions/ResearchWorkflow.js';
-import { EpicWorkflow as EPIC_WORKFLOW } from '../workflows/definitions/EpicWorkflow.js';
-import { StoryWorkflow as STORY_WORKFLOW } from '../workflows/definitions/StoryWorkflow.js';
 
 /**
  * Simple Task Workflow - Minimal structure for small, straightforward tasks
@@ -122,8 +120,6 @@ export const SIMPLE_WORKFLOW: WorkflowDefinition = {
  */
 export const BUILT_IN_WORKFLOWS: WorkflowDefinition[] = [
   SIMPLE_WORKFLOW,
-  EPIC_WORKFLOW,
-  STORY_WORKFLOW,
   FEATURE_DEVELOPMENT_WORKFLOW,
   BUGFIX_WORKFLOW,
   RESEARCH_WORKFLOW

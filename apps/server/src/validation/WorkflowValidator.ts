@@ -87,10 +87,15 @@ export class WorkflowValidator {
 
       for (const childReq of workflow.child_requirements) {
         const childrenOfType = childTasks.filter(t => t.task_type === childReq.child_task_type);
-        const minCount = childReq.min_count || 1;
+        const minCount = childReq.min_count ?? 1;
 
-        // Check minimum count
-        if (childrenOfType.length < minCount) {
+        // If optional (min_count: 0) and no children exist, skip entirely
+        if (minCount === 0 && childrenOfType.length === 0) {
+          continue;
+        }
+
+        // Check minimum count (only if min_count > 0)
+        if (minCount > 0 && childrenOfType.length < minCount) {
           missingRequirements.push({
             section_type: 'children' as any,
             description: `${childReq.label || childReq.child_task_type} (${childrenOfType.length}/${minCount})`,
@@ -100,17 +105,19 @@ export class WorkflowValidator {
           continue;
         }
 
-        // Check workflow requirements
-        const childrenWithWrongWorkflow = childrenOfType.filter(
-          t => t.workflow && t.workflow !== childReq.required_workflow
-        );
-        if (childrenWithWrongWorkflow.length > 0) {
-          missingRequirements.push({
-            section_type: 'children' as any,
-            description: `${childReq.label || childReq.child_task_type} workflow mismatch`,
-            action_needed: `${childrenWithWrongWorkflow.length} ${childReq.child_task_type}(s) must use '${childReq.required_workflow}' workflow`,
-            is_conditional: false
-          });
+        // Validate workflow matching if required_workflow is specified
+        if (childReq.required_workflow) {
+          const childrenWithWrongWorkflow = childrenOfType.filter(
+            t => t.workflow && t.workflow !== childReq.required_workflow
+          );
+          if (childrenWithWrongWorkflow.length > 0) {
+            missingRequirements.push({
+              section_type: 'children' as any,
+              description: `${childReq.label || childReq.child_task_type} workflow mismatch`,
+              action_needed: `${childrenWithWrongWorkflow.length} ${childReq.child_task_type}(s) must use '${childReq.required_workflow}' workflow`,
+              is_conditional: false
+            });
+          }
         }
 
         // Check status validation
@@ -151,9 +158,12 @@ export class WorkflowValidator {
       }
     }
 
+    // Count only required child requirements (min_count > 0)
+    const requiredChildCount = (workflow.child_requirements || []).filter(cr => (cr.min_count ?? 1) > 0).length;
+
     const totalRequired = workflow.required_sections.filter(s =>
       this.isSectionRequired(s, workflow, context)
-    ).length + (workflow.child_requirements?.length || 0);
+    ).length + requiredChildCount;
 
     const completionPercentage = totalRequired > 0
       ? (completedRequirements.length / totalRequired) * 100
