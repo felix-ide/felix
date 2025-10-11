@@ -33,7 +33,10 @@ export class WorkflowValidator {
   async validateTask(
     taskParams: CreateTaskParams,
     context?: TaskContext,
-    opts?: { notes?: Array<{ id: string; title?: string; note_type?: string; content?: string }> }
+    opts?: {
+      notes?: Array<{ id: string; title?: string; note_type?: string; content?: string }>,
+      childTasks?: Array<{ id: string; task_type: string; task_status: string; workflow?: string }>
+    }
   ): Promise<ValidationStatus> {
     // Cache notes for strict checks during this validation run
     this.currentNotes = opts?.notes || undefined;
@@ -50,12 +53,12 @@ export class WorkflowValidator {
     // Check each required section
     for (const section of workflow.required_sections) {
       const isRequired = this.isSectionRequired(section, workflow, context);
-      
+
       logger.debug(`[DEBUG] Section ${section.section_type}: required=${isRequired}, conditional=${!!section.conditional_logic}, context=${context?.type}`);
-      
+
       if (isRequired) {
         const sectionValid = await this.validateSection(section, taskParams);
-        
+
         if (sectionValid) {
           completedRequirements.push(section.section_type);
         } else {
@@ -72,18 +75,98 @@ export class WorkflowValidator {
         const conditionalReq = workflow.conditional_requirements.find(
           cr => cr.section_type === section.section_type
         );
-        const skipReason = conditionalReq?.fallback_message || 
+        const skipReason = conditionalReq?.fallback_message ||
           `Not required for ${context?.type || 'this'} task`;
         completedRequirements.push(`${section.section_type} (skipped - ${skipReason})`);
       }
     }
 
-    const totalRequired = workflow.required_sections.filter(s => 
-      this.isSectionRequired(s, workflow, context)
-    ).length;
+    // Validate child task requirements
+    if (workflow.child_requirements && workflow.child_requirements.length > 0) {
+      const childTasks = opts?.childTasks || [];
 
-    const completionPercentage = totalRequired > 0 
-      ? (completedRequirements.length / totalRequired) * 100 
+      for (const childReq of workflow.child_requirements) {
+        const childrenOfType = childTasks.filter(t => t.task_type === childReq.child_task_type);
+        const minCount = childReq.min_count ?? 1;
+
+        // If optional (min_count: 0) and no children exist, skip entirely
+        if (minCount === 0 && childrenOfType.length === 0) {
+          continue;
+        }
+
+        // Check minimum count (only if min_count > 0)
+        if (minCount > 0 && childrenOfType.length < minCount) {
+          missingRequirements.push({
+            section_type: 'children' as any,
+            description: `${childReq.label || childReq.child_task_type} (${childrenOfType.length}/${minCount})`,
+            action_needed: `Add ${minCount - childrenOfType.length} more ${childReq.child_task_type}(s)${childReq.description ? ': ' + childReq.description : ''}`,
+            is_conditional: false
+          });
+          continue;
+        }
+
+        // Validate workflow matching if required_workflow is specified
+        if (childReq.required_workflow) {
+          const childrenWithWrongWorkflow = childrenOfType.filter(
+            t => t.workflow && t.workflow !== childReq.required_workflow
+          );
+          if (childrenWithWrongWorkflow.length > 0) {
+            missingRequirements.push({
+              section_type: 'children' as any,
+              description: `${childReq.label || childReq.child_task_type} workflow mismatch`,
+              action_needed: `${childrenWithWrongWorkflow.length} ${childReq.child_task_type}(s) must use '${childReq.required_workflow}' workflow`,
+              is_conditional: false
+            });
+          }
+        }
+
+        // Check status validation
+        if (childReq.validation?.all_must_be_in) {
+          const requiredStatuses = childReq.validation.all_must_be_in;
+          const childrenNotInStatus = childrenOfType.filter(
+            t => !requiredStatuses.includes(t.task_status as any)
+          );
+          if (childrenNotInStatus.length > 0) {
+            missingRequirements.push({
+              section_type: 'children' as any,
+              description: `${childReq.label || childReq.child_task_type} status requirements`,
+              action_needed: `All ${childReq.child_task_type}(s) must be in status: ${requiredStatuses.join(' or ')}`,
+              is_conditional: false
+            });
+          }
+        }
+
+        if (childReq.validation?.at_least_one_in) {
+          const requiredStatuses = childReq.validation.at_least_one_in;
+          const hasAtLeastOne = childrenOfType.some(
+            t => requiredStatuses.includes(t.task_status as any)
+          );
+          if (!hasAtLeastOne) {
+            missingRequirements.push({
+              section_type: 'children' as any,
+              description: `${childReq.label || childReq.child_task_type} progress requirement`,
+              action_needed: `At least one ${childReq.child_task_type} must be in status: ${requiredStatuses.join(' or ')}`,
+              is_conditional: false
+            });
+          }
+        }
+
+        // If all validations passed, mark as completed
+        if (childrenOfType.length >= minCount) {
+          completedRequirements.push(`${childReq.label || childReq.child_task_type} (${childrenOfType.length})`);
+        }
+      }
+    }
+
+    // Count only required child requirements (min_count > 0)
+    const requiredChildCount = (workflow.child_requirements || []).filter(cr => (cr.min_count ?? 1) > 0).length;
+
+    const totalRequired = workflow.required_sections.filter(s =>
+      this.isSectionRequired(s, workflow, context)
+    ).length + requiredChildCount;
+
+    const completionPercentage = totalRequired > 0
+      ? (completedRequirements.length / totalRequired) * 100
       : 100;
 
     return {
@@ -257,6 +340,9 @@ export class WorkflowValidator {
       case 'findings_documentation':
         return this.hasNoteForSection('findings_documentation', section.validation_criteria);
 
+      case 'findings':
+        return this.hasNoteForSection('findings', section.validation_criteria);
+
       case 'conclusions':
         return this.hasNoteForSection('conclusions', section.validation_criteria);
 
@@ -265,6 +351,9 @@ export class WorkflowValidator {
 
       case 'knowledge_rules':
         return this.hasLinkedRules(taskParams, section.min_rules);
+
+      case 'scope_definition':
+        return this.hasChecklist(taskParams, 'scope|included|excluded', section.min_items);
 
       default:
         return true;
@@ -436,9 +525,11 @@ export class WorkflowValidator {
       regression_testing: 'Regression testing checklist',
       research_goals: 'Research goals/objectives checklist',
       findings_documentation: 'Research findings documentation notes',
+      findings: 'Research findings notes',
       conclusions: 'Research conclusions notes',
       next_steps: 'Next steps/action items checklist',
-      knowledge_rules: `Knowledge rules (${section.min_rules || 1}+ rules)`
+      knowledge_rules: `Knowledge rules (${section.min_rules || 1}+ rules)`,
+      scope_definition: 'Scope definition checklist'
     };
 
     return descriptions[section.section_type] || section.section_type;
@@ -468,12 +559,119 @@ export class WorkflowValidator {
       regression_testing: 'Add regression testing checklist',
       research_goals: 'Add research goals/objectives as checklist',
       findings_documentation: 'Create note documenting research findings',
+      findings: 'Create note documenting research findings',
       conclusions: 'Create note with research conclusions',
       next_steps: 'Add next steps as actionable checklist',
-      knowledge_rules: 'Create rules from research learnings'
+      knowledge_rules: 'Create rules from research learnings',
+      scope_definition: 'Define scope with what is included/excluded as checklist'
     };
 
     return actions[section.section_type] || `Complete ${section.section_type}`;
+  }
+
+  /**
+   * Execute validation rule checks
+   */
+  private async executeValidationRule(
+    ruleId: string,
+    workflow: WorkflowDefinition,
+    taskParams: CreateTaskParams
+  ): Promise<{ valid: boolean; error?: string }> {
+    const rule = workflow.validation_rules.find(r => r.id === ruleId);
+    if (!rule) return { valid: true };
+
+    const checklists = (taskParams as any).checklists || [];
+    const notes = this.currentNotes || [];
+
+    switch (ruleId) {
+      case 'architecture_mermaid_quality':
+        const archNotes = notes.filter(n => n.note_type === 'documentation' && /```\s*mermaid/i.test(n.content || ''));
+        return {
+          valid: archNotes.length > 0,
+          error: rule.error_message
+        };
+
+      case 'erd_validation':
+        const erdNotes = notes.filter(n => /erDiagram/i.test(n.content || ''));
+        return {
+          valid: erdNotes.length > 0,
+          error: rule.error_message
+        };
+
+      case 'excalidraw_mockup_completeness':
+        const mockups = notes.filter(n => n.note_type === 'excalidraw');
+        return {
+          valid: mockups.length > 0,
+          error: rule.error_message
+        };
+
+      case 'checklist_non_empty':
+        const hasEmptyItems = checklists.some((cl: any) =>
+          cl.items.some((item: any) => {
+            const text = (item.text || '').trim().toLowerCase();
+            return !text || text === 'todo' || text === 'tbd' || text === '...' || text === '-';
+          })
+        );
+        return {
+          valid: !hasEmptyItems,
+          error: rule.error_message
+        };
+
+      case 'acceptance_criteria_gherkin':
+        const acChecklist = checklists.find((cl: any) => /acceptance criteria/i.test(cl.name));
+        if (!acChecklist) return { valid: false, error: rule.error_message };
+        const texts = acChecklist.items.map((i: any) => String(i.text || ''));
+        const hasGiven = texts.some((t: string) => /\bGiven\b/i.test(t));
+        const hasWhen = texts.some((t: string) => /\bWhen\b/i.test(t));
+        const hasThen = texts.some((t: string) => /\bThen\b/i.test(t));
+        return {
+          valid: hasGiven && hasWhen && hasThen,
+          error: rule.error_message
+        };
+
+      case 'test_coverage_validation':
+        const testChecklist = checklists.find((cl: any) => /test verification/i.test(cl.name));
+        if (!testChecklist) return { valid: false, error: rule.error_message };
+        const testText = testChecklist.items.map((i: any) => String(i.text || '')).join('\n');
+        const hasUnit = /\bunit\b/i.test(testText);
+        const hasIntegration = /\b(integration|e2e)\b/i.test(testText);
+        return {
+          valid: hasUnit && hasIntegration,
+          error: rule.error_message
+        };
+
+      case 'reproduction_steps_clarity':
+        const reproChecklist = checklists.find((cl: any) => /reproduction|reproduce/i.test(cl.name));
+        if (!reproChecklist) return { valid: false, error: rule.error_message };
+        const hasVagueSteps = reproChecklist.items.some((item: any) => {
+          const text = (item.text || '').toLowerCase();
+          return /try to|test the|reproduce|check if/i.test(text) && text.length < 30;
+        });
+        return {
+          valid: !hasVagueSteps && reproChecklist.items.length >= 2,
+          error: rule.error_message
+        };
+
+      case 'root_cause_depth':
+        const rcaNotes = notes.filter(n => /root cause/i.test(n.title || '') || /root cause/i.test(n.content || ''));
+        if (rcaNotes.length === 0) return { valid: false, error: rule.error_message };
+        const hasWhy = rcaNotes.some(n => /why/i.test(n.content || ''));
+        const hasExplanation = rcaNotes.some(n => (n.content || '').length > 100);
+        return {
+          valid: hasWhy && hasExplanation,
+          error: rule.error_message
+        };
+
+      case 'regression_test_validation':
+        const regressionChecklist = checklists.find((cl: any) => /regression/i.test(cl.name));
+        return {
+          valid: !!regressionChecklist && regressionChecklist.items.length > 0,
+          error: rule.error_message
+        };
+
+      default:
+        return { valid: true };
+    }
   }
 
   /**
@@ -489,6 +687,7 @@ export class WorkflowValidator {
     this.currentNotes = opts?.notes || undefined;
     const requiredSections = bundle.sections || [];
     const optionalSections = bundle.optional_sections || [];
+    const bundleRules = bundle.rules || [];
     const missingRequirements: MissingRequirement[] = [];
     const completedRequirements: string[] = [];
     let completedRequiredCount = 0;
@@ -536,7 +735,24 @@ export class WorkflowValidator {
       }
     }
 
-    const requiredCount = requiredSections.length;
+    // Validate bundle-specific rules
+    for (const ruleId of bundleRules) {
+      const result = await this.executeValidationRule(ruleId, workflow, taskParams);
+      if (result.valid) {
+        completedRequirements.push(`Rule: ${ruleId}`);
+        completedRequiredCount += 1;
+      } else {
+        const rule = workflow.validation_rules.find(r => r.id === ruleId);
+        missingRequirements.push({
+          section_type: 'validation_rule' as any,
+          description: rule?.name || ruleId,
+          action_needed: result.error || rule?.error_message || `Fix validation rule: ${ruleId}`,
+          is_conditional: false
+        });
+      }
+    }
+
+    const requiredCount = requiredSections.length + bundleRules.length;
     const completionPercentage = requiredCount > 0
       ? (completedRequiredCount / requiredCount) * 100
       : 100;

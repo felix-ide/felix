@@ -39,7 +39,21 @@ export async function handleTasksTools(request: TasksToolRequest) {
 
       if (!title) throw new Error('Title is required for add action');
 
-      const defaultWorkflow = workflow || (await (async () => {
+      // Workflow inheritance: child tasks ALWAYS inherit parent's workflow
+      let parentWorkflow: string | null = null;
+      if (parent_id) {
+        try {
+          const parentTask = await projectInfo.codeIndexer.getTask(parent_id);
+          if (parentTask && (parentTask as any).workflow) {
+            parentWorkflow = (parentTask as any).workflow;
+          }
+        } catch {
+          // Parent fetch failed, will use fallback logic
+        }
+      }
+
+      const defaultWorkflow = parentWorkflow || workflow || (await (async () => {
+        // No parent or couldn't fetch parent - use task type mapping or default
         try {
           const ds = (projectInfo as any).codeIndexer?.dbManager?.getMetadataDataSource?.();
           if (!ds) return DEFAULT_WORKFLOW_CONFIG.default_workflow;
@@ -77,6 +91,11 @@ export async function handleTasksTools(request: TasksToolRequest) {
 
       const newTask = await projectInfo.codeIndexer.addTask(taskParams as any);
       let responseText = `Task added with ID: ${newTask.id} (workflow: ${taskParams.workflow})`;
+
+      // Notify if workflow was auto-corrected
+      if (workflow && workflow !== defaultWorkflow) {
+        responseText += `\n\n✓ Workflow auto-corrected from '${workflow}' to '${defaultWorkflow}' to match parent requirements.`;
+      }
 
       if (!skip_validation) {
         const { WorkflowService } = await import('../../features/workflows/services/WorkflowService.js');

@@ -22,39 +22,10 @@ export class TaskStatusFlow {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column({
-    type: 'simple-json',
-    transformer: {
-      to: (value: string[] | undefined) => value ? JSON.stringify(value) : '[]',
-      from: (value: string | null) => {
-        if (!value) return [];
-        try {
-          const parsed = JSON.parse(value);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      }
-    }
-  })
+  @Column({ type: 'simple-json' })
   status_ids!: string[];
 
-  @Column({
-    type: 'simple-json',
-    nullable: true,
-    transformer: {
-      to: (value: Record<string, unknown> | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: string | null) => {
-        if (!value) return null;
-        try {
-          const parsed = JSON.parse(value);
-          return parsed && typeof parsed === 'object' ? parsed : null;
-        } catch {
-          return null;
-        }
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   metadata?: Record<string, unknown> | null;
 
   @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })

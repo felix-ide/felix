@@ -315,7 +315,7 @@ export async function handleWorkflowTools(args: any, dbOrManager: any) {
         flowIdRaw ? `Flow mapping set: ${taskType} -> ${flowIdRaw}` : `Flow mapping cleared for ${taskType}`
       );
     }
-    
+
     default:
       throw new Error(`Unknown workflow action: ${action}`);
   }

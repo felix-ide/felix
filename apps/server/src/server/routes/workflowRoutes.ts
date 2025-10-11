@@ -385,6 +385,39 @@ router.post('/workflows/mapping', async (req: ProjectRequest, res: any) => {
   }
 });
 
+// Generic workflow action endpoint (for MCP-style actions like profile management)
+router.post('/workflows/action', async (req: ProjectRequest, res: any) => {
+  try {
+    const indexer = (req as any).projectIndexer;
+    const { action, ...params } = req.body || {};
+    if (!action) return res.status(400).json({ error: 'action is required' });
+
+    // Import the workflow handler from MCP
+    const { handleWorkflowTools } = await import('../../mcp/workflow-handlers.js');
+    const dbOrManager = indexer ? (indexer as any).dbManager : null;
+
+    const result = await handleWorkflowTools({ action, project: req.projectPath || 'default', ...params }, dbOrManager);
+
+    // Handle the MCP response format
+    if (result?.payload) {
+      return res.json(result.payload);
+    }
+    if (result?.content && Array.isArray(result.content)) {
+      const textContent = result.content.find((c: any) => c.type === 'text');
+      if (textContent?.text) {
+        try {
+          return res.json(JSON.parse(textContent.text));
+        } catch {
+          return res.json({ message: textContent.text });
+        }
+      }
+    }
+    return res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 // Get workflow by name (must be after specific /workflows/* routes)
 router.get('/workflows/:name', async (req: ProjectRequest, res: any) => {
   try {

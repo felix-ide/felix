@@ -11,7 +11,7 @@ import {
   UpdateDateColumn,
   Index
 } from 'typeorm';
-import { WorkflowStatusFlow, WorkflowValidationBundle } from '../../../../types/WorkflowTypes';
+import { WorkflowStatusFlow, WorkflowValidationBundle, ChildTaskRequirement } from '../../../../types/WorkflowTypes';
 
 export interface RequiredSection {
   name: string;
@@ -49,90 +49,29 @@ export class WorkflowConfiguration {
   @Column({ type: 'boolean', default: false })
   is_default!: boolean;
 
-  @Column({ 
-    type: 'simple-json',
-    transformer: {
-      to: (value: RequiredSection[] | string) => {
-        if (typeof value === 'string') return value;
-        return value ? JSON.stringify(value) : '[]';
-      },
-      from: (value: string) => {
-        try {
-          return typeof value === 'string' ? JSON.parse(value) : value;
-        } catch {
-          return [];
-        }
-      }
-    }
-  })
+  @Column({ type: 'simple-json' })
   required_sections!: RequiredSection[] | string;
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: ConditionalRequirement[] | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: string | null) => value ? JSON.parse(value) : null
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   conditional_requirements?: ConditionalRequirement[];
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: ValidationRule[] | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: string | null) => value ? JSON.parse(value) : null
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   validation_rules?: ValidationRule[];
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: string[] | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: string | null) => value ? JSON.parse(value) : null
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   use_cases?: string[];
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: WorkflowValidationBundle[] | undefined) => value ? JSON.stringify(value) : null,
-      from: (value: string | null) => {
-        if (!value) return null;
-        try {
-          return JSON.parse(value) as WorkflowValidationBundle[];
-        } catch {
-          return null;
-        }
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   validation_bundles?: WorkflowValidationBundle[] | null;
 
-  @Column({
-    type: 'simple-json',
-    nullable: true,
-    transformer: {
-      to: (value: WorkflowStatusFlow | undefined | null) => value ? JSON.stringify(value) : null,
-      from: (value: string | null) => {
-        if (!value) return null;
-        try {
-          return JSON.parse(value) as WorkflowStatusFlow;
-        } catch {
-          return null;
-        }
-      }
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   status_flow?: WorkflowStatusFlow | null;
 
   @Column({ type: 'text', nullable: true })
   status_flow_ref?: string | null;
+
+  @Column({ type: 'simple-json', nullable: true })
+  child_requirements?: ChildTaskRequirement[] | null;
 
   @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;

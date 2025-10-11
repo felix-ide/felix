@@ -57,14 +57,7 @@ export class Relationship {
   @Column({ type: 'integer', nullable: true })
   end_column?: number;
 
-  @Column({ 
-    type: 'simple-json', 
-    nullable: true,
-    transformer: {
-      to: (value: any) => value ? JSON.stringify(value) : null,
-      from: (value: string | null) => value ? JSON.parse(value) : null
-    }
-  })
+  @Column({ type: 'simple-json', nullable: true })
   metadata?: any;
 
   @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })

@@ -237,3 +237,17 @@ export const deleteWorkflowStatusFlow = (id: string) =>
     { method: 'DELETE' },
     'Failed to delete workflow status flow'
   );
+
+/**
+ * Generic workflow action caller for MCP-style actions
+ */
+export const callWorkflowAction = <T = any>(action: string, params: Record<string, unknown> = {}): Promise<T> =>
+  fetchJson<T>(
+    `${API_BASE}/workflows/action`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ action, ...params })
+    },
+    `Failed to execute workflow action: ${action}`
+  );
