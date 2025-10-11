@@ -40,6 +40,7 @@ interface TaskCardHeaderProps {
   onEditTitleChange: (value: string) => void;
   onTitleKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   editStatus: TaskData['task_status'];
+  statusOptions: Array<{ value: string; label: string }>;
   onEditStatusChange: (value: TaskData['task_status']) => void;
   editPriority: TaskData['task_priority'];
   onEditPriorityChange: (value: TaskData['task_priority']) => void;
@@ -86,6 +87,7 @@ export function TaskCardHeader({
   onEditTitleChange,
   onTitleKeyDown,
   editStatus,
+  statusOptions,
   onEditStatusChange,
   editPriority,
   onEditPriorityChange,
@@ -254,11 +256,11 @@ export function TaskCardHeader({
               onClick={(event) => event.stopPropagation()}
               className="text-xs bg-background border border-border rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/50"
             >
-              <option value="todo">To Do</option>
-              <option value="in_progress">In Progress</option>
-              <option value="blocked">Blocked</option>
-              <option value="done">Done</option>
-              <option value="cancelled">Cancelled</option>
+              {statusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
 
             <select
