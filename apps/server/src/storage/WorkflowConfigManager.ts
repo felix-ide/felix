@@ -65,6 +65,7 @@ export class WorkflowConfigManager {
           conditional_requirements: workflow.conditional_requirements as any || [],
           validation_rules: workflow.validation_rules as any || [],
           validation_bundles: workflow.validation_bundles as WorkflowValidationBundle[] | undefined,
+          status_flow_ref: workflow.status_flow_ref || null,
           status_flow: workflow.status_flow as WorkflowStatusFlow | undefined,
           child_requirements: workflow.child_requirements as any || [],
           use_cases: workflow.use_cases || []
@@ -91,6 +92,7 @@ export class WorkflowConfigManager {
             conditional_requirements: workflow.conditional_requirements as any || [],
             validation_rules: workflow.validation_rules as any || [],
             validation_bundles: workflow.validation_bundles as WorkflowValidationBundle[] | undefined,
+            status_flow_ref: workflow.status_flow_ref || null,
             status_flow: workflow.status_flow as WorkflowStatusFlow | undefined,
             child_requirements: workflow.child_requirements as any || [],
             use_cases: workflow.use_cases || []
@@ -147,21 +149,21 @@ export class WorkflowConfigManager {
     }
 
     const DEFAULT_FLOWS_BY_TASK_TYPE: Record<string, string> = {
-      epic: 'flow_kanban',
-      story: 'flow_kanban',
-      feature: 'flow_kanban',
-      task: 'flow_kanban',
+      epic: 'flow_feature',
+      story: 'flow_feature',
+      feature: 'flow_feature',
+      task: 'flow_feature',
       subtask: 'flow_simple',
-      milestone: 'flow_kanban',
-      bug: 'flow_kanban',
-      fix: 'flow_kanban',
-      hotfix: 'flow_kanban',
-      spike: 'flow_simple',
-      research: 'flow_simple',
+      milestone: 'flow_feature',
+      bug: 'flow_bugfix',
+      fix: 'flow_bugfix',
+      hotfix: 'flow_bugfix',
+      spike: 'flow_research',
+      research: 'flow_research',
       chore: 'flow_simple',
       documentation: 'flow_simple',
       doc: 'flow_simple',
-      refactor: 'flow_kanban'
+      refactor: 'flow_feature'
     };
 
     const flowRow = await settingsRepo.findOne({ where: { setting_key: 'status_flow_by_task_type' } });
@@ -181,10 +183,24 @@ export class WorkflowConfigManager {
     const count = await repo.count();
     if (count > 0) return;
     const defaults: Array<Partial<TaskStatus>> = [
+      // Common statuses
       { id: 'todo', name: 'todo', display_label: 'To Do', emoji: '📝' },
       { id: 'in_progress', name: 'in_progress', display_label: 'In Progress', emoji: '🚧' },
       { id: 'blocked', name: 'blocked', display_label: 'Blocked', emoji: '⛔️' },
-      { id: 'done', name: 'done', display_label: 'Done', emoji: '✅' }
+      { id: 'done', name: 'done', display_label: 'Done', emoji: '✅' },
+      { id: 'cancelled', name: 'cancelled', display_label: 'Cancelled', emoji: '❌' },
+      // Feature development statuses
+      { id: 'planning', name: 'planning', display_label: 'Planning', emoji: '📋' },
+      { id: 'spec_ready', name: 'spec_ready', display_label: 'Spec Ready', emoji: '📐' },
+      { id: 'in_review', name: 'in_review', display_label: 'In Review', emoji: '👀' },
+      // Bug tracking statuses
+      { id: 'reported', name: 'reported', display_label: 'Reported', emoji: '🐛' },
+      { id: 'analyzing', name: 'analyzing', display_label: 'Analyzing', emoji: '🔍' },
+      { id: 'verified', name: 'verified', display_label: 'Verified', emoji: '✔️' },
+      { id: 'wont_fix', name: 'wont_fix', display_label: "Won't Fix", emoji: '🚫' },
+      // Research statuses
+      { id: 'draft', name: 'draft', display_label: 'Draft', emoji: '✏️' },
+      { id: 'investigating', name: 'investigating', display_label: 'Investigating', emoji: '🔬' }
     ];
     await repo.save(defaults.map((status) => repo.create(status)));
   }
@@ -195,18 +211,45 @@ export class WorkflowConfigManager {
     if (count > 0) return;
     const defaults: Array<Partial<TaskStatusFlow>> = [
       {
+        id: 'flow_simple',
+        name: 'simple',
+        display_label: 'Simple',
+        description: 'Todo → In Progress → Done',
+        status_ids: ['todo', 'in_progress', 'done', 'cancelled'],
+        initial_state: 'todo'
+      },
+      {
+        id: 'flow_feature',
+        name: 'feature',
+        display_label: 'Feature Development',
+        description: 'Planning → Spec Ready → In Progress → In Review → Done',
+        status_ids: ['planning', 'spec_ready', 'in_progress', 'in_review', 'done', 'cancelled'],
+        initial_state: 'planning'
+      },
+      {
+        id: 'flow_bugfix',
+        name: 'bugfix',
+        display_label: 'Bug Fix',
+        description: 'Reported → Analyzing → In Progress → In Review → Verified → Done',
+        status_ids: ['reported', 'analyzing', 'in_progress', 'in_review', 'verified', 'done', 'wont_fix'],
+        initial_state: 'reported'
+      },
+      {
+        id: 'flow_research',
+        name: 'research',
+        display_label: 'Research',
+        description: 'Draft → Investigating → Analyzing → Done',
+        status_ids: ['draft', 'investigating', 'analyzing', 'done', 'cancelled'],
+        initial_state: 'draft'
+      },
+      // Legacy flows for backwards compatibility
+      {
         id: 'flow_kanban',
         name: 'kanban',
         display_label: 'Kanban',
         description: 'Todo → In Progress → Blocked → Done',
-        status_ids: ['todo', 'in_progress', 'blocked', 'done']
-      },
-      {
-        id: 'flow_simple',
-        name: 'simple',
-        display_label: 'Simple',
-        description: 'Todo → Done',
-        status_ids: ['todo', 'done']
+        status_ids: ['todo', 'in_progress', 'blocked', 'done'],
+        initial_state: 'todo'
       }
     ];
     await repo.save(defaults.map((flow) => repo.create(flow)));
@@ -228,6 +271,7 @@ export class WorkflowConfigManager {
           conditional_requirements: w.conditional_requirements as any || [],
           validation_rules: w.validation_rules as any || [],
           validation_bundles: w.validation_bundles as WorkflowValidationBundle[] | undefined,
+          status_flow_ref: w.status_flow_ref || null,
           status_flow: w.status_flow as WorkflowStatusFlow | undefined,
           child_requirements: w.child_requirements as any || [],
           use_cases: w.use_cases || []
@@ -240,6 +284,7 @@ export class WorkflowConfigManager {
           conditional_requirements: w.conditional_requirements as any || [],
           validation_rules: w.validation_rules as any || [],
           validation_bundles: w.validation_bundles as WorkflowValidationBundle[] | undefined,
+          status_flow_ref: w.status_flow_ref || null,
           status_flow: w.status_flow as WorkflowStatusFlow | undefined,
           child_requirements: w.child_requirements as any || [],
           use_cases: w.use_cases || []

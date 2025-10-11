@@ -172,9 +172,9 @@ export const FeatureDevelopmentWorkflow: WorkflowDefinition = {
     }
   ],
 
+  status_flow_ref: 'flow_feature',
+
   status_flow: {
-    initial_state: 'planning',
-    states: ['planning', 'spec_ready', 'in_progress', 'in_review', 'done', 'cancelled'],
     transitions: [
       {
         id: 'planning_to_spec_ready',
@@ -186,7 +186,7 @@ export const FeatureDevelopmentWorkflow: WorkflowDefinition = {
         pre_prompt_template: 'Review all specification work: hierarchy structure, architecture diagrams, ERD, UI mockups, and acceptance criteria. Ensure everything is documented before implementation.',
         gate: {
           require_acknowledgement: true,
-          acknowledgement_prompt_template: 'Specification is complete. Hierarchy is planned (Epic/Story/Task structure chosen), architecture is documented, data model is defined, UI is designed, and acceptance criteria are clear.',
+          acknowledgement_prompt_template: 'Specification is complete. Hierarchy is planned (Epic/Story/Task structure chosen), architecture is documented, data model is defined, UI is designed, and acceptance criteria are clear.\n\n✅ CHECKPOINT: Review the specification one more time to ensure quality.\n\nTo mark specification as ready, update this task status to "spec_ready" with the transition gate token "{{gate_token}}". Use the mcp__felix__tasks tool with action "update", task_id "{{task.id}}", task_status "spec_ready", and transition_gate_token "{{gate_token}}".',
           auto_checklist: {
             name: 'Spec Completeness Check',
             items: [
@@ -238,7 +238,7 @@ export const FeatureDevelopmentWorkflow: WorkflowDefinition = {
         pre_prompt_template: 'Verify: All Epic → Story → Task work is complete, all tests pass, all acceptance criteria met.',
         gate: {
           require_acknowledgement: true,
-          acknowledgement_prompt_template: 'Implementation is complete with passing tests. All hierarchy tasks are done. Ready for review.',
+          acknowledgement_prompt_template: 'Implementation is complete with passing tests. All hierarchy tasks are done. Ready for review.\n\n✅ CHECKPOINT: Verify all acceptance criteria are met and tests pass.\n\nTo submit for review, update this task status to "in_review" with the transition gate token "{{gate_token}}". Use the mcp__felix__tasks tool with action "update", task_id "{{task.id}}", task_status "in_review", and transition_gate_token "{{gate_token}}".',
           auto_checklist: {
             name: 'Pre-Review Checklist',
             items: [
@@ -272,7 +272,7 @@ export const FeatureDevelopmentWorkflow: WorkflowDefinition = {
         description: 'Feature approved and ready for deployment',
         gate: {
           require_acknowledgement: true,
-          acknowledgement_prompt_template: 'Feature has been reviewed and approved. All Epic/Story/Task work is complete and meets quality standards.',
+          acknowledgement_prompt_template: 'Feature has been reviewed and approved. All Epic/Story/Task work is complete and meets quality standards.\n\n✅ CHECKPOINT: Confirm deployment readiness.\n\nTo mark this task complete, update the status to "done" with the transition gate token "{{gate_token}}". Use the mcp__felix__tasks tool with action "update", task_id "{{task.id}}", task_status "done", and transition_gate_token "{{gate_token}}".',
           auto_checklist: {
             name: 'Completion Checklist',
             items: [

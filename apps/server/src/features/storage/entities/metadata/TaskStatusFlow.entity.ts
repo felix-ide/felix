@@ -25,6 +25,9 @@ export class TaskStatusFlow {
   @Column({ type: 'simple-json' })
   status_ids!: string[];
 
+  @Column({ type: 'text', nullable: true })
+  initial_state?: string;
+
   @Column({ type: 'simple-json', nullable: true })
   metadata?: Record<string, unknown> | null;
 

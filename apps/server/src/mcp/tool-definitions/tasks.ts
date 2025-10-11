@@ -129,6 +129,10 @@ Response format:
         items: { type: 'string' },
         description: 'Task tags (for add/update actions)'
       },
+      workflow: {
+        type: 'string',
+        description: 'Workflow type for the task (for add/update actions). When changed, task status resets to new workflow\'s initial state.'
+      },
       checklists: {
         type: 'array',
         items: { type: 'object' },

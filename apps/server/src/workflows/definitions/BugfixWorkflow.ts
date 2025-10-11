@@ -96,9 +96,9 @@ export const BugfixWorkflow: WorkflowDefinition = {
     }
   ],
 
+  status_flow_ref: 'flow_bugfix',
+
   status_flow: {
-    initial_state: 'reported',
-    states: ['reported', 'analyzing', 'in_progress', 'in_review', 'verified', 'done', 'wont_fix'],
     transitions: [
       {
         id: 'reported_to_analyzing',
@@ -129,7 +129,7 @@ export const BugfixWorkflow: WorkflowDefinition = {
         pre_prompt_template: 'Review the root cause analysis and reproduction steps. Plan the fix to address the underlying issue.',
         gate: {
           require_acknowledgement: true,
-          acknowledgement_prompt_template: 'Root cause has been identified. Ready to implement fix.',
+          acknowledgement_prompt_template: 'Root cause has been identified. Ready to implement fix.\n\n✅ CHECKPOINT: Review the root cause analysis and verify the fix approach addresses the underlying issue (not just symptoms).\n\nTo begin implementation, update this task status to "in_progress" with the transition gate token "{{gate_token}}". Use the mcp__felix__tasks tool with action "update", task_id "{{task.id}}", task_status "in_progress", and transition_gate_token "{{gate_token}}".',
           auto_checklist: {
             name: 'Implementation Checklist',
             items: [
@@ -197,7 +197,7 @@ export const BugfixWorkflow: WorkflowDefinition = {
         description: 'Fix verified and deployed to production',
         gate: {
           require_acknowledgement: true,
-          acknowledgement_prompt_template: 'Fix has been verified in staging. Ready for production deployment.'
+          acknowledgement_prompt_template: 'Fix has been verified in staging. Ready for production deployment.\n\n✅ CHECKPOINT: Confirm fix is stable and ready for production.\n\nTo deploy to production, update this task status to "done" with the transition gate token "{{gate_token}}". Use the mcp__felix__tasks tool with action "update", task_id "{{task.id}}", task_status "done", and transition_gate_token "{{gate_token}}".'
         }
       },
       {

@@ -67,12 +67,28 @@ export async function handleTasksTools(request: TasksToolRequest) {
         }
       })());
 
+      // Get initial status from workflow definition
+      let defaultStatus = 'todo';
+      if (!task_status) {
+        try {
+          const { WorkflowService } = await import('../../features/workflows/services/WorkflowService.js');
+          const db: any = (projectInfo.codeIndexer as any).dbManager;
+          const wfSvc = new WorkflowService(db);
+          const workflowDef = await wfSvc.getWorkflowDefinition(defaultWorkflow);
+          if (workflowDef?.status_flow?.initial_state) {
+            defaultStatus = workflowDef.status_flow.initial_state;
+          }
+        } catch {
+          // Failed to resolve initial status, use 'todo' as fallback
+        }
+      }
+
       const taskParams = {
         title,
         description,
         parent_id,
         task_type: task_type || 'task',
-        task_status: task_status || 'todo',
+        task_status: task_status || defaultStatus,
         task_priority: task_priority || 'medium',
         estimated_effort,
         actual_effort,

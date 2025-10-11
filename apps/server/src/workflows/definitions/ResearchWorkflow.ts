@@ -118,9 +118,9 @@ export const ResearchWorkflow: WorkflowDefinition = {
     }
   ],
 
+  status_flow_ref: 'flow_research',
+
   status_flow: {
-    initial_state: 'draft',
-    states: ['draft', 'investigating', 'analyzing', 'done', 'cancelled'],
     transitions: [
       {
         id: 'draft_to_investigating',
@@ -132,7 +132,7 @@ export const ResearchWorkflow: WorkflowDefinition = {
         pre_prompt_template: 'Research objectives are defined. Begin systematic investigation to answer each research question.',
         gate: {
           require_acknowledgement: true,
-          acknowledgement_prompt_template: 'Research plan is complete. Starting investigation phase.',
+          acknowledgement_prompt_template: 'Research plan is complete. Starting investigation phase.\n\n✅ CHECKPOINT: Review the research objectives and methodology to ensure they are clear and achievable.\n\nTo begin investigation, update this task status to "investigating" with the transition gate token "{{gate_token}}". Use the mcp__felix__tasks tool with action "update", task_id "{{task.id}}", task_status "investigating", and transition_gate_token "{{gate_token}}".',
           auto_checklist: {
             name: 'Investigation Checklist',
             items: [
@@ -179,7 +179,7 @@ export const ResearchWorkflow: WorkflowDefinition = {
         required_bundles: ['conclusions_ready'],
         gate: {
           require_acknowledgement: true,
-          acknowledgement_prompt_template: 'Research is complete with documented conclusions and actionable recommendations.',
+          acknowledgement_prompt_template: 'Research is complete with documented conclusions and actionable recommendations.\n\n✅ CHECKPOINT: Review all findings and conclusions, confirm next steps are actionable.\n\nTo mark complete, update this task status to "done" with the transition gate token "{{gate_token}}". Use the mcp__felix__tasks tool with action "update", task_id "{{task.id}}", task_status "done", and transition_gate_token "{{gate_token}}".',
           auto_checklist: {
             name: 'Completion Checklist',
             items: [
