@@ -54,11 +54,47 @@ export class WorkflowTransitionService {
     }
 
     const currentStatus = (task as any).task_status || flow.initial_state || 'todo';
+
+    // Validate that target status is in the workflow's allowed states
+    if (flow.states && Array.isArray(flow.states) && flow.states.length > 0) {
+      if (!flow.states.includes(targetStatus)) {
+        return {
+          allowed: false,
+          workflow,
+          missing_requirements: [{
+            section_type: 'title',
+            description: `Invalid status '${targetStatus}' for workflow '${workflow.name}'`,
+            action_needed: `Status must be one of: ${flow.states.join(', ')}`,
+            is_conditional: false
+          }],
+          prompt: `Cannot change status to '${targetStatus}'. This workflow only allows: ${flow.states.join(', ')}`
+        };
+      }
+    }
+
     const transition = this.resolveTransition(flow, currentStatus, targetStatus);
 
     if (!transition) {
-      // No explicit transition rule — allow by default.
-      return { allowed: true, workflow };
+      // No explicit transition defined - block the transition
+      const availableTransitions = flow.transitions
+        .filter(t => t.from === currentStatus || t.from === '*' || t.from === 'any')
+        .map(t => t.to);
+
+      return {
+        allowed: false,
+        workflow,
+        missing_requirements: [{
+          section_type: 'title',
+          description: `No transition defined from '${currentStatus}' to '${targetStatus}'`,
+          action_needed: availableTransitions.length > 0
+            ? `Valid transitions from '${currentStatus}': ${availableTransitions.join(', ')}`
+            : `No transitions available from '${currentStatus}'`,
+          is_conditional: false
+        }],
+        prompt: availableTransitions.length > 0
+          ? `Cannot transition from '${currentStatus}' to '${targetStatus}'. Valid next states: ${availableTransitions.join(', ')}`
+          : `Cannot transition from '${currentStatus}' to '${targetStatus}'. No valid transitions defined.`
+      };
     }
 
     const bundleResults = await this.evaluateBundles(workflow, transition, task);

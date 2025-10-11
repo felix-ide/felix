@@ -10,6 +10,7 @@ import { useTaskValidation } from '@client/features/tasks/hooks/useTaskValidatio
 import { TaskWhatsNext } from './TaskWhatsNext';
 import { useTaskCardData } from './task-card/hooks/useTaskCardData';
 import { useTaskCardEditor } from './task-card/hooks/useTaskCardEditor';
+import { useWorkflowStatuses } from './task-card/hooks/useWorkflowStatuses';
 import { TaskCardHeader } from './task-card/components/TaskCardHeader';
 import { TaskCardMetadataRow } from './task-card/components/TaskCardMetadataRow';
 import { TaskDescriptionSection } from './task-card/components/TaskDescriptionSection';
@@ -140,7 +141,8 @@ export function TaskCard({
 
   const workflow = getDefaultWorkflow(task);
   const validation = useTaskValidation(task, workflow);
-  
+  const statusOptions = useWorkflowStatuses(workflow);
+
   // Entity search modal for adding dependencies
   const addDependencyModal = useEntitySearchModal((entity) => {
     const targetEntity = Array.isArray(entity) ? entity[0] : entity;
@@ -465,6 +467,7 @@ export function TaskCard({
         onEditTitleChange={setEditTitle}
         onTitleKeyDown={handleKeyDown}
         editStatus={editStatus}
+        statusOptions={statusOptions}
         onEditStatusChange={handleEditStatusChange}
         editPriority={editPriority}
         onEditPriorityChange={handleEditPriorityChange}
