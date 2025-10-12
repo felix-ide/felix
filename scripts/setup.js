@@ -811,6 +811,25 @@ class SetupValidator {
           this.warning('Python AST Helper executable not found');
           this.info('Will fall back to system Python when parsing Python files');
         } else {
+          // On Windows, check for Visual C++ Redistributable (required for PyTorch)
+          if (platform === 'win32') {
+            try {
+              // Check if vcruntime140.dll exists (indicates VC++ Redistributable is installed)
+              const vcCheck = spawnSync('where', ['vcruntime140.dll'], { stdio: 'pipe' });
+              if (vcCheck.status !== 0) {
+                this.warning('Visual C++ Redistributable not detected');
+                this.info('Visual C++ Redistributable is required for PyTorch on Windows');
+                this.info('Download and install from: https://aka.ms/vs/17/release/vc_redist.x64.exe');
+                this.info('After installing, restart your terminal and rerun setup');
+              } else {
+                this.success('Visual C++ Redistributable is installed');
+              }
+            } catch {
+              // Can't check, but don't block - user might have it installed
+              this.info('Note: Visual C++ Redistributable is required for PyTorch on Windows');
+              this.info('If PyInstaller build fails, install from: https://aka.ms/vs/17/release/vc_redist.x64.exe');
+            }
+          }
           // Check for PyInstaller
           const hasPyInstaller = spawnSync('pip', ['show', 'pyinstaller'], { stdio: 'ignore' }).status === 0 ||
                                   spawnSync('pip3', ['show', 'pyinstaller'], { stdio: 'ignore' }).status === 0;
@@ -869,7 +888,19 @@ class SetupValidator {
 
         if (!hasDotnet) {
           this.warning('Roslyn Sidecar executable not found');
-          this.info('Will fall back to system dotnet when parsing C# files');
+          this.warning('.NET SDK not installed - cannot build Roslyn sidecar');
+          this.info('Install .NET SDK 8.0+ from: https://dotnet.microsoft.com/download');
+          if (platform === 'win32') {
+            this.info('Windows: Download and install .NET 8.0 SDK, then add to PATH');
+            this.info('  After install, you may need to restart your terminal or add to PATH:');
+            this.info('  C:\\Program Files\\dotnet');
+          } else if (platform === 'darwin') {
+            this.info('macOS: Download .NET SDK from the link above or use Homebrew:');
+            this.info('  brew install dotnet');
+          } else {
+            this.info('Linux: Follow instructions at https://learn.microsoft.com/en-us/dotnet/core/install/linux');
+          }
+          this.info('Will fall back to system dotnet when parsing C# files (if available)');
         } else {
           if (await this.prompt('Build Roslyn Sidecar executable now? (takes 2-3 minutes)')) {
             const spinner = ora('Building Roslyn Sidecar executable...').start();
@@ -1018,6 +1049,27 @@ class SetupValidator {
 
     // Check and install dependencies
     if (venvExists) {
+      // On Windows, check for Visual C++ Redistributable (required for PyTorch)
+      if (process.platform === 'win32') {
+        try {
+          // Check if vcruntime140.dll exists (indicates VC++ Redistributable is installed)
+          const vcCheck = spawnSync('where', ['vcruntime140.dll'], { stdio: 'pipe' });
+          if (vcCheck.status !== 0) {
+            this.warning('Visual C++ Redistributable not detected');
+            this.warning('Visual C++ Redistributable is REQUIRED for PyTorch on Windows');
+            this.info('Download and install from: https://aka.ms/vs/17/release/vc_redist.x64.exe');
+            this.info('After installing, restart your terminal and rerun setup');
+            this.info('Skipping Python dependency installation until VC++ Redistributable is installed');
+            return;
+          } else {
+            this.success('Visual C++ Redistributable is installed');
+          }
+        } catch {
+          this.info('Note: Visual C++ Redistributable is required for PyTorch on Windows');
+          this.info('If PyTorch installation fails, install from: https://aka.ms/vs/17/release/vc_redist.x64.exe');
+        }
+      }
+
       let requirementsFile = 'requirements.txt';
       let requirementNote = 'default dependency set';
 
