@@ -21,15 +21,28 @@ fi
 DOTNET_VERSION=$(dotnet --version)
 echo "Using .NET version: $DOTNET_VERSION"
 
-# Determine platform
+# Determine platform and architecture
+ARCH=$(uname -m)
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    RID="linux-x64"
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+        RID="linux-arm64"
+    else
+        RID="linux-x64"
+    fi
     EXECUTABLE_NAME="RoslynSidecar"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    RID="osx-x64"
+    if [[ "$ARCH" == "arm64" ]]; then
+        RID="osx-arm64"
+    else
+        RID="osx-x64"
+    fi
     EXECUTABLE_NAME="RoslynSidecar"
 elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-    RID="win-x64"
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" || "$PROCESSOR_ARCHITECTURE" == "ARM64" ]]; then
+        RID="win-arm64"
+    else
+        RID="win-x64"
+    fi
     EXECUTABLE_NAME="RoslynSidecar.exe"
 else
     echo "Error: Unsupported platform: $OSTYPE"

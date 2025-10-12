@@ -1,21 +1,21 @@
 {
   "format": 1,
   "restore": {
-    "/Users/epoplive/felix/packages/code-intelligence/src/code-parser/sidecars/roslyn/RoslynSidecar.csproj": {}
+    "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj": {}
   },
   "projects": {
-    "/Users/epoplive/felix/packages/code-intelligence/src/code-parser/sidecars/roslyn/RoslynSidecar.csproj": {
+    "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/epoplive/felix/packages/code-intelligence/src/code-parser/sidecars/roslyn/RoslynSidecar.csproj",
+        "projectUniqueName": "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj",
         "projectName": "RoslynSidecar",
-        "projectPath": "/Users/epoplive/felix/packages/code-intelligence/src/code-parser/sidecars/roslyn/RoslynSidecar.csproj",
-        "packagesPath": "/Users/epoplive/.nuget/packages/",
-        "outputPath": "/Users/epoplive/felix/packages/code-intelligence/src/code-parser/sidecars/roslyn/obj/",
+        "projectPath": "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj",
+        "packagesPath": "C:\\Users\\epoplive\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\obj\\",
         "projectStyle": "PackageReference",
         "crossTargeting": true,
         "configFilePaths": [
-          "/Users/epoplive/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\epoplive\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0",
@@ -102,11 +102,27 @@
               "version": "[8.0.20, 8.0.20]"
             },
             {
-              "name": "Microsoft.NETCore.App.Host.osx-arm64",
+              "name": "Microsoft.AspNetCore.App.Runtime.win-arm64",
+              "version": "[8.0.20, 8.0.20]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.win-arm64",
               "version": "[8.0.20, 8.0.20]"
             },
             {
               "name": "Microsoft.NETCore.App.Ref",
+              "version": "[8.0.20, 8.0.20]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-arm64",
+              "version": "[8.0.20, 8.0.20]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Ref",
+              "version": "[8.0.20, 8.0.20]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-arm64",
               "version": "[8.0.20, 8.0.20]"
             }
           ],
@@ -115,7 +131,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
         },
         "net9.0": {
           "targetAlias": "net9.0",
@@ -166,12 +182,31 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Runtime.win-arm64",
+              "version": "[9.0.9, 9.0.9]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-arm64",
+              "version": "[9.0.9, 9.0.9]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-arm64",
+              "version": "[9.0.9, 9.0.9]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
+        }
+      },
+      "runtimes": {
+        "win-arm64": {
+          "#import": []
         }
       }
     }
