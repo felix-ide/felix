@@ -190,7 +190,7 @@ export class RoslynSidecarService extends EventEmitter {
     this.config = {
       executablePath: this.getDefaultExecutablePath(),
       args: ['stdio'],
-      requestTimeout: 30000,
+      requestTimeout: 120000, // 2 minutes for complex analysis
       enableLogging: true,
       workingDirectory: process.cwd(),
       autoRestart: true,
