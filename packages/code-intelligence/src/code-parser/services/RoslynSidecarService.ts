@@ -440,8 +440,9 @@ export class RoslynSidecarService extends EventEmitter {
    */
   private handleStderrData(data: Buffer): void {
     const errorText = data.toString();
-    // Always log stderr for debugging
-    console.error('[roslyn-sidecar] stderr:', errorText);
+    if (this.config.enableLogging) {
+      console.error('Sidecar stderr:', errorText);
+    }
     this.emit('stderr', errorText);
   }
 
@@ -512,8 +513,9 @@ export class RoslynSidecarService extends EventEmitter {
     }
     this.pendingRequests.clear();
 
-    // Always log process exit
-    console.error(`[roslyn-sidecar] Process exited with code ${code}, signal ${signal}`);
+    if (this.config.enableLogging) {
+      console.log(`Sidecar process exited with code ${code}, signal ${signal}`);
+    }
 
     this.emit('exit', code, signal);
 
