@@ -622,6 +622,34 @@ class SetupValidator {
       const sidecarProject = `${sidecarDir}/RoslynSidecar.csproj`;
 
       if (existsSync(sidecarProject)) {
+        // Detect .NET SDK version and update csproj to match
+        try {
+          const dotnetVersion = execSync('dotnet --version', { encoding: 'utf8' }).trim();
+          const sdkMajor = parseInt(dotnetVersion.split('.')[0]);
+
+          const { readFileSync } = await import('fs');
+          let csprojContent = readFileSync(sidecarProject, 'utf8');
+
+          // Update TargetFramework based on SDK version
+          if (sdkMajor >= 9 && !csprojContent.includes('<TargetFrameworks>')) {
+            // Has SDK 9+, support both
+            csprojContent = csprojContent.replace(
+              /<TargetFramework>net8\.0<\/TargetFramework>/,
+              '<TargetFrameworks>net8.0;net9.0</TargetFrameworks>'
+            );
+            writeFileSync(sidecarProject, csprojContent);
+            this.info('Configured Roslyn sidecar for .NET 8 & 9');
+          } else if (sdkMajor < 9 && csprojContent.includes('<TargetFrameworks>')) {
+            // Has SDK 8 only, use single target
+            csprojContent = csprojContent.replace(
+              /<TargetFrameworks>net8\.0;net9\.0<\/TargetFrameworks>/,
+              '<TargetFramework>net8.0</TargetFramework>'
+            );
+            writeFileSync(sidecarProject, csprojContent);
+            this.info('Configured Roslyn sidecar for .NET 8 only');
+          }
+        } catch {}
+
         // Auto-build the sidecar DLL files for faster startup
         const spinner = ora('Building Roslyn sidecar...').start();
         try {

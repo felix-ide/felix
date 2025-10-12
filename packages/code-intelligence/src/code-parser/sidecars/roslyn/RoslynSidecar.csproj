@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
@@ -12,13 +13,6 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <AssemblyName>RoslynSidecar</AssemblyName>
     <RootNamespace>CodeIndexer.RoslynSidecar</RootNamespace>
-  </PropertyGroup>
-
-  <!-- Dynamically set target frameworks based on installed .NET SDK version -->
-  <PropertyGroup>
-    <!-- Default to net8.0, add net9.0 if SDK 9.x is installed -->
-    <TargetFrameworks Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '9.0'))">net8.0;net9.0</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '9.0'))">net8.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
