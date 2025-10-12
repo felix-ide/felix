@@ -795,7 +795,9 @@ class SetupValidator {
 
               mkdirSync(outputDir, { recursive: true });
 
-              execSync(`dotnet publish -c Release -r ${rid} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -p:IncludeNativeLibrariesForSelfExtract=true -o ${join('..', '..', '..', '..', '..', 'dist', 'sidecars', 'roslyn', rid)}`, {
+              // Use absolute path from cwd, quote it for Windows paths with spaces
+              const absoluteOutputPath = join(process.cwd(), outputDir);
+              execSync(`dotnet publish -c Release -r ${rid} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -p:IncludeNativeLibrariesForSelfExtract=true -o "${absoluteOutputPath}"`, {
                 cwd: sidecarDir,
                 encoding: 'utf8',
                 stdio: 'pipe'
