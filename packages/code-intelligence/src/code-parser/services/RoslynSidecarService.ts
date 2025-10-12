@@ -337,7 +337,23 @@ export class RoslynSidecarService extends EventEmitter {
           // Use SOURCE directory, not dist
           // Calculate from __dirname: dist/code-parser/services -> src/code-parser/sidecars/roslyn
           const projectPath = join(__dirname, '..', '..', '..', 'src', 'code-parser', 'sidecars', 'roslyn', 'RoslynSidecar.csproj');
-          args = ['run', '--project', projectPath, '--framework', 'net9.0', '--', ...args];
+
+          // Detect which framework to use (prefer net8.0 for compatibility)
+          // Check which .NET runtime is available
+          const { execSync } = require('child_process');
+          let targetFramework = 'net8.0';
+          try {
+            const dotnetVersion = execSync('dotnet --version', { encoding: 'utf8' }).trim();
+            const major = parseInt(dotnetVersion.split('.')[0]);
+            // Only use net9.0 if SDK 9+ is installed
+            if (major >= 9) {
+              targetFramework = 'net9.0';
+            }
+          } catch {
+            // Default to net8.0 if detection fails
+          }
+
+          args = ['run', '--project', `"${projectPath}"`, '--framework', targetFramework, '--', ...args];
         }
 
         if (this.config.enableLogging) {

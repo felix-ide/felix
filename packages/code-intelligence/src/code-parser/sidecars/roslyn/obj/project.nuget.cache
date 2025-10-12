@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "HqvY7sPIBW4=",
+  "dgSpecHash": "ZcDrikp6+3w=",
   "success": true,
   "projectFilePath": "C:\\Users\\epoplive\\felix2\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj",
   "expectedPackageFiles": [
@@ -21,7 +21,6 @@
     "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.codeanalysis.workspaces.msbuild\\4.8.0\\microsoft.codeanalysis.workspaces.msbuild.4.8.0.nupkg.sha512",
     "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.diasymreader\\2.0.0\\microsoft.diasymreader.2.0.0.nupkg.sha512",
     "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.20\\microsoft.net.illink.tasks.8.0.20.nupkg.sha512",
-    "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.net.illink.tasks\\9.0.9\\microsoft.net.illink.tasks.9.0.9.nupkg.sha512",
     "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.netcore.platforms\\3.1.0\\microsoft.netcore.platforms.3.1.0.nupkg.sha512",
     "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.win32.systemevents\\4.7.0\\microsoft.win32.systemevents.4.7.0.nupkg.sha512",
     "C:\\Users\\epoplive\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
@@ -47,16 +46,9 @@
     "C:\\Users\\epoplive\\.nuget\\packages\\system.text.json\\7.0.3\\system.text.json.7.0.3.nupkg.sha512",
     "C:\\Users\\epoplive\\.nuget\\packages\\system.threading.channels\\7.0.0\\system.threading.channels.7.0.0.nupkg.sha512",
     "C:\\Users\\epoplive\\.nuget\\packages\\system.windows.extensions\\4.7.0\\system.windows.extensions.4.7.0.nupkg.sha512",
-    "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.20\\microsoft.netcore.app.ref.8.0.20.nupkg.sha512",
     "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.netcore.app.runtime.win-arm64\\8.0.20\\microsoft.netcore.app.runtime.win-arm64.8.0.20.nupkg.sha512",
-    "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.20\\microsoft.windowsdesktop.app.ref.8.0.20.nupkg.sha512",
     "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-arm64\\8.0.20\\microsoft.windowsdesktop.app.runtime.win-arm64.8.0.20.nupkg.sha512",
-    "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.20\\microsoft.aspnetcore.app.ref.8.0.20.nupkg.sha512",
-    "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-arm64\\8.0.20\\microsoft.aspnetcore.app.runtime.win-arm64.8.0.20.nupkg.sha512",
-    "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.netcore.app.host.win-arm64\\8.0.20\\microsoft.netcore.app.host.win-arm64.8.0.20.nupkg.sha512",
-    "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.netcore.app.runtime.win-arm64\\9.0.9\\microsoft.netcore.app.runtime.win-arm64.9.0.9.nupkg.sha512",
-    "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-arm64\\9.0.9\\microsoft.windowsdesktop.app.runtime.win-arm64.9.0.9.nupkg.sha512",
-    "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-arm64\\9.0.9\\microsoft.aspnetcore.app.runtime.win-arm64.9.0.9.nupkg.sha512"
+    "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-arm64\\8.0.20\\microsoft.aspnetcore.app.runtime.win-arm64.8.0.20.nupkg.sha512"
   ],
   "logs": []
 }
