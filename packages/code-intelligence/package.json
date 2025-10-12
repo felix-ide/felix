@@ -40,7 +40,6 @@
     "build:sidecars": "npm run build:sidecar:python && npm run build:sidecar:roslyn",
     "build:sidecar:python": "bash scripts/build-python-executable.sh",
     "build:sidecar:roslyn": "bash src/code-parser/sidecars/roslyn/build-standalone.sh",
-    "postinstall": "node scripts/postinstall.js",
     "dev": "tsc --watch --preserveWatchOutput",
     "clean": "rimraf dist",
     "prepare": "npm run clean && npm run build",

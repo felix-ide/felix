@@ -288,6 +288,7 @@ class SetupValidator {
     await this.checkTextMateScanner();
     await this.checkLSPServers();
     await this.checkCSharpSupport();
+    await this.checkParserSidecars();
     await this.checkPythonSidecar();
     await this.checkDatabaseSetup();
     await this.printSummary();
@@ -766,6 +767,147 @@ class SetupValidator {
       this.info(`C# support available via: ${capabilities.join(', ')}`);
     } else {
       this.error('No C# support available');
+    }
+  }
+
+  async checkParserSidecars() {
+    this.header('Parser Sidecars (Bundled Executables)');
+
+    // Check for bundled executables
+    const platform = process.platform;
+    const pythonExe = platform === 'win32' ? 'python_ast_helper.exe' : 'python_ast_helper';
+    let rid = 'linux-x64';
+    if (platform === 'win32') rid = 'win-x64';
+    else if (platform === 'darwin') rid = 'osx-x64';
+    const roslynExe = platform === 'win32' ? 'RoslynSidecar.exe' : 'RoslynSidecar';
+
+    const pythonSidecarPath = join('packages', 'code-intelligence', 'dist', 'sidecars', 'python', pythonExe);
+    const roslynSidecarPath = join('packages', 'code-intelligence', 'dist', 'sidecars', 'roslyn', rid, roslynExe);
+
+    const hasPythonSidecar = existsSync(pythonSidecarPath);
+    const hasRoslynSidecar = existsSync(roslynSidecarPath);
+
+    if (hasPythonSidecar) {
+      this.success('Python AST Helper executable found');
+    }
+
+    if (hasRoslynSidecar) {
+      this.success('Roslyn Sidecar executable found');
+    }
+
+    // Build missing sidecars if user approves
+    if (!hasPythonSidecar || !hasRoslynSidecar) {
+      this.info('Bundled executables eliminate the need for Python/dotnet on user machines');
+
+      if (!hasPythonSidecar) {
+        // Check if we can build Python executable
+        let canBuildPython = false;
+        try {
+          const python = findSystemPython();
+          canBuildPython = true;
+        } catch {}
+
+        if (!canBuildPython) {
+          this.warning('Python AST Helper executable not found');
+          this.info('Will fall back to system Python when parsing Python files');
+        } else {
+          // Check for PyInstaller
+          const hasPyInstaller = spawnSync('pip', ['show', 'pyinstaller'], { stdio: 'ignore' }).status === 0 ||
+                                  spawnSync('pip3', ['show', 'pyinstaller'], { stdio: 'ignore' }).status === 0;
+
+          if (!hasPyInstaller && (await this.prompt('Build Python AST Helper executable? (requires PyInstaller)'))) {
+            const spinner = ora('Installing PyInstaller...').start();
+            try {
+              execSync('pip install pyinstaller', { encoding: 'utf8', stdio: 'pipe' });
+              spinner.succeed('PyInstaller installed');
+            } catch (error) {
+              spinner.fail('Failed to install PyInstaller');
+              this.warning('Skipping Python executable build');
+            }
+          }
+
+          if (hasPyInstaller || spawnSync('pip', ['show', 'pyinstaller'], { stdio: 'ignore' }).status === 0) {
+            if (await this.prompt('Build Python AST Helper executable now? (takes 1-2 minutes)')) {
+              const spinner = ora('Building Python AST Helper executable...').start();
+              try {
+                const scriptPath = join('packages', 'code-intelligence', 'scripts', 'build-python-executable.sh');
+                if (existsSync(scriptPath)) {
+                  if (platform === 'win32') {
+                    // On Windows, run the commands directly since bash might not be available
+                    const cwd = join('packages', 'code-intelligence');
+                    const srcFile = join('src', 'code-parser', 'parsers', 'python_ast_helper.py');
+                    const distDir = join('dist', 'sidecars', 'python');
+
+                    mkdirSync(distDir, { recursive: true });
+
+                    execSync(`pyinstaller --onefile --name ${pythonExe} --distpath ${distDir} ${srcFile}`, {
+                      cwd,
+                      encoding: 'utf8',
+                      stdio: 'pipe'
+                    });
+                  } else {
+                    execSync(`bash ${scriptPath}`, { encoding: 'utf8', stdio: 'pipe' });
+                  }
+                  spinner.succeed('Python AST Helper executable built!');
+                  this.successes.push('Built Python AST Helper executable');
+                } else {
+                  spinner.fail('Build script not found');
+                  this.warning(`Expected script at: ${scriptPath}`);
+                }
+              } catch (error) {
+                spinner.fail('Failed to build Python executable');
+                this.warning('Python parsing will use system Python as fallback');
+              }
+            }
+          }
+        }
+      }
+
+      if (!hasRoslynSidecar) {
+        // Check if we can build Roslyn executable
+        const hasDotnet = spawnSync('dotnet', ['--version'], { stdio: 'ignore' }).status === 0;
+
+        if (!hasDotnet) {
+          this.warning('Roslyn Sidecar executable not found');
+          this.info('Will fall back to system dotnet when parsing C# files');
+        } else {
+          if (await this.prompt('Build Roslyn Sidecar executable now? (takes 2-3 minutes)')) {
+            const spinner = ora('Building Roslyn Sidecar executable...').start();
+            try {
+              const sidecarDir = join('packages', 'code-intelligence', 'src', 'code-parser', 'sidecars', 'roslyn');
+              const outputDir = join('packages', 'code-intelligence', 'dist', 'sidecars', 'roslyn', rid);
+
+              mkdirSync(outputDir, { recursive: true });
+
+              execSync(`dotnet publish -c Release -r ${rid} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -p:IncludeNativeLibrariesForSelfExtract=true -o ${join('..', '..', '..', '..', '..', 'dist', 'sidecars', 'roslyn', rid)}`, {
+                cwd: sidecarDir,
+                encoding: 'utf8',
+                stdio: 'pipe'
+              });
+
+              spinner.succeed('Roslyn Sidecar executable built!');
+              this.successes.push('Built Roslyn Sidecar executable');
+            } catch (error) {
+              spinner.fail('Failed to build Roslyn executable');
+              this.warning('C# parsing will use dotnet fallback');
+            }
+          }
+        }
+      }
+
+      // Summary
+      const recheckhass = existsSync(pythonSidecarPath);
+      const recheckRoslyn = existsSync(roslynSidecarPath);
+
+      if (hasPythonSidecar && hasRoslynSidecar) {
+        this.success('All parser sidecars available');
+      } else if (hasPythonSidecar || hasRoslynSidecar) {
+        this.info('Some sidecars built, others will use system fallbacks');
+      } else {
+        this.info('No sidecars built - will use system Python/dotnet as fallbacks');
+      }
+    } else {
+      this.success('All parser sidecars available');
     }
   }
 
