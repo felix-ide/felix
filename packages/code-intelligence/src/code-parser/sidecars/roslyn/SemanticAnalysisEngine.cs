@@ -1,10 +1,15 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using CodeIndexer.RoslynSidecar.Models;
-using System.Text;
 
 namespace CodeIndexer.RoslynSidecar;
 
@@ -261,7 +266,9 @@ public class SemanticAnalysisEngine
             case INamedTypeSymbol namedType:
                 codeSymbol.IsGeneric = namedType.IsGenericType;
                 codeSymbol.GenericParameters = namedType.TypeParameters.Select(tp => tp.Name).ToList();
-                codeSymbol.IsPartial = namedType.IsPartial();
+                // Check if type is partial by examining syntax nodes
+                codeSymbol.IsPartial = namedType.DeclaringSyntaxReferences
+                    .Any(sr => sr.GetSyntax() is TypeDeclarationSyntax tds && tds.Modifiers.Any(m => m.Text == "partial"));
                 break;
         }
 
@@ -307,7 +314,7 @@ public class SemanticAnalysisEngine
                 Severity = diagnostic.Severity.ToString(),
                 Message = diagnostic.GetMessage(),
                 Location = GetCodeLocationFromDiagnostic(diagnostic),
-                Category = diagnostic.Category,
+                Category = diagnostic.Descriptor?.Category ?? "Unknown",
                 WarningLevel = diagnostic.WarningLevel
             });
         }
@@ -386,7 +393,7 @@ public class SemanticAnalysisEngine
     /// <summary>
     /// Extract data flow analysis
     /// </summary>
-    private async Task<DataFlowAnalysis?> ExtractDataFlowAnalysisAsync(SyntaxTree syntaxTree, SemanticModel semanticModel)
+    private async Task<Models.DataFlowAnalysis?> ExtractDataFlowAnalysisAsync(SyntaxTree syntaxTree, SemanticModel semanticModel)
     {
         try
         {
@@ -398,7 +405,7 @@ public class SemanticAnalysisEngine
                 var dataFlow = semanticModel.AnalyzeDataFlow(firstMethod.Body);
                 if (dataFlow.Succeeded)
                 {
-                    return new DataFlowAnalysis
+                    return new Models.DataFlowAnalysis
                     {
                         VariablesRead = dataFlow.ReadInside.Select(s => s.Name).ToList(),
                         VariablesWritten = dataFlow.WrittenInside.Select(s => s.Name).ToList(),
@@ -482,12 +489,23 @@ public class SemanticAnalysisEngine
 
         foreach (var block in cfg.Blocks)
         {
+            // Get successors from control flow branches
+            var successors = new List<string>();
+            if (block.ConditionalSuccessor != null)
+            {
+                successors.Add($"block_{block.ConditionalSuccessor.Destination.Ordinal}");
+            }
+            if (block.FallThroughSuccessor != null)
+            {
+                successors.Add($"block_{block.FallThroughSuccessor.Destination.Ordinal}");
+            }
+
             var node = new ControlFlowNode
             {
                 Id = $"block_{block.Ordinal}",
                 Kind = block.Kind.ToString(),
-                Predecessors = block.Predecessors.Select(p => $"block_{p.Destination.Ordinal}").ToList(),
-                Successors = block.Successors.Select(s => $"block_{s.Destination.Ordinal}").ToList(),
+                Predecessors = block.Predecessors.Select(p => $"block_{p.Source.Ordinal}").ToList(),
+                Successors = successors,
                 Statements = block.Operations.Select(op => op.Syntax.ToString()).ToList(),
                 IsReachable = block.IsReachable
             };

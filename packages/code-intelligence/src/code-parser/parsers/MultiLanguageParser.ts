@@ -348,7 +348,7 @@ export class MultiLanguageParser implements Partial<ILanguageParser> {
         const embeddedContent = this.extractEmbeddedContent(content, boundary);
         const virtualPath = this.createVirtualDocumentPath(filePath, boundary);
 
-        // Store virtual document for potential LSP usage
+        // Store virtual document for tracking embedded content
         this.virtualDocuments.set(virtualPath, embeddedContent);
 
         // Parse embedded content with appropriate parser

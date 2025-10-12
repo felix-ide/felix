@@ -201,27 +201,63 @@ export class RoslynSidecarService extends EventEmitter {
 
   /**
    * Get the default path to the Roslyn sidecar executable
+   * Priority:
+   * 1. Bundled self-contained executable (no .NET required)
+   * 2. Development build executables
+   * 3. dotnet run fallback
    */
   private getDefaultExecutablePath(): string {
+    const platform = process.platform;
+    const arch = process.arch;
+    const executableName = platform === 'win32' ? 'RoslynSidecar.exe' : 'RoslynSidecar';
+
     // Calculate path relative to the current service location
     const sidecarDir = join(__dirname, '..', 'sidecars', 'roslyn');
+    const packageRoot = join(__dirname, '..', '..');
 
-    // Check for different possible executable names/locations
+    // Platform-specific RID
+    let rid = 'linux-x64';
+    if (platform === 'win32') {
+      rid = 'win-x64';
+    } else if (platform === 'darwin') {
+      rid = 'osx-x64';
+    }
+
+    // Check for bundled self-contained executables first
+    const bundledPaths = [
+      // Installed package location
+      join(packageRoot, 'dist', 'sidecars', 'roslyn', rid, executableName),
+      join(packageRoot, '..', '..', 'dist', 'sidecars', 'roslyn', rid, executableName),
+      // Development location
+      join(process.cwd(), 'packages', 'code-intelligence', 'dist', 'sidecars', 'roslyn', rid, executableName)
+    ];
+
+    for (const path of bundledPaths) {
+      if (existsSync(path)) {
+        console.log(`[roslyn-sidecar] Using bundled executable: ${path}`);
+        return path;
+      }
+    }
+
+    console.log('[roslyn-sidecar] Bundled executable not found, checking development builds');
+
+    // Check for development build executables
     const possiblePaths = [
-      join(sidecarDir, 'bin', 'Release', 'net8.0', 'RoslynSidecar.exe'),
-      join(sidecarDir, 'bin', 'Debug', 'net8.0', 'RoslynSidecar.exe'),
-      join(sidecarDir, 'bin', 'Release', 'net8.0', 'RoslynSidecar'),
-      join(sidecarDir, 'bin', 'Debug', 'net8.0', 'RoslynSidecar'),
-      'dotnet' // Fallback to dotnet run
+      join(sidecarDir, 'bin', 'Release', 'net9.0', executableName),
+      join(sidecarDir, 'bin', 'Debug', 'net9.0', executableName),
+      join(sidecarDir, 'bin', 'Release', 'net8.0', executableName),
+      join(sidecarDir, 'bin', 'Debug', 'net8.0', executableName)
     ];
 
     for (const path of possiblePaths) {
       if (existsSync(path)) {
+        console.log(`[roslyn-sidecar] Using development build: ${path}`);
         return path;
       }
     }
 
     // If no built executable found, use dotnet run
+    console.log('[roslyn-sidecar] No executable found, falling back to dotnet run');
     return 'dotnet';
   }
 

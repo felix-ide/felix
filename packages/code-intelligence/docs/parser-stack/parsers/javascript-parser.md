@@ -614,20 +614,12 @@ typeErrors.forEach(error => {
 ```typescript
 try {
   // Try full semantic parsing
-  const result = await factory.parseDocument(filePath, undefined, {
-    enableLsp: true
-  });
-
+  const result = await factory.parseDocument(filePath);
   return result;
 } catch (error) {
-  console.warn('LSP parsing failed, falling back to AST:', error);
+  console.warn('AST parsing failed, falling back to Tree-sitter:', error);
 
   try {
-    // Fallback to AST parsing
-    const result = await factory.parseDocument(filePath);
-    return result;
-  } catch (astError) {
-    console.warn('AST parsing failed, using Tree-sitter:', astError);
 
     // Final fallback to Tree-sitter
     const result = await factory.parseDocument(filePath, undefined, {
@@ -650,7 +642,6 @@ const quick = await factory.parseDocument(filePath, undefined, {
 
 // For detailed analysis - enable all features
 const detailed = await factory.parseDocument(filePath, undefined, {
-  enableLsp: true,
   enableInitialLinking: true,
   enableAggregation: true
 });

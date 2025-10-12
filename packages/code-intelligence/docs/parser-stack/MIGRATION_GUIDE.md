@@ -18,10 +18,9 @@ The Parser Stack overhaul introduces significant architectural improvements:
 
 ### New Features
 - **Segmentation-first parsing**: Files are segmented into language blocks before detailed parsing
-- **Multi-backend support**: AST, Tree-sitter, LSP, and detector backends
+- **Multi-backend support**: AST parsers, Tree-sitter, Roslyn sidecar for C#
 - **Enhanced mixed-language support**: Better handling of HTML with embedded JS/CSS, Vue SFCs, etc.
 - **Improved relationship extraction**: Multi-source relationship aggregation with confidence scoring
-- **LSP integration**: IDE-quality analysis using Language Server Protocol
 - **Incremental parsing**: Efficient updates for large codebases
 
 ### Architectural Changes
@@ -266,7 +265,6 @@ const result = await factory.parseDocument('template.html');
 ```typescript
 // New capabilities not available in old system
 const result = await factory.parseDocument('/src/app.js', undefined, {
-  enableLsp: true,              // IDE-quality analysis
   enableSegmentation: true,     // File segmentation
   enableAggregation: true,      // Relationship aggregation
   confidenceThreshold: 0.8      // Quality filtering
@@ -511,16 +509,10 @@ class BatchProcessor {
   }
 
   async processFilesWithOptions(files: string[], options: {
-    enableLsp?: boolean;
     confidenceThreshold?: number;
     maxConcurrency?: number;
   } = {}) {
     const { maxConcurrency = 4 } = options;
-
-    // Enable LSP if requested
-    if (options.enableLsp) {
-      this.factory.enableLsp();
-    }
 
     // Process in chunks to control concurrency
     const chunks = [];
@@ -556,7 +548,7 @@ class BatchProcessor {
 - **Unified factory**: Shared parser instances and resources
 - **Intelligent caching**: AST-level caching with incremental updates
 - **Efficient segmentation**: detector-driven segmentation
-- **Optimized backends**: Tree-sitter for structural parsing, LSP for semantic analysis
+- **Optimized backends**: Tree-sitter for structural parsing, Roslyn for C# semantic analysis
 
 ### Benchmark Results
 

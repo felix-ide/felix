@@ -97,7 +97,7 @@ interface DocumentParsingResult {
     filePath: string;
     totalBlocks: number;
     parsingLevel: 'semantic' | 'structural' | 'basic';
-    backend: 'ast' | 'lsp' | 'tree-sitter' | 'detectors-only' | 'hybrid';
+    backend: 'ast' | 'tree-sitter' | 'detectors-only' | 'hybrid';
     processingTimeMs: number;
     warnings: string[];
   };
@@ -142,48 +142,14 @@ interface ParseDocumentOptions {
   workspaceRoot?: string;          // Workspace root for path resolution
   forceParser?: string;            // Force specific parser language
   segmentationOnly?: boolean;      // Return only segmentation results
-  enableLsp?: boolean;             // Enable LSP integration
-  lspConfig?: LspParserConfig;     // LSP configuration
 }
 
 // Example usage
 const result = await factory.parseDocument('/path/to/file.js', content, {
   enableSegmentation: true,
-  enableLsp: true,
   confidenceThreshold: 0.7,
   workspaceRoot: '/path/to/project'
 });
-```
-
-### LSP Integration
-
-Enable Language Server Protocol for enhanced analysis:
-
-```typescript
-// Enable LSP with default configuration
-factory.enableLsp();
-
-// Enable LSP with custom configuration
-factory.enableLsp({
-  serverConfigs: {
-    typescript: {
-      command: 'typescript-language-server',
-      args: ['--stdio'],
-      rootPatterns: ['tsconfig.json', 'package.json']
-    }
-  },
-  enableCaching: true,
-  requestTimeout: 10000,
-  maxConcurrentRequests: 5
-});
-
-// Check if LSP is supported for a file
-if (factory.isLspSupported('/path/to/file.ts')) {
-  console.log('LSP analysis available');
-}
-
-// Disable LSP when done
-await factory.disableLsp();
 ```
 
 ### Custom Parser Registration
@@ -709,14 +675,6 @@ if (needsRelationships) {
     enableAggregation: true
   });
 }
-
-// Add LSP for maximum accuracy
-if (needsHighAccuracy && factory.isLspSupported(filePath)) {
-  factory.enableLsp();
-  result = await factory.parseDocument(filePath, content, {
-    enableLsp: true
-  });
-}
 ```
 
 ### 5. Resource Management
@@ -724,9 +682,6 @@ if (needsHighAccuracy && factory.isLspSupported(filePath)) {
 Clean up resources properly:
 
 ```typescript
-// Disable LSP when done with analysis session
-await factory.disableLsp();
-
 // Clear caches periodically for long-running processes
 const cache = IncrementalParseCache.getInstance();
 await cache.clearOldEntries();
@@ -770,12 +725,6 @@ const result = await factory.parseDocument(filePath, content, {
 ```typescript
 // Check parsing level
 console.log('Parsing level:', result.metadata.parsingLevel);
-
-// Try enabling LSP for better results
-factory.enableLsp();
-const betterResult = await factory.parseDocument(filePath, content, {
-  enableLsp: true
-});
 
 // Lower confidence threshold
 const moreResults = await factory.parseDocument(filePath, content, {
@@ -848,7 +797,7 @@ console.log('Content valid for JavaScript:', isValidJs);
 1. **Check logs**: Look for warnings in `result.metadata.warnings`
 2. **Verify file format**: Ensure file content matches expected language
 3. **Test with simpler content**: Isolate complex parsing issues
-4. **Check dependencies**: Ensure required tools (Tree-sitter grammars, optional LSP servers) are installed
+4. **Check dependencies**: Ensure required tools (Tree-sitter grammars) are installed
 5. **Review configuration**: Verify parser options and workspace setup
 
 This guide should help you effectively use the Parser Stack for various code analysis tasks. For more specific use cases or advanced scenarios, refer to the API Reference documentation.
