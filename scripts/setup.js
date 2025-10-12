@@ -286,9 +286,7 @@ class SetupValidator {
     await this.checkNpmPackages();
     await this.checkTreeSitterGrammars();
     await this.checkTextMateScanner();
-    await this.checkLSPServers();
     await this.checkCSharpSupport();
-    await this.checkParserSidecars();
     await this.checkPythonSidecar();
     await this.checkDatabaseSetup();
     await this.printSummary();
@@ -567,106 +565,6 @@ class SetupValidator {
     if (!ok) this.info('Run: npm install to ensure all Tree-sitter packages are installed');
   }
 
-  async checkLSPServers() {
-    this.header('Language Server Protocol (LSP) Servers');
-
-    if (this.runningPostinstall) {
-      this.info('Skipping automatic LSP installation during npm postinstall to avoid repeated global installs.');
-      this.info('Run `npm run setup -- --lsp` later if you want to install recommended language servers.');
-      return;
-    }
-
-    const servers = [
-      {
-        name: 'TypeScript',
-        command: 'typescript-language-server',
-        install: 'npm install -g typescript-language-server typescript',
-        check: 'npm list -g typescript-language-server',
-        essential: true
-      },
-      {
-        name: 'Python',
-        command: 'pylsp',
-        install: 'pip install python-lsp-server',
-        check: 'pip show python-lsp-server',
-        essential: false
-      },
-      {
-        name: 'Rust',
-        command: 'rust-analyzer',
-        install: 'rustup component add rust-analyzer',
-        check: 'which rust-analyzer',
-        essential: false
-      },
-      {
-        name: 'C/C++',
-        command: 'clangd',
-        install: process.platform === 'darwin' ? 'brew install llvm' : 'sudo apt install clangd',
-        check: 'which clangd',
-        essential: false
-      }
-    ];
-
-    let anyInstalled = false;
-    const missingServers = [];
-
-    for (const server of servers) {
-      try {
-        execSync(`which ${server.command}`, { encoding: 'utf8' });
-        this.success(`${server.name} LSP server installed (${server.command})`);
-        anyInstalled = true;
-      } catch (e) {
-        missingServers.push(server);
-        this.warning(`${server.name} LSP server NOT installed`);
-      }
-    }
-
-    // Offer to install missing servers
-    if (missingServers.length > 0) {
-      this.info('\nLSP servers provide enhanced code analysis capabilities.');
-
-      for (const server of missingServers) {
-        if (server.essential || await this.prompt(`\nWould you like to install ${server.name} LSP server?`)) {
-          const spinner = ora(`Installing ${server.name} LSP server...`).start();
-
-          try {
-            if (server.name === 'TypeScript') {
-              // Special handling for npm global install
-              execSync('npm install -g typescript-language-server typescript', {
-                encoding: 'utf8',
-                stdio: 'pipe'
-              });
-            } else if (server.name === 'Python') {
-              // Check if pip is available
-              try {
-                execSync('which pip || which pip3', { encoding: 'utf8' });
-                execSync('pip install python-lsp-server || pip3 install python-lsp-server', {
-                  encoding: 'utf8',
-                  stdio: 'pipe'
-                });
-              } catch (pipError) {
-                spinner.fail(`Python pip not found. Please install Python and pip first.`);
-                continue;
-              }
-            } else {
-              execSync(server.install, { encoding: 'utf8', stdio: 'pipe' });
-            }
-
-            spinner.succeed(`${server.name} LSP server installed successfully!`);
-            this.successes.push(`Installed ${server.name} LSP server`);
-          } catch (error) {
-            spinner.fail(`Failed to install ${server.name} LSP server`);
-            this.info(`  Manual install command: ${server.install}`);
-          }
-        }
-      }
-    }
-
-    if (!anyInstalled && missingServers.length === servers.length) {
-      this.info('\nNote: The system will still work without LSP servers, falling back to AST parsing.');
-    }
-  }
-
   async checkCSharpSupport() {
     this.header('C# Language Support');
 
@@ -720,37 +618,24 @@ class SetupValidator {
     }
 
     if (hasDotNet) {
-      // Check Roslyn sidecar
       const sidecarDir = 'packages/code-intelligence/src/code-parser/sidecars/roslyn';
       const sidecarProject = `${sidecarDir}/RoslynSidecar.csproj`;
 
       if (existsSync(sidecarProject)) {
-        // Check if built
-        const binaryPaths = [
-          `${sidecarDir}/bin/Release/net8.0/RoslynSidecar`,
-          `${sidecarDir}/bin/Release/net8.0/RoslynSidecar.exe`,
-          `${sidecarDir}/bin/Debug/net8.0/RoslynSidecar`,
-          `${sidecarDir}/bin/Debug/net8.0/RoslynSidecar.exe`
-        ];
-
-        let isBinary = false;
-        for (const path of binaryPaths) {
-          if (existsSync(path)) {
-            this.success('Roslyn sidecar built');
-            hasRoslyn = true;
-            isBinary = true;
-            break;
-          }
-        }
-
-        if (!isBinary) {
-          // Restore packages for dotnet run mode
+        // Auto-build the sidecar DLL files for faster startup
+        const spinner = ora('Building Roslyn sidecar...').start();
+        try {
+          execSync('dotnet build -c Debug', { cwd: sidecarDir, encoding: 'utf8', stdio: 'pipe' });
+          spinner.succeed('Roslyn sidecar built');
+          hasRoslyn = true;
+        } catch (error) {
+          spinner.fail('Failed to build Roslyn sidecar');
+          this.warning('Will fall back to dotnet run mode (slower startup)');
+          // Try restore as fallback
           try {
-            execSync(`dotnet restore`, { cwd: sidecarDir, encoding: 'utf8', stdio: 'pipe' });
+            execSync('dotnet restore', { cwd: sidecarDir, encoding: 'utf8', stdio: 'pipe' });
             this.success('Roslyn sidecar ready (dotnet run mode)');
             hasRoslyn = true;
-            this.info('Note: First run will be slower. Build for better performance:');
-            this.info(`  cd ${sidecarDir} && dotnet build -c Release`);
           } catch {
             this.warning('Roslyn sidecar not available');
           }

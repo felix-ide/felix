@@ -211,7 +211,6 @@ function startServer() {
     logger.info(`  - Felix API: http://localhost:${PORT}/api`);
     logger.info(`  - Files (project-editor): http://localhost:${PORT}/api/files`);
     logger.info(`  - Git: http://localhost:${PORT}/api/git`);
-    logger.info(`  - LSP: http://localhost:${PORT}/api/lsp`);
     logger.info(`🔌 WebSocket: ws://localhost:${PORT}`);
     logger.info(`✅ Server ready for connections`);
   });
