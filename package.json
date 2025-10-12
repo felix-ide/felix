@@ -11,7 +11,7 @@
   },
   "scripts": {
     "setup": "node scripts/setup.js",
-    "postinstall": "node scripts/setup.js || true",
+    "postinstall": "node scripts/setup.js",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
     "test": "npm run --workspaces --if-present test",
