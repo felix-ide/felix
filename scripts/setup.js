@@ -1278,12 +1278,10 @@ except: sys.exit(1)`;
       }
     }
 
-    // Check if TypeORM entities are built
-    if (existsSync('apps/server/dist')) {
-      this.success('Backend compiled (apps/server/dist exists)');
-    } else {
-      this.error('Backend not compiled. Run: npm run build');
-    }
+    // Note: We don't check for built artifacts here because:
+    // 1. This runs during postinstall (before any builds)
+    // 2. npm run dev handles building automatically
+    // 3. Checking build artifacts would cause setup to fail unnecessarily
   }
 
   async printSummary() {

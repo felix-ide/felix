@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj": {}
+    "C:\\Users\\epoplive\\felix2\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj": {}
   },
   "projects": {
-    "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj": {
+    "C:\\Users\\epoplive\\felix2\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj",
+        "projectUniqueName": "C:\\Users\\epoplive\\felix2\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj",
         "projectName": "RoslynSidecar",
-        "projectPath": "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj",
+        "projectPath": "C:\\Users\\epoplive\\felix2\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj",
         "packagesPath": "C:\\Users\\epoplive\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\obj\\",
+        "outputPath": "C:\\Users\\epoplive\\felix2\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\obj\\",
         "projectStyle": "PackageReference",
         "crossTargeting": true,
         "configFilePaths": [

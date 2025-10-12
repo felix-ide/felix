@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "XMbx4OYzkU8=",
+  "dgSpecHash": "HqvY7sPIBW4=",
   "success": true,
-  "projectFilePath": "C:\\Users\\epoplive\\felix\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj",
+  "projectFilePath": "C:\\Users\\epoplive\\felix2\\packages\\code-intelligence\\src\\code-parser\\sidecars\\roslyn\\RoslynSidecar.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\epoplive\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\epoplive\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\7.0.0\\microsoft.bcl.asyncinterfaces.7.0.0.nupkg.sha512",

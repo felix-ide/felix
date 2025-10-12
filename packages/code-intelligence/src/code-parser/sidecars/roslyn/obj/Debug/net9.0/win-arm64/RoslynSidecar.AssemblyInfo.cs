@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RoslynSidecar")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6af2b1455595cda54e15df50f9bcc73b6af8cc0c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c8800a79b251e74dbb6cc657f74bb80636cd8382")]
 [assembly: System.Reflection.AssemblyProductAttribute("RoslynSidecar")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RoslynSidecar")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
