@@ -80,24 +80,24 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   entity_id?: string;
 
-  // JSON columns - stored as text in SQLite, JSONB in PostgreSQL
-  @Column({ 
-    type: 'text', 
+  // JSON columns - TypeORM simple-json handles serialization
+  @Column({
+    type: 'simple-json',
     nullable: true
   })
-  entity_links?: string;
+  entity_links?: EntityLink[];
 
-  @Column({ 
-    type: 'text', 
+  @Column({
+    type: 'simple-json',
     nullable: true
   })
-  stable_links?: string;
+  stable_links?: any;
 
-  @Column({ 
-    type: 'text', 
+  @Column({
+    type: 'simple-json',
     nullable: true
   })
-  fragile_links?: string;
+  fragile_links?: any;
 
   @Column({ type: 'text', nullable: true })
   semantic_context?: string;
@@ -105,23 +105,23 @@ export class Task {
   @Column({ type: 'blob', nullable: true })
   semantic_embedding?: Buffer;
 
-  @Column({ 
-    type: 'text', 
+  @Column({
+    type: 'simple-json',
     nullable: true
   })
-  stable_tags?: string;
+  stable_tags?: string[];
 
-  @Column({ 
-    type: 'text', 
+  @Column({
+    type: 'simple-json',
     nullable: true
   })
-  auto_tags?: string;
+  auto_tags?: string[];
 
-  @Column({ 
-    type: 'text', 
+  @Column({
+    type: 'simple-json',
     nullable: true
   })
-  contextual_tags?: string;
+  contextual_tags?: string[];
 
   @Column({ type: 'integer', default: 0 })
   sort_order!: number;
@@ -129,11 +129,11 @@ export class Task {
   @Column({ type: 'integer', default: 0 })
   depth_level!: number;
 
-  @Column({ 
-    type: 'text', 
+  @Column({
+    type: 'simple-json',
     nullable: true
   })
-  checklists?: string;
+  checklists?: Checklist[];
 
   @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
@@ -152,9 +152,9 @@ export class Task {
   @Column({ type: 'text', default: 'draft' })
   spec_state!: 'draft' | 'spec_in_progress' | 'spec_ready';
 
-  // Structured waivers for conditional requirements (JSON string)
-  @Column({ type: 'text', nullable: true })
-  spec_waivers?: string; // JSON: Array<{ code: string; reason: string; added_by?: string; added_at?: string }>
+  // Structured waivers for conditional requirements
+  @Column({ type: 'simple-json', nullable: true })
+  spec_waivers?: Array<{ code: string; reason: string; added_by?: string; added_at?: string }>;
 
   // Last validation metadata
   @Column({ type: 'datetime', nullable: true })
