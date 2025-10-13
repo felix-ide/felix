@@ -94,7 +94,7 @@ Comprehensive documentation for the Parser Stack overhaul is available in the [`
 The Parser Stack features:
 - **Multi-language support**: JavaScript/TypeScript, Python, PHP, Java, HTML, CSS, Markdown, and more
 - **Mixed-language files**: HTML with embedded JS/CSS, Vue SFCs, PHP templates
-- **Multiple backends**: AST parsers, Tree-sitter, LSP, Universal Ctags
+- **Multiple backends**: AST parsers, Tree-sitter, Roslyn sidecar for C#
 - **Segmentation-first approach**: Files are segmented into language blocks before detailed parsing
 - **Relationship extraction**: Automatic extraction of imports, calls, inheritance, and usage relationships
 

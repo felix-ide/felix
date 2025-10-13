@@ -163,12 +163,19 @@ export class TasksRepository {
         updateData.due_date = updates.due_date ? new Date(updates.due_date).toISOString() : null;
       }
       
+      // TypeORM's simple-json will handle serialization
       if (updates.stable_tags !== undefined) {
-        updateData.stable_tags = JSON.stringify(updates.stable_tags);
+        // Fix double-stringified data from old format
+        updateData.stable_tags = typeof updates.stable_tags === 'string'
+          ? JSON.parse(updates.stable_tags)
+          : updates.stable_tags;
       }
-      
+
       if (updates.entity_links !== undefined) {
-        updateData.entity_links = JSON.stringify(updates.entity_links);
+        // Fix double-stringified data from old format
+        updateData.entity_links = typeof updates.entity_links === 'string'
+          ? JSON.parse(updates.entity_links)
+          : updates.entity_links;
       }
       
       if (updates.parent_id !== undefined) {
@@ -183,12 +190,12 @@ export class TasksRepository {
       
       if (updates.sort_order !== undefined) updateData.sort_order = updates.sort_order;
       
+      // TypeORM's simple-json will handle serialization
       if (updates.checklists !== undefined) {
-        // Handle both string and array formats - EXACT MATCH
-        const checklistsToStore = typeof updates.checklists === 'string' 
-          ? updates.checklists 
-          : JSON.stringify(updates.checklists);
-        updateData.checklists = checklistsToStore;
+        // Fix double-stringified data from old format
+        updateData.checklists = typeof updates.checklists === 'string'
+          ? JSON.parse(updates.checklists)
+          : updates.checklists;
       }
       
       if ((updates as any).workflow !== undefined) {
@@ -198,8 +205,13 @@ export class TasksRepository {
       if ((updates as any).spec_state !== undefined) {
         updateData.spec_state = (updates as any).spec_state;
       }
+      // TypeORM's simple-json will handle serialization
       if ((updates as any).spec_waivers !== undefined) {
-        updateData.spec_waivers = JSON.stringify((updates as any).spec_waivers) || null;
+        // Fix double-stringified data from old format
+        const waivers = (updates as any).spec_waivers;
+        updateData.spec_waivers = typeof waivers === 'string'
+          ? JSON.parse(waivers)
+          : waivers;
       }
       if ((updates as any).last_validated_at !== undefined) {
         updateData.last_validated_at = (updates as any).last_validated_at;

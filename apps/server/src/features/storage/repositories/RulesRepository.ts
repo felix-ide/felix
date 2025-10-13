@@ -10,12 +10,43 @@ import { RuleApplication } from '../entities/metadata/RuleApplication.entity.js'
 import { IRule, CreateRuleParams, RuleApplicationContext, ApplicableRule, RuleUtils } from '@felix/code-intelligence';
 
 // Helper to map TypeORM entity to IRule format
+// TypeORM already deserializes simple-json fields, so we don't use fromDbRow
 function mapEntityToRule(entity: any): IRule {
-  const rule = RuleUtils.fromDbRow({
-    ...entity,
-    active: entity.is_active  // Map is_active back to active for compatibility
-  });
-  return rule;
+  return {
+    id: entity.id,
+    name: entity.name,
+    description: entity.description,
+    rule_type: entity.rule_type,
+    parent_id: entity.parent_id,
+    sort_order: entity.sort_order || 0,
+    depth_level: entity.depth_level || 0,
+    guidance_text: entity.guidance_text || '',
+    code_template: entity.code_template,
+    validation_script: entity.validation_script,
+    trigger_patterns: entity.trigger_patterns, // Already deserialized by TypeORM
+    semantic_triggers: entity.semantic_triggers, // Already deserialized by TypeORM
+    context_conditions: entity.context_conditions, // Already deserialized by TypeORM
+    exclusion_patterns: entity.exclusion_patterns, // Already deserialized by TypeORM
+    priority: entity.priority || 5,
+    auto_apply: Boolean(entity.auto_apply),
+    merge_strategy: entity.merge_strategy || 'append',
+    confidence_threshold: entity.confidence_threshold || 0.8,
+    usage_count: entity.usage_count || 0,
+    acceptance_rate: entity.acceptance_rate || 0.0,
+    effectiveness_score: entity.effectiveness_score || 0.0,
+    last_used: entity.last_used ? new Date(entity.last_used) : undefined,
+    created_by: entity.created_by || 'user',
+    active: Boolean(entity.is_active),
+    entity_links: entity.entity_links, // Already deserialized by TypeORM
+    stable_links: entity.stable_links, // Already deserialized by TypeORM
+    fragile_links: entity.fragile_links, // Already deserialized by TypeORM
+    semantic_context: entity.semantic_context,
+    stable_tags: entity.stable_tags, // Already deserialized by TypeORM
+    auto_tags: entity.auto_tags, // Already deserialized by TypeORM
+    contextual_tags: entity.contextual_tags, // Already deserialized by TypeORM
+    created_at: new Date(entity.created_at),
+    updated_at: new Date(entity.updated_at)
+  };
 }
 
 // Helper to prepare entity for storage
@@ -57,51 +88,53 @@ export class RulesRepository {
       } else {
         ruleWithDepth.depth_level = 0;
       }
-      
-      const dbRow = RuleUtils.toDbRow(ruleWithDepth);
-      logger.debug('RulesRepository.storeRule rule object:', JSON.stringify(ruleWithDepth, null, 2));
-      logger.debug('RulesRepository.storeRule entity_links:', dbRow.entity_links);
-      logger.debug('RulesRepository.storeRule stable_tags:', dbRow.stable_tags);
-      
-      // Create entity matching EXACT column order from RulesManager
+
+      // Don't use toDbRow - TypeORM's simple-json will handle serialization
+      // Pass the IRule directly and let TypeORM serialize the JSON fields
+      // Convert null to undefined for TypeORM (it doesn't accept null for optional fields)
       const ruleEntity = this.ruleRepo.create({
-        id: dbRow.id,
-        name: dbRow.name,
-        description: dbRow.description,
-        rule_type: dbRow.rule_type,
-        parent_id: dbRow.parent_id,
-        sort_order: dbRow.sort_order,
-        depth_level: dbRow.depth_level,
-        guidance_text: dbRow.guidance_text,
-        code_template: dbRow.code_template,
-        validation_script: dbRow.validation_script,
-        trigger_patterns: dbRow.trigger_patterns,
-        semantic_triggers: dbRow.semantic_triggers,
-        context_conditions: dbRow.context_conditions,
-        exclusion_patterns: dbRow.exclusion_patterns,
-        priority: dbRow.priority,
-        auto_apply: dbRow.auto_apply,
-        merge_strategy: dbRow.merge_strategy,
-        confidence_threshold: dbRow.confidence_threshold,
-        usage_count: dbRow.usage_count,
-        acceptance_rate: dbRow.acceptance_rate,
-        effectiveness_score: dbRow.effectiveness_score,
-        last_used: dbRow.last_used,
-        created_by: dbRow.created_by,
-        is_active: dbRow.active,
-        entity_links: dbRow.entity_links,
-        stable_tags: dbRow.stable_tags,
-        created_at: dbRow.created_at,
-        updated_at: dbRow.updated_at
+        id: ruleWithDepth.id,
+        name: ruleWithDepth.name,
+        description: ruleWithDepth.description ?? undefined,
+        rule_type: ruleWithDepth.rule_type,
+        parent_id: ruleWithDepth.parent_id ?? undefined,
+        sort_order: ruleWithDepth.sort_order,
+        depth_level: ruleWithDepth.depth_level,
+        guidance_text: ruleWithDepth.guidance_text,
+        code_template: ruleWithDepth.code_template ?? undefined,
+        validation_script: ruleWithDepth.validation_script ?? undefined,
+        trigger_patterns: ruleWithDepth.trigger_patterns ?? undefined, // TypeORM will serialize
+        semantic_triggers: ruleWithDepth.semantic_triggers ?? undefined, // TypeORM will serialize
+        context_conditions: ruleWithDepth.context_conditions ?? undefined, // TypeORM will serialize
+        exclusion_patterns: ruleWithDepth.exclusion_patterns ?? undefined, // TypeORM will serialize
+        priority: ruleWithDepth.priority,
+        auto_apply: ruleWithDepth.auto_apply,
+        merge_strategy: ruleWithDepth.merge_strategy,
+        confidence_threshold: ruleWithDepth.confidence_threshold,
+        usage_count: ruleWithDepth.usage_count,
+        acceptance_rate: ruleWithDepth.acceptance_rate,
+        effectiveness_score: ruleWithDepth.effectiveness_score,
+        last_used: ruleWithDepth.last_used ?? undefined,
+        created_by: ruleWithDepth.created_by,
+        is_active: ruleWithDepth.active,
+        entity_links: ruleWithDepth.entity_links ?? undefined, // TypeORM will serialize
+        stable_links: ruleWithDepth.stable_links ?? undefined,
+        fragile_links: ruleWithDepth.fragile_links ?? undefined,
+        stable_tags: ruleWithDepth.stable_tags ?? undefined, // TypeORM will serialize
+        auto_tags: ruleWithDepth.auto_tags ?? undefined, // TypeORM will serialize
+        contextual_tags: ruleWithDepth.contextual_tags ?? undefined, // TypeORM will serialize
+        semantic_context: ruleWithDepth.semantic_context ?? undefined,
+        created_at: ruleWithDepth.created_at,
+        updated_at: ruleWithDepth.updated_at
       });
 
       const savedRule = await this.ruleRepo.save(ruleEntity);
       const iRule = mapEntityToRule(savedRule);
       return { success: true, data: iRule };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : String(error) 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -151,16 +184,17 @@ export class RulesRepository {
       if (updates.code_template !== undefined) updateData.code_template = updates.code_template;
       if (updates.validation_script !== undefined) updateData.validation_script = updates.validation_script;
       
+      // TypeORM's simple-json will handle serialization
       if (updates.trigger_patterns !== undefined) {
-        updateData.trigger_patterns = JSON.stringify(updates.trigger_patterns);
+        updateData.trigger_patterns = updates.trigger_patterns;
       }
-      
+
       if (updates.semantic_triggers !== undefined) {
-        updateData.semantic_triggers = JSON.stringify(updates.semantic_triggers);
+        updateData.semantic_triggers = updates.semantic_triggers;
       }
-      
+
       if (updates.context_conditions !== undefined) {
-        updateData.context_conditions = JSON.stringify(updates.context_conditions);
+        updateData.context_conditions = updates.context_conditions;
       }
       
       if (updates.priority !== undefined) updateData.priority = updates.priority;
@@ -186,14 +220,13 @@ export class RulesRepository {
       if (updates.effectiveness_score !== undefined) updateData.effectiveness_score = updates.effectiveness_score;
       if (updates.last_used !== undefined) updateData.last_used = updates.last_used;
       
+      // TypeORM's simple-json will handle serialization
       if (updates.stable_tags !== undefined) {
-        updateData.stable_tags = JSON.stringify(updates.stable_tags);
+        updateData.stable_tags = updates.stable_tags;
       }
-      
+
       if (updates.entity_links !== undefined) {
-        logger.debug('RulesRepository.updateRule entity_links before stringify:', updates.entity_links);
-        updateData.entity_links = JSON.stringify(updates.entity_links);
-        logger.debug('RulesRepository.updateRule entity_links after stringify:', updateData.entity_links);
+        updateData.entity_links = updates.entity_links;
       }
       
       if (updates.parent_id !== undefined) {

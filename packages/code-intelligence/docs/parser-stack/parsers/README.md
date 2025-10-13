@@ -18,31 +18,29 @@ This directory contains detailed documentation for each language parser in the P
 7. **[Markdown Parser](./markdown-parser.md)** - Markdown structure with embedded code block analysis
 8. **[JSON Parser](./json-parser.md)** - JSON structure validation and key extraction
 9. **[Documentation Parser](./documentation-parser.md)** - Generic documentation format support (RST, plain text)
-10. **[LSP Parser](./lsp-parser.md)** - Language Server Protocol integration for IDE-quality analysis
 
 ### Tree-sitter Parsers
 
-11. **[Tree-sitter HTML Parser](./tree-sitter-html.md)** - High-performance HTML parsing with injections
-12. **[Tree-sitter CSS Parser](./tree-sitter-css.md)** - Incremental CSS parsing
-13. **[Tree-sitter JavaScript Parser](./tree-sitter-javascript.md)** - Fast JavaScript/TypeScript parsing
+10. **[Tree-sitter HTML Parser](./tree-sitter-html.md)** - High-performance HTML parsing with injections
+11. **[Tree-sitter CSS Parser](./tree-sitter-css.md)** - Incremental CSS parsing
+12. **[Tree-sitter JavaScript Parser](./tree-sitter-javascript.md)** - Fast JavaScript/TypeScript parsing
 
 ## Parser Capabilities Comparison
 
-| Parser | Language | AST Support | Incremental | Mixed-Language | Relationships | LSP Support |
-|--------|----------|-------------|-------------|----------------|---------------|-------------|
-| JavaScript | JS/TS | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Python | Python | ✅ | ✅ | ❌ | ✅ | ✅ |
-| PHP | PHP | ✅ | ❌ | ✅ | ✅ | ✅ |
-| Java | Java | ✅ | ❌ | ❌ | ✅ | ✅ |
-| HTML | HTML | ✅ | ✅ | ✅ | ✅ | ❌ |
-| CSS | CSS | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Markdown | Markdown | ✅ | ❌ | ✅ | ✅ | ❌ |
-| JSON | JSON | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Documentation | Various | ✅ | ❌ | ❌ | ❌ | ❌ |
-| LSP | Multiple | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Tree-sitter HTML | HTML | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Tree-sitter CSS | CSS | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Tree-sitter JS | JS/TS | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Parser | Language | AST Support | Incremental | Mixed-Language | Relationships |
+|--------|----------|-------------|-------------|----------------|---------------|
+| JavaScript | JS/TS | ✅ | ✅ | ✅ | ✅ |
+| Python | Python | ✅ | ✅ | ❌ | ✅ |
+| PHP | PHP | ✅ | ❌ | ✅ | ✅ |
+| Java | Java | ✅ | ❌ | ❌ | ✅ |
+| HTML | HTML | ✅ | ✅ | ✅ | ✅ |
+| CSS | CSS | ✅ | ✅ | ✅ | ✅ |
+| Markdown | Markdown | ✅ | ❌ | ✅ | ✅ |
+| JSON | JSON | ✅ | ❌ | ❌ | ❌ |
+| Documentation | Various | ✅ | ❌ | ❌ | ❌ |
+| Tree-sitter HTML | HTML | ✅ | ✅ | ✅ | ✅ |
+| Tree-sitter CSS | CSS | ✅ | ✅ | ✅ | ✅ |
+| Tree-sitter JS | JS/TS | ✅ | ✅ | ✅ | ✅ |
 
 ## Key Features
 
@@ -66,11 +64,6 @@ This directory contains detailed documentation for each language parser in the P
 - Function call tracking
 - Inheritance relationships
 - Usage patterns
-
-### LSP Integration
-- IDE-quality analysis
-- Real-time diagnostics
-- Workspace-aware parsing
 
 ## Usage Examples
 
@@ -122,20 +115,6 @@ const phpResult = await factory.parseDocument('/src/template.php', undefined, {
 ### Enabling Specific Parsers
 
 ```typescript
-// Enable LSP for enhanced analysis
-factory.enableLsp({
-  serverConfigs: {
-    typescript: {
-      command: 'typescript-language-server',
-      args: ['--stdio']
-    },
-    python: {
-      command: 'pylsp',
-      args: []
-    }
-  }
-});
-
 // Use Tree-sitter for performance
 const treeSitterResult = await factory.parseDocument('/large/file.js', undefined, {
   preferTreeSitter: true
@@ -221,7 +200,6 @@ The Parser Stack automatically selects the best parser based on:
 1. **File extension** - Primary detection method
 2. **Content validation** - Secondary validation
 3. **Performance requirements** - Tree-sitter for large files
-4. **Feature requirements** - LSP for advanced analysis
 
 ### Optimization Tips
 

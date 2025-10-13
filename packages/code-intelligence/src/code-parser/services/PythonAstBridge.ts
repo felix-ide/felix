@@ -67,10 +67,23 @@ export class PythonAstBridge implements PythonAstProvider {
   private pending = new Map<string, PendingResolver>();
   private requestCounter = 0;
   private pythonExecutable: { command: string; args: string[] };
+  private isBundled = false;
 
   private constructor() {
     this.helperPath = this.ensureHelperScript();
-    this.pythonExecutable = this.resolvePythonInterpreter();
+
+    // Try bundled executable first, fall back to system Python
+    const executable = this.resolvePythonExecutableEnhanced();
+
+    if (executable.isBundled) {
+      this.pythonExecutable = { command: executable.command, args: [] };
+      this.helperPath = ''; // Not needed for bundled executable
+      this.isBundled = true;
+    } else {
+      this.pythonExecutable = { command: executable.command, args: executable.args };
+      this.isBundled = false;
+    }
+
     this.startProcess();
   }
 
@@ -122,6 +135,44 @@ export class PythonAstBridge implements PythonAstProvider {
   private nextId(): string {
     this.requestCounter = (this.requestCounter + 1) % Number.MAX_SAFE_INTEGER;
     return `req-${Date.now()}-${this.requestCounter}`;
+  }
+
+  /**
+   * Resolve Python executable or bundled standalone binary
+   * Priority:
+   * 1. Bundled standalone executable (no Python required)
+   * 2. System Python interpreter
+   */
+  private resolvePythonExecutableEnhanced(): { command: string; args: string[]; isBundled: boolean } {
+    const moduleDir = dirname(fileURLToPath(import.meta.url));
+    const packageRoot = resolve(moduleDir, '..', '..');
+
+    // Check for bundled executable first (platform-specific)
+    const platform = process.platform;
+    const arch = process.arch;
+    const executableName = platform === 'win32' ? 'python_ast_helper.exe' : 'python_ast_helper';
+
+    const bundledPaths = [
+      // Installed package location
+      join(packageRoot, 'dist', 'sidecars', 'python', executableName),
+      join(packageRoot, '..', '..', 'dist', 'sidecars', 'python', executableName),
+      // Development location
+      join(process.cwd(), 'packages', 'code-intelligence', 'dist', 'sidecars', 'python', executableName),
+      // Platform-specific subdirectories
+      join(packageRoot, 'dist', 'sidecars', 'python', `${platform}-${arch}`, executableName)
+    ];
+
+    for (const bundledPath of bundledPaths) {
+      if (existsSync(bundledPath)) {
+        console.log(`[python-ast-helper] Using bundled executable: ${bundledPath}`);
+        return { command: bundledPath, args: ['--server'], isBundled: true };
+      }
+    }
+
+    // Fall back to system Python
+    console.log('[python-ast-helper] Bundled executable not found, using system Python');
+    const pythonInterpreter = this.resolvePythonInterpreter();
+    return { ...pythonInterpreter, isBundled: false };
   }
 
   private resolvePythonInterpreter(): { command: string; args: string[] } {
@@ -402,12 +453,16 @@ export class PythonAstBridge implements PythonAstProvider {
 
   private startProcess(): void {
     try {
-    this.process = spawn(this.pythonExecutable.command, [...this.pythonExecutable.args, this.helperPath, '--server'], {
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-  } catch (error) {
-    throw new Error(`Failed to spawn python helper process: ${error}`);
-  }
+      const args = this.isBundled
+        ? ['--server'] // Bundled executable already has code built-in
+        : [...this.pythonExecutable.args, this.helperPath, '--server']; // Script-based execution
+
+      this.process = spawn(this.pythonExecutable.command, args, {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+    } catch (error) {
+      throw new Error(`Failed to spawn python helper process: ${error}`);
+    }
 
     this.process.stdin?.on('error', (error: NodeJS.ErrnoException) => {
       if (error && (error.code === 'EPIPE' || error.code === 'ERR_STREAM_DESTROYED')) {

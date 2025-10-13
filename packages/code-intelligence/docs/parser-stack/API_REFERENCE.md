@@ -55,7 +55,6 @@ Parse a document with full segmentation and relationship extraction.
 **Example:**
 ```typescript
 const result = await factory.parseDocument('/src/app.js', undefined, {
-  enableLsp: true,
   confidenceThreshold: 0.8
 });
 
@@ -153,56 +152,6 @@ Get a specific language parser.
 - `language` (string): Language identifier
 
 **Returns:** Parser instance or null
-
-##### enableLsp
-
-```typescript
-enableLsp(config?: LspParserConfig): void
-```
-
-Enable Language Server Protocol integration.
-
-**Parameters:**
-- `config` (LspParserConfig, optional): LSP configuration
-
-**Example:**
-```typescript
-factory.enableLsp({
-  serverConfigs: {
-    typescript: {
-      command: 'typescript-language-server',
-      args: ['--stdio'],
-      rootPatterns: ['tsconfig.json']
-    }
-  },
-  enableCaching: true,
-  requestTimeout: 10000
-});
-```
-
-##### disableLsp
-
-```typescript
-async disableLsp(): Promise<void>
-```
-
-Disable LSP integration and clean up resources.
-
-##### isLspEnabled
-
-```typescript
-isLspEnabled(): boolean
-```
-
-Check if LSP is currently enabled.
-
-##### isLspSupported
-
-```typescript
-isLspSupported(filePath: string): boolean
-```
-
-Check if LSP supports a specific file.
 
 ##### getSupportedLanguages
 
@@ -490,8 +439,6 @@ interface ParseDocumentOptions {
   workspaceRoot?: string;          // Workspace root path
   forceParser?: string;            // Force specific parser
   segmentationOnly?: boolean;      // Return only segmentation
-  enableLsp?: boolean;             // Enable LSP integration
-  lspConfig?: LspParserConfig;     // LSP configuration
 }
 ```
 
@@ -543,11 +490,11 @@ interface DocumentParsingResult {
     filePath: string;
     totalBlocks: number;
     parsingLevel: 'semantic' | 'structural' | 'basic';
-    backend: 'ast' | 'lsp' | 'tree-sitter' | 'detectors-only' | 'hybrid';
+    backend: 'ast' | 'tree-sitter' | 'detectors-only' | 'hybrid';
     processingTimeMs: number;
     warnings: string[];
     segmentation?: {
-      backend: 'detectors-only' | 'tree-sitter' | 'lsp' | 'hybrid';
+      backend: 'detectors-only' | 'tree-sitter' | 'hybrid';
       confidence: number;
     };
   };
@@ -668,53 +615,6 @@ getAllRelationships(options?: {
 ```
 
 Get all aggregated relationships.
-
-## Configuration
-
-### LspParserConfig
-
-Configuration for LSP integration.
-
-```typescript
-interface LspParserConfig {
-  serverConfigs: Record<string, {
-    command: string;             // LSP server command
-    args: string[];              // Command arguments
-    rootPatterns: string[];      // Root detection patterns
-    workspaceFolder?: string;    // Workspace folder
-    initializationOptions?: any; // Server init options
-  }>;
-  enableCaching?: boolean;       // Enable response caching
-  requestTimeout?: number;       // Request timeout (ms)
-  maxConcurrentRequests?: number; // Concurrent request limit
-}
-```
-
-**Example:**
-```typescript
-const lspConfig: LspParserConfig = {
-  serverConfigs: {
-    typescript: {
-      command: 'typescript-language-server',
-      args: ['--stdio'],
-      rootPatterns: ['tsconfig.json', 'package.json'],
-      initializationOptions: {
-        preferences: {
-          includeInlayParameterNameHints: 'all'
-        }
-      }
-    },
-    python: {
-      command: 'pylsp',
-      args: [],
-      rootPatterns: ['pyproject.toml', 'setup.py', 'requirements.txt']
-    }
-  },
-  enableCaching: true,
-  requestTimeout: 10000,
-  maxConcurrentRequests: 5
-};
-```
 
 ## Error Handling
 

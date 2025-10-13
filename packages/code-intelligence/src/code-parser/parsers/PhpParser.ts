@@ -7,13 +7,13 @@
 
 import { BaseLanguageParser } from './BaseLanguageParser.js';
 import type { ParseError, ParserOptions, LanguageBoundary } from '../interfaces/ILanguageParser.js';
-import { 
-  IComponent, 
-  IRelationship, 
-  ComponentType, 
-  RelationshipType 
+import {
+  IComponent,
+  IRelationship,
+  ComponentType,
+  RelationshipType
 } from '../types.js';
-import { phpAstBridge, PhpAstBridge } from '../services/PhpAstBridge.js';
+import { PhpAstBridge } from '../services/PhpAstBridge.js';
 
 // PHP AST node types we care about
 interface PhpASTNode {
@@ -105,12 +105,35 @@ export class PhpParser extends BaseLanguageParser {
   private fqnToComponentMap: Map<string, string> = new Map(); // Maps FQN to component ID
   private namespaceComponentMap: Map<string, IComponent> = new Map();
   private lastParsedAst: any | null = null;
-  private bridge: PhpAstBridge;
+  private bridge: PhpAstBridge | null = null;
+  private bridgeInitError: string | null = null;
   private lastDetectedComponents: IComponent[] = [];
 
   constructor() {
     super('php', ['.php', '.phtml', '.php3', '.php4', '.php5', '.phar']);
-    this.bridge = phpAstBridge;
+    // Don't initialize bridge here - do it lazily when needed
+  }
+
+  /**
+   * Lazily initialize PHP bridge with error handling
+   */
+  private ensureBridge(): PhpAstBridge {
+    if (this.bridge) {
+      return this.bridge;
+    }
+
+    if (this.bridgeInitError) {
+      throw new Error(this.bridgeInitError);
+    }
+
+    try {
+      this.bridge = PhpAstBridge.getInstance();
+      return this.bridge;
+    } catch (error) {
+      this.bridgeInitError = `PHP parsing unavailable: ${error instanceof Error ? error.message : String(error)}`;
+      console.warn(`[PhpParser] ${this.bridgeInitError}`);
+      throw new Error(this.bridgeInitError);
+    }
   }
 
   /**
@@ -213,7 +236,8 @@ export class PhpParser extends BaseLanguageParser {
         return [];
       }
 
-      const result = await this.bridge.parseContent('<memory>.php', content);
+      const bridge = this.ensureBridge();
+      const result = await bridge.parseContent('<memory>.php', content);
       if (result.success) {
         return [];
       }
@@ -267,7 +291,8 @@ export class PhpParser extends BaseLanguageParser {
       this.fqnToComponentMap.clear();
       this.namespaceComponentMap.clear();
 
-      const parseResult = await this.bridge.parseContent(filePath, content);
+      const bridge = this.ensureBridge();
+      const parseResult = await bridge.parseContent(filePath, content);
 
       if (parseResult.success && parseResult.ast) {
         this.lastParsedAst = parseResult.ast;

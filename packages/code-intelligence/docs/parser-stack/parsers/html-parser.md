@@ -10,7 +10,6 @@ The HTML parser provides comprehensive analysis of HTML documents with support f
 - **Parsing Level**: Structural with semantic delegation
 - **Mixed-Language**: Yes (JavaScript, CSS, PHP)
 - **Incremental**: Yes (via Tree-sitter)
-- **LSP Support**: Not available (LSP integrations deferred)
 
 ## Features
 

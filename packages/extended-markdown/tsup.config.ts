@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsup';
 
-export default defineConfig({
+export default defineConfig((options) => ({
   entry: {
     index: 'src/index.ts',
     react: 'src/react/ExtendedMarkdownRenderer.tsx',
@@ -8,7 +8,7 @@ export default defineConfig({
   format: ['cjs', 'esm'],
   dts: true,
   sourcemap: true,
-  clean: true,
+  clean: !options.watch, // Only clean on non-watch builds
   target: 'node16',
   jsx: 'react-jsx',
   external: [
@@ -18,4 +18,4 @@ export default defineConfig({
     'mermaid',
     '@excalidraw/excalidraw',
   ],
-});
+}));

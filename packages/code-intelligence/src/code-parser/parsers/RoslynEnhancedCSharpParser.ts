@@ -7,10 +7,11 @@ import { TreeSitterCSharpParser } from './tree-sitter/TreeSitterCSharpParser.js'
 import { RoslynSidecarService, CodeSymbol, SemanticAnalysisResult, DiagnosticInfo } from '../services/RoslynSidecarService.js';
 import { IComponent, IRelationship, ComponentType, RelationshipType, Location } from '../types.js';
 import { ParseResult, ParseError, ParserOptions } from '../interfaces/ILanguageParser.js';
-import { existsSync } from 'fs';
+import { existsSync, statSync } from 'fs';
 import { spawnSync } from 'child_process';
 import { extname, join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createHash } from 'crypto';
 
 /**
  * Configuration for the Roslyn-enhanced parser
@@ -221,7 +222,7 @@ export class RoslynEnhancedCSharpParser extends TreeSitterCSharpParser {
 
     // Don't use Roslyn for very large files (Tree-sitter is faster)
     if (existsSync(filePath)) {
-      const stats = require('fs').statSync(filePath);
+      const stats = statSync(filePath);
       if (stats.size > 500000) { // 500KB threshold
         return false;
       }
@@ -559,8 +560,7 @@ export class RoslynEnhancedCSharpParser extends TreeSitterCSharpParser {
   }
 
   private computeContentHash(content: string): string {
-    const crypto = require('crypto');
-    return crypto.createHash('md5').update(content).digest('hex');
+    return createHash('md5').update(content).digest('hex');
   }
 
   /**

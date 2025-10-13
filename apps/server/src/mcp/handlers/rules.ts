@@ -25,8 +25,15 @@ export async function handleRulesTools(request: RulesToolRequest) {
       return { content: [createJsonContent(rule)] };
     }
     case 'update': {
-      const { rule_id, ...updates } = request as RulesUpdateRequest & Record<string, unknown>;
+      const { rule_id, ...updateFields } = request as RulesUpdateRequest & Record<string, unknown>;
       if (!rule_id) throw new Error('Rule ID is required for update action');
+
+      // Whitelist updatable rule fields to filter out request-level fields like 'project' and 'action'
+      const updates: any = {};
+      ['name','description','guidance_text','code_template','validation_script','trigger_patterns','semantic_triggers','context_conditions','priority','auto_apply','merge_strategy','confidence_threshold','active','parent_id','sort_order','stable_tags','entity_links'].forEach(k => {
+        if (updateFields[k] !== undefined) updates[k] = updateFields[k];
+      });
+
       await projectInfo.codeIndexer.updateRule(rule_id, updates);
       return { content: [createTextContent(`Rule ${rule_id} updated successfully`)] };
     }

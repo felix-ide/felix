@@ -1,0 +1,144 @@
+name: Build Sidecars
+
+on:
+  # Trigger on push to main branch
+  push:
+    branches: [main]
+    paths:
+      - 'packages/code-intelligence/src/code-parser/parsers/python_ast_helper.py'
+      - 'packages/code-intelligence/src/code-parser/sidecars/roslyn/**'
+
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  build-python-sidecar:
+    name: Build Python Sidecar
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: python_ast_helper-linux
+            executable_name: python_ast_helper
+          - os: windows-latest
+            artifact_name: python_ast_helper-windows
+            executable_name: python_ast_helper.exe
+          - os: macos-latest
+            artifact_name: python_ast_helper-macos
+            executable_name: python_ast_helper
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Build executable
+        working-directory: packages/code-intelligence
+        run: |
+          pyinstaller \
+            --onefile \
+            --name ${{ matrix.executable_name }} \
+            --distpath dist/sidecars/python \
+            src/code-parser/parsers/python_ast_helper.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: packages/code-intelligence/dist/sidecars/python/${{ matrix.executable_name }}
+
+  build-roslyn-sidecar:
+    name: Build Roslyn Sidecar
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact_name: roslyn-sidecar-linux
+          - os: windows-latest
+            rid: win-x64
+            artifact_name: roslyn-sidecar-windows
+          - os: macos-latest
+            rid: osx-x64
+            artifact_name: roslyn-sidecar-macos
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build Roslyn Sidecar (Self-Contained)
+        working-directory: packages/code-intelligence/src/code-parser/sidecars/roslyn
+        run: |
+          dotnet publish -c Release \
+            -r ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -o ../../../../dist/sidecars/roslyn/${{ matrix.rid }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: packages/code-intelligence/dist/sidecars/roslyn/${{ matrix.rid }}
+
+  create-release:
+    name: Create Release with Artifacts
+    needs: [build-python-sidecar, build-roslyn-sidecar]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Display artifact structure
+        run: ls -R artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: sidecars-${{ github.sha }}
+          name: Sidecars Build ${{ github.run_number }}
+          body: |
+            Automated build of Felix sidecars for all platforms.
+
+            ## Included Binaries
+            - Python AST Helper (Windows, macOS, Linux)
+            - Roslyn Sidecar (Windows, macOS, Linux)
+
+            ## Usage
+            Download the appropriate binaries for your platform and place them in:
+            - Python: `dist/sidecars/python/`
+            - Roslyn: `dist/sidecars/roslyn/{rid}/`
+
+            Built from commit: ${{ github.sha }}
+          files: artifacts/**/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

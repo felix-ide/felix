@@ -37,6 +37,9 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:sidecars": "npm run build:sidecar:python && npm run build:sidecar:roslyn",
+    "build:sidecar:python": "bash scripts/build-python-executable.sh",
+    "build:sidecar:roslyn": "bash src/code-parser/sidecars/roslyn/build-standalone.sh",
     "dev": "tsc --watch --preserveWatchOutput",
     "clean": "rimraf dist",
     "prepare": "npm run clean && npm run build",
@@ -79,11 +82,6 @@
     "tree-sitter-python": "^0.21.0",
     "tree-sitter-typescript": "^0.21.0",
     "uuid": "^11.0.0",
-    "vscode-jsonrpc": "^8.2.1",
-    "vscode-languageserver": "^9.0.1",
-    "vscode-languageserver-protocol": "^3.17.5",
-    "vscode-languageserver-textdocument": "^1.0.12",
-    "vscode-languageserver-types": "^3.17.5",
     "vscode-oniguruma": "^2.0.1",
     "vscode-textmate": "^9.0.0"
   },

@@ -19,7 +19,7 @@ The Parser Stack represents a comprehensive code analysis framework designed to 
 The Parser Stack is built around a modular, extensible architecture that supports:
 
 - **Multi-language parsing**: JavaScript/TypeScript, Python, PHP, Java, HTML, CSS, Markdown, JSON, and more
-- **Multiple parsing backends**: AST parsers, Tree-sitter, and content detectors (LSP adapters are currently disabled)
+- **Multiple parsing backends**: AST parsers, Tree-sitter, Roslyn sidecar for C#
 - **Mixed-language files**: HTML with embedded JavaScript/CSS, PHP with HTML, Markdown with code blocks
 - **Incremental parsing**: Efficient updates for large codebases
 - **Segmentation-first approach**: Files are segmented into language blocks before detailed parsing
@@ -36,14 +36,13 @@ graph TB
     subgraph "Backend Systems"
         H[AST Parsers]
         I[Tree-sitter]
-        J[LSP Servers (deferred)]
+        J[Roslyn Sidecar]
         K[Universal Ctags]
         L[Content Detectors]
     end
 
     D --> H
     D --> I
-    %% LSP adapters currently disabled
     D --> J
     D --> K
     D --> L
@@ -108,7 +107,6 @@ The central orchestrator responsible for:
 - `parseDocument()`: Main entry point for comprehensive parsing
 - `detectLanguage()`: Multi-strategy language detection
 - `registerParser()`: Dynamic parser registration
-- `enableLsp()`: LSP integration management
 
 ### Language Parsers
 
@@ -224,7 +222,7 @@ Each block is routed to appropriate parsers:
 
 - **Tree-sitter Parsers**: High-precision structural parsing
 - **AST Parsers**: Semantic analysis with full language support
-- **LSP Parsers**: IDE-quality analysis using language servers *(deferred; not part of the current runtime)*
+- **Roslyn Sidecar**: Advanced C# semantic analysis
 - **Legacy Parsers**: Fallback regex-based parsing
 
 ### 4. Relationship Extraction
@@ -344,23 +342,22 @@ High-performance incremental parsing:
 - CSS with preprocessing
 - More languages planned
 
-### LSP Integration *(deferred)*
+### Roslyn Sidecar
 
-> The legacy language-server shim has been removed. This section captures the intended capabilities once real LSP clients return for editor-focused workflows.
+Advanced C# semantic analysis using Microsoft Roslyn:
 
-IDE-quality analysis using Language Server Protocol:
+**Capabilities:**
+- Full semantic analysis
+- Type hierarchy extraction
+- Control flow analysis
+- Data flow analysis
+- Symbol resolution
 
 **Features:**
-- Real-time diagnostics
-- Symbol information
-- Cross-reference analysis
-- Workspace-aware parsing
-
-**Supported Servers:**
-- TypeScript Language Server
-- Python Language Server (Pylsp)
-- PHP Language Server
-- Extensible for additional servers
+- JSON-RPC communication
+- Cached compilation units
+- Workspace-aware analysis
+- MSBuild project support
 
 ### Universal Ctags
 

@@ -24,7 +24,7 @@ function log(message) {
 async function isUp() {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1000);
+    const timeout = setTimeout(() => controller.abort(), 5000); // Increased from 1s to 5s for Windows
     const response = await fetch(`${baseUrl}/v1/health`, {
       method: 'POST',
       signal: controller.signal
@@ -115,16 +115,24 @@ async function ensureRequirements(venvPython) {
   }
 }
 
-const DEFAULT_TIMEOUT_MS = Number.parseInt(process.env.SIDECAR_STARTUP_TIMEOUT_MS ?? '45000', 10);
+const DEFAULT_TIMEOUT_MS = Number.parseInt(process.env.SIDECAR_STARTUP_TIMEOUT_MS ?? '90000', 10); // Increased from 45s to 90s for first-time model load
 
 async function waitForHealth(timeoutMs = DEFAULT_TIMEOUT_MS) {
   const start = Date.now();
+  let attempts = 0;
+  log(`Waiting for sidecar health check (timeout: ${timeoutMs}ms)...`);
   while (Date.now() - start < timeoutMs) {
+    attempts++;
     if (await isUp()) {
+      log(`✅ Sidecar healthy after ${attempts} attempts (${Date.now() - start}ms)`);
       return true;
+    }
+    if (attempts % 10 === 0) {
+      log(`Still waiting for sidecar... (${attempts} attempts, ${Math.round((Date.now() - start) / 1000)}s elapsed)`);
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
+  log(`❌ Sidecar failed health check after ${attempts} attempts and ${Math.round((Date.now() - start) / 1000)}s`);
   return false;
 }
 

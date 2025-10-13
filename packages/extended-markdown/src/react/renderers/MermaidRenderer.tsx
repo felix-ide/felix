@@ -54,7 +54,6 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, options 
     }
     previousCodeRef.current = code;
 
-    let isMounted = true;
     const container = ref.current;
 
     const renderMermaid = async () => {
@@ -70,32 +69,26 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, options 
         // Render mermaid diagram
         const { svg } = await mermaid.render(currentId, code);
 
-        // Only update DOM if component is still mounted AND we have the same container
-        if (isMounted && container && ref.current === container) {
-          // Don't clear - just set innerHTML which replaces content
-          container.innerHTML = svg;
+        // Only update DOM if ref still exists - don't check isMounted because React strict mode breaks it
+        if (ref.current) {
+          ref.current.innerHTML = svg;
           idRef.current = currentId;
         } else {
-          // Clean up orphaned elements if we unmounted during render
+          // Clean up orphaned elements if component unmounted during render
           document.querySelectorAll(`#${currentId}, #d${currentId}`).forEach(el => el.remove());
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to render diagram';
         console.error('[MermaidRenderer] Failed to render diagram', err);
 
-        if (isMounted && container && ref.current === container) {
+        if (ref.current) {
           setError(errorMessage);
-          container.innerHTML = '';
+          ref.current.innerHTML = '';
         }
       }
     };
 
     renderMermaid();
-
-    // Cleanup function - only runs on unmount
-    return () => {
-      isMounted = false;
-    };
   }, [code]);
 
   return (

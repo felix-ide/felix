@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.Build.Locator;
@@ -273,18 +278,20 @@ public class WorkspaceManager : IDisposable
 
             var sourceText = Microsoft.CodeAnalysis.Text.SourceText.From(content);
             var documentId = DocumentId.CreateNewId(project.Id);
-            var documentInfo = DocumentInfo.Create(
-                documentId,
-                Path.GetFileName(filePath),
-                filePath: filePath,
-                loader: TextLoader.From(TextAndVersion.Create(sourceText, VersionStamp.Create())));
 
-            var updatedProject = project.AddDocument(documentInfo);
+            var newDocument = project.AddDocument(
+                Path.GetFileName(filePath),
+                sourceText,
+                folders: null,
+                filePath: filePath);
+
+            // Get the updated project from the document
+            var updatedProject = newDocument.Project;
             _projectCache[projectPath] = updatedProject;
 
             if (_solution != null)
             {
-                _solution = updatedProject.Solution;
+                _solution = newDocument.Project.Solution;
             }
 
             return true;
@@ -412,7 +419,7 @@ public class WorkspaceManager : IDisposable
             Severity = diagnostic.Severity.ToString(),
             Message = diagnostic.GetMessage(),
             Location = location,
-            Category = diagnostic.Category,
+            Category = diagnostic.Descriptor?.Category ?? "Unknown",
             WarningLevel = diagnostic.WarningLevel
         };
     }

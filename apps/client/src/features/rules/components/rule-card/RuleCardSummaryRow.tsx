@@ -163,7 +163,7 @@ export function RuleCardSummaryRow({
         </span>
       ) : null}
 
-      {rule.entity_links?.length ? (
+      {rule.entity_links?.length && Array.isArray(rule.entity_links) ? (
         rule.entity_links.map((link, index) => (
           <span
             key={`${link.entity_id}-${index}`}

@@ -38,9 +38,21 @@ export class NotesRepository {
 
   /**
    * 1. CREATE NOTE
+   * Handles legacy double-stringified data by parsing it back to objects
    */
   async createNote(params: CreateNoteParams): Promise<StorageResult & { data?: INote }> {
     try {
+      // Helper to fix double-stringified legacy data
+      const parseIfString = (value: any) => {
+        if (!value) return value;
+        try {
+          return typeof value === 'string' ? JSON.parse(value) : value;
+        } catch (error) {
+          logger.warn('Failed to parse JSON field during create:', error);
+          return value;
+        }
+      };
+
       const note = this.repository.create({
         id: `note_${Date.now()}_${uuidv4().slice(0, 8)}`,
         parent_id: params.parent_id,
@@ -49,8 +61,8 @@ export class NotesRepository {
         note_type: params.note_type || 'note',
         entity_type: (params as any).entity_type,
         entity_id: (params as any).entity_id,
-        entity_links: params.entity_links,
-        stable_tags: params.stable_tags,
+        entity_links: parseIfString(params.entity_links),
+        stable_tags: parseIfString(params.stable_tags),
         sort_order: params.sort_order || 0,
         depth_level: (params as any).depth_level || 0
       });
@@ -59,9 +71,9 @@ export class NotesRepository {
       const iNote = this.convertToINote(savedNote);
       return { success: true, affected: 1, data: iNote };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : String(error) 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -82,25 +94,43 @@ export class NotesRepository {
 
   /**
    * 3. UPDATE NOTE
+   * Handles legacy double-stringified data by parsing it back to objects
    */
   async updateNote(id: string, updates: UpdateNoteParams): Promise<StorageResult> {
     try {
       const updateData: Partial<Note> = {};
-      
+
+      // Helper to fix double-stringified legacy data
+      const parseIfString = (value: any) => {
+        if (!value) return value;
+        try {
+          return typeof value === 'string' ? JSON.parse(value) : value;
+        } catch (error) {
+          logger.warn('Failed to parse JSON field during update:', error);
+          return value;
+        }
+      };
+
       if (updates.title !== undefined) updateData.title = updates.title;
       if (updates.content !== undefined) updateData.content = updates.content;
       if (updates.note_type !== undefined) updateData.note_type = updates.note_type;
-      if (updates.entity_links !== undefined) updateData.entity_links = updates.entity_links;
-      if (updates.stable_tags !== undefined) updateData.stable_tags = updates.stable_tags;
+      if (updates.entity_links !== undefined) {
+        // Fix double-stringified data from old format
+        updateData.entity_links = parseIfString(updates.entity_links);
+      }
+      if (updates.stable_tags !== undefined) {
+        // Fix double-stringified data from old format
+        updateData.stable_tags = parseIfString(updates.stable_tags);
+      }
       if (updates.parent_id !== undefined) updateData.parent_id = updates.parent_id;
       if (updates.sort_order !== undefined) updateData.sort_order = updates.sort_order;
 
       await this.repository.update(id, updateData);
       return { success: true, affected: 1 };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : String(error) 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -341,16 +371,28 @@ export class NotesRepository {
 
   /**
    * Convert Note entity to INote interface
+   * Handles legacy double-stringified data from old format
    */
   private convertToINote(note: Note): INote {
+    // Helper to parse double-stringified legacy data
+    const parseIfString = (value: any, fallback: any = []) => {
+      if (!value) return fallback;
+      try {
+        return typeof value === 'string' ? JSON.parse(value) : value;
+      } catch (error) {
+        logger.warn('Failed to parse JSON field:', error);
+        return fallback;
+      }
+    };
+
     return {
       id: note.id,
       parent_id: note.parent_id,
       title: note.title || '',
       content: note.content,
       note_type: note.note_type as any,
-      entity_links: note.entity_links as any || [],
-      stable_tags: note.stable_tags || [],
+      entity_links: parseIfString(note.entity_links, []),
+      stable_tags: parseIfString(note.stable_tags, []),
       sort_order: note.sort_order,
       depth_level: note.depth_level,
       created_at: note.created_at,

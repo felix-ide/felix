@@ -136,6 +136,11 @@ SEARCH: Use the main 'search' tool to find rules - it provides semantic search a
         type: 'string',
         description: 'ID of rule to get/update/delete'
       },
+      // For update action - fields that can be updated
+      active: {
+        type: 'boolean',
+        description: 'Whether the rule is active (for update action)'
+      },
       // For get_tree action
       root_rule_id: {
         type: 'string',

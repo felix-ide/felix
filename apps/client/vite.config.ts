@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
       '@client/features': path.resolve(__dirname, './src/features'),
       '@client/shared': path.resolve(__dirname, './src/shared'),
       '@felix/extended-markdown': path.resolve(__dirname, '../../packages/extended-markdown/dist/index.mjs'),
+      '@felix/theme-system': path.resolve(__dirname, '../../packages/theme-system/dist/index.js'),
     },
   },
   server: {
@@ -81,7 +82,7 @@ export default defineConfig(({ mode }) => {
     'import.meta.env.VITE_FELIX_SERVER': JSON.stringify(`http://localhost:${BACKEND_PORT}/api`),
   },
   optimizeDeps: {
-    include: ['@felix/extended-markdown'],
+    include: ['@felix/extended-markdown', '@felix/theme-system'],
     exclude: [
       'fs', 'path', 'os', 'crypto',
       'better-sqlite3',

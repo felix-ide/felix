@@ -190,8 +190,8 @@ export class RoslynSidecarService extends EventEmitter {
     this.config = {
       executablePath: this.getDefaultExecutablePath(),
       args: ['stdio'],
-      requestTimeout: 30000,
-      enableLogging: false,
+      requestTimeout: 120000, // 2 minutes for complex analysis
+      enableLogging: true,
       workingDirectory: process.cwd(),
       autoRestart: true,
       maxRestartAttempts: 3,
@@ -201,27 +201,80 @@ export class RoslynSidecarService extends EventEmitter {
 
   /**
    * Get the default path to the Roslyn sidecar executable
+   * Priority:
+   * 1. Bundled self-contained executable (no .NET required)
+   * 2. Development build DLL files (run with dotnet)
+   * 3. dotnet run fallback
    */
   private getDefaultExecutablePath(): string {
-    // Calculate path relative to the current service location
-    const sidecarDir = join(__dirname, '..', 'sidecars', 'roslyn');
+    const platform = process.platform;
+    const arch = process.arch;
+    const executableName = platform === 'win32' ? 'RoslynSidecar.exe' : 'RoslynSidecar';
+    const dllName = 'RoslynSidecar.dll';
 
-    // Check for different possible executable names/locations
-    const possiblePaths = [
-      join(sidecarDir, 'bin', 'Release', 'net8.0', 'RoslynSidecar.exe'),
-      join(sidecarDir, 'bin', 'Debug', 'net8.0', 'RoslynSidecar.exe'),
-      join(sidecarDir, 'bin', 'Release', 'net8.0', 'RoslynSidecar'),
-      join(sidecarDir, 'bin', 'Debug', 'net8.0', 'RoslynSidecar'),
-      'dotnet' // Fallback to dotnet run
+    // Calculate path relative to the current service location
+    // When running from dist, we need to go up to the package root
+    const sidecarDir = join(__dirname, '..', 'sidecars', 'roslyn');
+    const packageRoot = join(__dirname, '..', '..');
+
+    // For development builds, use src directory
+    // __dirname when running from dist is: packages/code-intelligence/dist/code-parser/services
+    // So we need to go: ../../../src/code-parser/sidecars/roslyn
+    const srcSidecarDir = join(__dirname, '..', '..', '..', 'src', 'code-parser', 'sidecars', 'roslyn');
+
+    // Platform-specific RID
+    let rid = 'linux-x64';
+    if (platform === 'win32') {
+      // Check if we're on ARM64 Windows (common on newer Windows machines)
+      // Node might report x64 even on ARM64 due to emulation
+      rid = arch === 'arm64' ? 'win-arm64' : 'win-x64';
+    } else if (platform === 'darwin') {
+      rid = arch === 'arm64' ? 'osx-arm64' : 'osx-x64';
+    } else {
+      rid = arch === 'arm64' ? 'linux-arm64' : 'linux-x64';
+    }
+
+    // Check for bundled self-contained executables first
+    const bundledPaths = [
+      // Installed package location
+      join(packageRoot, 'dist', 'sidecars', 'roslyn', rid, executableName),
+      join(packageRoot, '..', '..', 'dist', 'sidecars', 'roslyn', rid, executableName),
+      // Development location - calculate from __dirname
+      join(__dirname, '..', '..', 'dist', 'sidecars', 'roslyn', rid, executableName)
     ];
 
-    for (const path of possiblePaths) {
+    for (const path of bundledPaths) {
       if (existsSync(path)) {
+        console.log(`[roslyn-sidecar] Using bundled executable: ${path}`);
         return path;
       }
     }
 
-    // If no built executable found, use dotnet run
+    console.log('[roslyn-sidecar] Bundled executable not found, checking development builds');
+
+    // Check for development build DLL files in SOURCE directory
+    const possibleDllPaths = [
+      // Try RID-specific paths first (for self-contained builds)
+      join(srcSidecarDir, 'bin', 'Release', 'net9.0', rid, dllName),
+      join(srcSidecarDir, 'bin', 'Debug', 'net9.0', rid, dllName),
+      join(srcSidecarDir, 'bin', 'Release', 'net8.0', rid, dllName),
+      join(srcSidecarDir, 'bin', 'Debug', 'net8.0', rid, dllName),
+      // Try without RID (for framework-dependent builds)
+      join(srcSidecarDir, 'bin', 'Release', 'net9.0', dllName),
+      join(srcSidecarDir, 'bin', 'Debug', 'net9.0', dllName),
+      join(srcSidecarDir, 'bin', 'Release', 'net8.0', dllName),
+      join(srcSidecarDir, 'bin', 'Debug', 'net8.0', dllName)
+    ];
+
+    for (const path of possibleDllPaths) {
+      if (existsSync(path)) {
+        console.log(`[roslyn-sidecar] Using development DLL: ${path}`);
+        return path;
+      }
+    }
+
+    // If no built DLL found, use dotnet run with SOURCE project path
+    console.log('[roslyn-sidecar] No DLL found, falling back to dotnet run');
     return 'dotnet';
   }
 
@@ -274,10 +327,33 @@ export class RoslynSidecarService extends EventEmitter {
         let command = this.config.executablePath;
         let args = [...this.config.args];
 
-        // If using dotnet, need to add the project path
-        if (command === 'dotnet') {
-          const projectPath = join(__dirname, '..', 'sidecars', 'roslyn', 'RoslynSidecar.csproj');
-          args = ['run', '--project', projectPath, '--', ...args];
+        // If path ends with .dll, run it with dotnet
+        if (command.endsWith('.dll')) {
+          args = [command, ...args];
+          command = 'dotnet';
+        }
+        // If using dotnet run, need to add the project path and framework
+        else if (command === 'dotnet') {
+          // Use SOURCE directory, not dist
+          // Calculate from __dirname: dist/code-parser/services -> src/code-parser/sidecars/roslyn
+          const projectPath = join(__dirname, '..', '..', '..', 'src', 'code-parser', 'sidecars', 'roslyn', 'RoslynSidecar.csproj');
+
+          // Detect which framework to use (prefer net8.0 for compatibility)
+          // Check which .NET runtime is available
+          const { execSync } = require('child_process');
+          let targetFramework = 'net8.0';
+          try {
+            const dotnetVersion = execSync('dotnet --version', { encoding: 'utf8' }).trim();
+            const major = parseInt(dotnetVersion.split('.')[0]);
+            // Only use net9.0 if SDK 9+ is installed
+            if (major >= 9) {
+              targetFramework = 'net9.0';
+            }
+          } catch {
+            // Default to net8.0 if detection fails
+          }
+
+          args = ['run', '--project', `"${projectPath}"`, '--framework', targetFramework, '--', ...args];
         }
 
         if (this.config.enableLogging) {
@@ -404,9 +480,8 @@ export class RoslynSidecarService extends EventEmitter {
    */
   private handleStderrData(data: Buffer): void {
     const errorText = data.toString();
-    if (this.config.enableLogging) {
-      console.error('Sidecar stderr:', errorText);
-    }
+    // Always log stderr as it may contain critical error information
+    console.error('[Roslyn sidecar stderr]:', errorText);
     this.emit('stderr', errorText);
   }
 
@@ -469,31 +544,31 @@ export class RoslynSidecarService extends EventEmitter {
    */
   private handleProcessExit(code: number | null, signal: string | null): void {
     this.isInitialized = false;
+    const pid = this.process?.pid;
     this.process = null;
+
+    console.error(`[Roslyn sidecar] Process (PID ${pid}) exited with code ${code}, signal ${signal}`);
 
     // Reject all pending requests
     for (const [id, pending] of this.pendingRequests) {
-      pending.reject(new Error('Sidecar process exited'));
+      pending.reject(new Error(`Sidecar process exited with code ${code}`));
     }
     this.pendingRequests.clear();
-
-    if (this.config.enableLogging) {
-      console.log(`Sidecar process exited with code ${code}, signal ${signal}`);
-    }
 
     this.emit('exit', code, signal);
 
     // Auto-restart if enabled and not too many attempts
     if (this.config.autoRestart && this.restartAttempts < this.config.maxRestartAttempts) {
       this.restartAttempts++;
+      console.log(`[Roslyn sidecar] Attempting to restart (attempt ${this.restartAttempts}/${this.config.maxRestartAttempts})`);
       setTimeout(() => {
-        if (this.config.enableLogging) {
-          console.log(`Attempting to restart sidecar (attempt ${this.restartAttempts})`);
-        }
         this.start().catch(error => {
+          console.error('[Roslyn sidecar] Restart failed:', error);
           this.emit('error', error);
         });
       }, 1000 * this.restartAttempts);
+    } else if (this.restartAttempts >= this.config.maxRestartAttempts) {
+      console.error('[Roslyn sidecar] Max restart attempts reached. Giving up.');
     }
   }
 
@@ -529,7 +604,19 @@ export class RoslynSidecarService extends EventEmitter {
         console.log('Sending request:', method, params);
       }
 
-      this.process!.stdin!.write(header + message);
+      try {
+        this.process!.stdin!.write(header + message, (error) => {
+          if (error) {
+            this.pendingRequests.delete(id);
+            clearTimeout(timeout);
+            reject(new Error(`Failed to write to sidecar stdin: ${error.message}`));
+          }
+        });
+      } catch (error: any) {
+        this.pendingRequests.delete(id);
+        clearTimeout(timeout);
+        reject(new Error(`Failed to send request to sidecar: ${error.message}`));
+      }
     });
   }
 

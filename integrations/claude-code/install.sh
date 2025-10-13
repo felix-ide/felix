@@ -52,13 +52,24 @@ fi
 
 # Check for required dependencies
 print_status "Checking dependencies..."
-for cmd in jq curl; do
-    if ! command -v $cmd &> /dev/null; then
-        print_error "Required command '$cmd' is not installed"
-        print_status "Please install $cmd and try again"
-        exit 1
-    fi
-done
+
+# Check for Node.js
+if ! command -v node &> /dev/null; then
+    print_error "Node.js is not installed"
+    print_status "Please install Node.js to use Felix hooks"
+    exit 1
+fi
+
+NODE_VERSION=$(node --version 2>&1)
+print_status "Node.js version: $NODE_VERSION"
+
+# Check for curl
+if ! command -v curl &> /dev/null; then
+    print_error "curl is not installed"
+    print_status "Please install curl to use Felix hooks"
+    exit 1
+fi
+
 print_success "All dependencies found"
 
 # Create backup directory
@@ -75,9 +86,14 @@ fi
 print_status "Creating hooks directory..."
 mkdir -p "$HOOKS_DEST_DIR"
 
+# Clean old hooks (bash and python versions)
+print_status "Cleaning old hook scripts..."
+rm -f "$HOOKS_DEST_DIR"/felix*.sh "$HOOKS_DEST_DIR"/felix*.py
+print_success "Old hooks cleaned"
+
 # Copy hooks
 print_status "Installing Felix hooks..."
-for hook in "$HOOKS_SOURCE_DIR"/*.sh; do
+for hook in "$HOOKS_SOURCE_DIR"/*.js; do
     hook_name=$(basename "$hook")
     print_status "  Installing $hook_name..."
     cp "$hook" "$HOOKS_DEST_DIR/"
@@ -98,8 +114,19 @@ if [ ! -f "$SETTINGS_FILE" ]; then
 EOF
 fi
 
-# Create the hooks configuration
-HOOKS_CONFIG=$(cat <<'EOF'
+# Create the hooks configuration with full paths
+# Detect OS and use appropriate path format
+HOOKS_PATH="$HOOKS_DEST_DIR"
+PATH_SEP="/"
+
+# Check if running on Windows (Git Bash or MSYS)
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]] || [[ "$HOOKS_PATH" =~ ^/([a-z])/ ]]; then
+    # Convert /c/Users/... to C:\Users\...
+    HOOKS_PATH=$(echo "$HOOKS_PATH" | sed 's|^/\([a-z]\)/|\1:|' | sed 's|/|\\|g')
+    PATH_SEP="\\\\"
+fi
+
+HOOKS_CONFIG=$(cat <<EOF
 {
   "UserPromptSubmit": [
     {
@@ -107,7 +134,7 @@ HOOKS_CONFIG=$(cat <<'EOF'
       "hooks": [
         {
           "type": "command",
-          "command": "bash ~/.claude/hooks/felix-user-prompt-submit.sh"
+          "command": "node $HOOKS_PATH${PATH_SEP}felix-user-prompt-submit.js"
         }
       ]
     }
@@ -118,7 +145,7 @@ HOOKS_CONFIG=$(cat <<'EOF'
       "hooks": [
         {
           "type": "command",
-          "command": "bash ~/.claude/hooks/felix-pre-tool-use.sh"
+          "command": "node $HOOKS_PATH${PATH_SEP}felix-pre-tool-use.js"
         }
       ]
     }
@@ -129,7 +156,18 @@ HOOKS_CONFIG=$(cat <<'EOF'
       "hooks": [
         {
           "type": "command",
-          "command": "bash ~/.claude/hooks/felix-post-tool-use.sh"
+          "command": "node $HOOKS_PATH${PATH_SEP}felix-post-tool-use.js"
+        }
+      ]
+    }
+  ],
+  "SessionEnd": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node $HOOKS_PATH${PATH_SEP}felix-session-end.js"
         }
       ]
     }
@@ -138,25 +176,47 @@ HOOKS_CONFIG=$(cat <<'EOF'
 EOF
 )
 
-# Update settings.json with hooks configuration
+# Update settings.json with hooks configuration using Node.js
 if [ -f "$SETTINGS_FILE" ]; then
-    # Check if hooks section already exists
-    if jq -e '.hooks' "$SETTINGS_FILE" > /dev/null 2>&1; then
-        print_warning "Hooks configuration already exists in settings.json"
-        echo -e "${YELLOW}Do you want to replace the existing hooks configuration? (y/N)${NC}"
-        read -r response
-        if [[ "$response" =~ ^[Yy]$ ]]; then
-            # Replace hooks section
-            jq --argjson hooks "$HOOKS_CONFIG" '.hooks = $hooks' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && \
-            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            print_success "Hooks configuration updated"
-        else
-            print_status "Keeping existing hooks configuration"
-        fi
+    # Write hooks config to a temp file
+    TEMP_HOOKS_FILE="/tmp/felix_hooks_config_$$.json"
+    echo "$HOOKS_CONFIG" > "$TEMP_HOOKS_FILE"
+
+    # Use Node.js to update the JSON file
+    node -e "
+const fs = require('fs');
+
+try {
+    // Read the hooks configuration
+    const hooksConfig = JSON.parse(fs.readFileSync('$TEMP_HOOKS_FILE', 'utf8'));
+
+    // Read current settings
+    const settings = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
+
+    // Check if hooks already exist
+    if (settings.hooks) {
+        console.error('HOOKS_EXIST');
+    }
+
+    // Update hooks configuration
+    settings.hooks = hooksConfig;
+
+    // Write updated settings
+    fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(settings, null, 2));
+
+    process.exit(0);
+} catch (e) {
+    console.error('Error:', e.message);
+    process.exit(1);
+}
+" 2>&1 | grep -q 'HOOKS_EXIST' && HOOKS_EXISTED=true || HOOKS_EXISTED=false
+
+    # Clean up temp file
+    rm -f "$TEMP_HOOKS_FILE"
+
+    if [ "$HOOKS_EXISTED" = true ]; then
+        print_warning "Replaced existing hooks configuration in settings.json"
     else
-        # Add hooks section
-        jq --argjson hooks "$HOOKS_CONFIG" '. + {hooks: $hooks}' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && \
-        mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         print_success "Hooks configuration added to settings.json"
     fi
 fi
@@ -168,57 +228,13 @@ echo -e "${CYAN}Configuration${NC}"
 echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-print_status "The hooks will automatically use Claude Code's current project directory."
-print_status "No need to configure a project path manually!"
-echo ""
-
 # Get server URL
 DEFAULT_SERVER_URL="http://localhost:9000"
 echo -e "${BLUE}Enter Felix server URL (default: $DEFAULT_SERVER_URL):${NC}"
 read -r SERVER_URL
 SERVER_URL="${SERVER_URL:-$DEFAULT_SERVER_URL}"
 
-# Create environment configuration
-ENV_FILE="$HOME/.felix_claude_config"
-cat > "$ENV_FILE" <<EOF
-# Felix Rule System Configuration for Claude Code
-# Project path is automatically detected from Claude Code's working directory
-export FELIX_SERVER_URL="$SERVER_URL"
-export DEBUG_MODE="false"
-EOF
-
-print_success "Configuration saved to $ENV_FILE"
-
-# Add to shell profile
-echo ""
-echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
-echo -e "${CYAN}Shell Configuration${NC}"
-echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
-echo ""
-
-# Detect shell
-if [ -n "$ZSH_VERSION" ]; then
-    SHELL_PROFILE="$HOME/.zshrc"
-elif [ -n "$BASH_VERSION" ]; then
-    SHELL_PROFILE="$HOME/.bashrc"
-else
-    SHELL_PROFILE="$HOME/.profile"
-fi
-
-echo -e "${BLUE}Add Felix configuration to $SHELL_PROFILE? (Y/n):${NC}"
-read -r response
-if [[ ! "$response" =~ ^[Nn]$ ]]; then
-    # Check if already added
-    if ! grep -q "felix_claude_config" "$SHELL_PROFILE" 2>/dev/null; then
-        echo "" >> "$SHELL_PROFILE"
-        echo "# Felix Rule System for Claude Code" >> "$SHELL_PROFILE"
-        echo "[ -f $ENV_FILE ] && source $ENV_FILE" >> "$SHELL_PROFILE"
-        print_success "Added to $SHELL_PROFILE"
-        print_status "Run 'source $SHELL_PROFILE' to load the configuration"
-    else
-        print_status "Configuration already in $SHELL_PROFILE"
-    fi
-fi
+print_success "Felix server URL: $SERVER_URL"
 
 # Test Felix server connection
 echo ""
@@ -235,6 +251,33 @@ else
     print_status "Make sure to start the server with: npm run server"
 fi
 
+# Setup MCP Server
+echo ""
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}Setting up MCP Server${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo ""
+
+print_status "Configuring Felix MCP server..."
+if command -v claude &> /dev/null; then
+    # Try to remove existing felix MCP server if it exists
+    claude mcp remove felix 2>/dev/null || true
+
+    # Add MCP server using HTTP transport
+    print_status "Running: claude mcp add -s user -t http felix $SERVER_URL/mcp"
+    if claude mcp add -s user -t http felix "$SERVER_URL/mcp"; then
+        print_success "Felix MCP server configured successfully"
+    else
+        print_warning "Failed to configure MCP server automatically"
+        print_status "You can manually add it later with:"
+        print_status "  claude mcp add -s user -t http felix $SERVER_URL/mcp"
+    fi
+else
+    print_warning "Claude CLI not found in PATH"
+    print_status "You can manually add the MCP server with:"
+    print_status "  claude mcp add -s user -t http felix $SERVER_URL/mcp"
+fi
+
 # Final instructions
 echo ""
 echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
@@ -247,15 +290,6 @@ echo "1. Start the Felix server (if not already running):"
 echo -e "   ${YELLOW}cd <your-project-directory>${NC}"
 echo -e "   ${YELLOW}npm run dev${NC}"
 echo ""
-echo "2. Reload your shell configuration:"
-echo -e "   ${YELLOW}source $SHELL_PROFILE${NC}"
-echo ""
-echo "3. Start Claude Code in your project directory and the hooks will be active!"
-echo ""
-echo -e "${CYAN}To test the installation:${NC}"
-echo -e "   ${YELLOW}bash ~/.claude/hooks/felix-utils.sh${NC}"
-echo ""
-echo -e "${CYAN}For debug mode, set:${NC}"
-echo -e "   ${YELLOW}export DEBUG_MODE=true${NC}"
+echo "2. Start Claude Code in your project directory and the hooks will be active!"
 echo ""
 echo -e "${GREEN}Happy coding with Felix + Claude Code! 🚀${NC}"

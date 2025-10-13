@@ -286,7 +286,6 @@ class SetupValidator {
     await this.checkNpmPackages();
     await this.checkTreeSitterGrammars();
     await this.checkTextMateScanner();
-    await this.checkLSPServers();
     await this.checkCSharpSupport();
     await this.checkPythonSidecar();
     await this.checkDatabaseSetup();
@@ -398,8 +397,8 @@ class SetupValidator {
       this.success(`PHP installed: ${phpVersion}`);
       return true;
     } catch (error) {
-      this.critical('PHP is not installed or not in PATH - app will crash when parsing PHP files');
-      this.info('PHP is required for parsing PHP code');
+      this.warning('PHP is not installed or not in PATH - PHP parsing will be disabled');
+      this.info('PHP is optional - only needed if you plan to parse PHP files');
 
       if (process.platform === 'darwin') {
         this.info('Install PHP with: brew install php');
@@ -422,11 +421,10 @@ class SetupValidator {
           }
           spinner.succeed('PHP installed successfully');
           this.successes.push('Installed PHP');
-          this.criticalErrors = this.criticalErrors.filter(e => !e.includes('PHP'));
           return true;
         } catch (installError) {
           spinner.fail('Failed to install PHP');
-          this.error('Please install PHP manually before running the app');
+          this.info('You can install PHP manually later if needed');
           return false;
         }
       }
@@ -566,106 +564,6 @@ class SetupValidator {
     if (!ok) this.info('Run: npm install to ensure all Tree-sitter packages are installed');
   }
 
-  async checkLSPServers() {
-    this.header('Language Server Protocol (LSP) Servers');
-
-    if (this.runningPostinstall) {
-      this.info('Skipping automatic LSP installation during npm postinstall to avoid repeated global installs.');
-      this.info('Run `npm run setup -- --lsp` later if you want to install recommended language servers.');
-      return;
-    }
-
-    const servers = [
-      {
-        name: 'TypeScript',
-        command: 'typescript-language-server',
-        install: 'npm install -g typescript-language-server typescript',
-        check: 'npm list -g typescript-language-server',
-        essential: true
-      },
-      {
-        name: 'Python',
-        command: 'pylsp',
-        install: 'pip install python-lsp-server',
-        check: 'pip show python-lsp-server',
-        essential: false
-      },
-      {
-        name: 'Rust',
-        command: 'rust-analyzer',
-        install: 'rustup component add rust-analyzer',
-        check: 'which rust-analyzer',
-        essential: false
-      },
-      {
-        name: 'C/C++',
-        command: 'clangd',
-        install: process.platform === 'darwin' ? 'brew install llvm' : 'sudo apt install clangd',
-        check: 'which clangd',
-        essential: false
-      }
-    ];
-
-    let anyInstalled = false;
-    const missingServers = [];
-
-    for (const server of servers) {
-      try {
-        execSync(`which ${server.command}`, { encoding: 'utf8' });
-        this.success(`${server.name} LSP server installed (${server.command})`);
-        anyInstalled = true;
-      } catch (e) {
-        missingServers.push(server);
-        this.warning(`${server.name} LSP server NOT installed`);
-      }
-    }
-
-    // Offer to install missing servers
-    if (missingServers.length > 0) {
-      this.info('\nLSP servers provide enhanced code analysis capabilities.');
-
-      for (const server of missingServers) {
-        if (server.essential || await this.prompt(`\nWould you like to install ${server.name} LSP server?`)) {
-          const spinner = ora(`Installing ${server.name} LSP server...`).start();
-
-          try {
-            if (server.name === 'TypeScript') {
-              // Special handling for npm global install
-              execSync('npm install -g typescript-language-server typescript', {
-                encoding: 'utf8',
-                stdio: 'pipe'
-              });
-            } else if (server.name === 'Python') {
-              // Check if pip is available
-              try {
-                execSync('which pip || which pip3', { encoding: 'utf8' });
-                execSync('pip install python-lsp-server || pip3 install python-lsp-server', {
-                  encoding: 'utf8',
-                  stdio: 'pipe'
-                });
-              } catch (pipError) {
-                spinner.fail(`Python pip not found. Please install Python and pip first.`);
-                continue;
-              }
-            } else {
-              execSync(server.install, { encoding: 'utf8', stdio: 'pipe' });
-            }
-
-            spinner.succeed(`${server.name} LSP server installed successfully!`);
-            this.successes.push(`Installed ${server.name} LSP server`);
-          } catch (error) {
-            spinner.fail(`Failed to install ${server.name} LSP server`);
-            this.info(`  Manual install command: ${server.install}`);
-          }
-        }
-      }
-    }
-
-    if (!anyInstalled && missingServers.length === servers.length) {
-      this.info('\nNote: The system will still work without LSP servers, falling back to AST parsing.');
-    }
-  }
-
   async checkCSharpSupport() {
     this.header('C# Language Support');
 
@@ -719,37 +617,52 @@ class SetupValidator {
     }
 
     if (hasDotNet) {
-      // Check Roslyn sidecar
       const sidecarDir = 'packages/code-intelligence/src/code-parser/sidecars/roslyn';
       const sidecarProject = `${sidecarDir}/RoslynSidecar.csproj`;
 
       if (existsSync(sidecarProject)) {
-        // Check if built
-        const binaryPaths = [
-          `${sidecarDir}/bin/Release/net8.0/RoslynSidecar`,
-          `${sidecarDir}/bin/Release/net8.0/RoslynSidecar.exe`,
-          `${sidecarDir}/bin/Debug/net8.0/RoslynSidecar`,
-          `${sidecarDir}/bin/Debug/net8.0/RoslynSidecar.exe`
-        ];
+        // Detect .NET SDK version and update csproj to match
+        try {
+          const dotnetVersion = execSync('dotnet --version', { encoding: 'utf8' }).trim();
+          const sdkMajor = parseInt(dotnetVersion.split('.')[0]);
 
-        let isBinary = false;
-        for (const path of binaryPaths) {
-          if (existsSync(path)) {
-            this.success('Roslyn sidecar built');
-            hasRoslyn = true;
-            isBinary = true;
-            break;
+          const { readFileSync } = await import('fs');
+          let csprojContent = readFileSync(sidecarProject, 'utf8');
+
+          // Update TargetFramework based on SDK version
+          if (sdkMajor >= 9 && !csprojContent.includes('<TargetFrameworks>')) {
+            // Has SDK 9+, support both
+            csprojContent = csprojContent.replace(
+              /<TargetFramework>net8\.0<\/TargetFramework>/,
+              '<TargetFrameworks>net8.0;net9.0</TargetFrameworks>'
+            );
+            writeFileSync(sidecarProject, csprojContent);
+            this.info('Configured Roslyn sidecar for .NET 8 & 9');
+          } else if (sdkMajor < 9 && csprojContent.includes('<TargetFrameworks>')) {
+            // Has SDK 8 only, use single target
+            csprojContent = csprojContent.replace(
+              /<TargetFrameworks>net8\.0;net9\.0<\/TargetFrameworks>/,
+              '<TargetFramework>net8.0</TargetFramework>'
+            );
+            writeFileSync(sidecarProject, csprojContent);
+            this.info('Configured Roslyn sidecar for .NET 8 only');
           }
-        }
+        } catch {}
 
-        if (!isBinary) {
-          // Restore packages for dotnet run mode
+        // Auto-build the sidecar DLL files for faster startup
+        const spinner = ora('Building Roslyn sidecar...').start();
+        try {
+          execSync('dotnet build -c Debug', { cwd: sidecarDir, encoding: 'utf8', stdio: 'pipe' });
+          spinner.succeed('Roslyn sidecar built');
+          hasRoslyn = true;
+        } catch (error) {
+          spinner.fail('Failed to build Roslyn sidecar');
+          this.warning('Will fall back to dotnet run mode (slower startup)');
+          // Try restore as fallback
           try {
-            execSync(`dotnet restore`, { cwd: sidecarDir, encoding: 'utf8', stdio: 'pipe' });
+            execSync('dotnet restore', { cwd: sidecarDir, encoding: 'utf8', stdio: 'pipe' });
             this.success('Roslyn sidecar ready (dotnet run mode)');
             hasRoslyn = true;
-            this.info('Note: First run will be slower. Build for better performance:');
-            this.info(`  cd ${sidecarDir} && dotnet build -c Release`);
           } catch {
             this.warning('Roslyn sidecar not available');
           }
@@ -766,6 +679,180 @@ class SetupValidator {
       this.info(`C# support available via: ${capabilities.join(', ')}`);
     } else {
       this.error('No C# support available');
+    }
+  }
+
+  async checkParserSidecars() {
+    this.header('Parser Sidecars (Bundled Executables)');
+
+    // Check for bundled executables
+    const platform = process.platform;
+    const pythonExe = platform === 'win32' ? 'python_ast_helper.exe' : 'python_ast_helper';
+    let rid = 'linux-x64';
+    if (platform === 'win32') rid = 'win-x64';
+    else if (platform === 'darwin') rid = 'osx-x64';
+    const roslynExe = platform === 'win32' ? 'RoslynSidecar.exe' : 'RoslynSidecar';
+
+    const pythonSidecarPath = join('packages', 'code-intelligence', 'dist', 'sidecars', 'python', pythonExe);
+    const roslynSidecarPath = join('packages', 'code-intelligence', 'dist', 'sidecars', 'roslyn', rid, roslynExe);
+
+    const hasPythonSidecar = existsSync(pythonSidecarPath);
+    const hasRoslynSidecar = existsSync(roslynSidecarPath);
+
+    if (hasPythonSidecar) {
+      this.success('Python AST Helper executable found');
+    }
+
+    if (hasRoslynSidecar) {
+      this.success('Roslyn Sidecar executable found');
+    }
+
+    // Build missing sidecars if user approves
+    if (!hasPythonSidecar || !hasRoslynSidecar) {
+      this.info('Bundled executables eliminate the need for Python/dotnet on user machines');
+
+      if (!hasPythonSidecar) {
+        // Check if we can build Python executable
+        let canBuildPython = false;
+        try {
+          const python = findSystemPython();
+          canBuildPython = true;
+        } catch {}
+
+        if (!canBuildPython) {
+          this.warning('Python AST Helper executable not found');
+          this.info('Will fall back to system Python when parsing Python files');
+        } else {
+          // On Windows, check for Visual C++ Redistributable (required for PyTorch)
+          if (platform === 'win32') {
+            try {
+              // Check if vcruntime140.dll exists (indicates VC++ Redistributable is installed)
+              const vcCheck = spawnSync('where', ['vcruntime140.dll'], { stdio: 'pipe' });
+              if (vcCheck.status !== 0) {
+                this.warning('Visual C++ Redistributable not detected');
+                this.info('Visual C++ Redistributable is required for PyTorch on Windows');
+                this.info('Download and install from: https://aka.ms/vs/17/release/vc_redist.x64.exe');
+                this.info('After installing, restart your terminal and rerun setup');
+              } else {
+                this.success('Visual C++ Redistributable is installed');
+              }
+            } catch {
+              // Can't check, but don't block - user might have it installed
+              this.info('Note: Visual C++ Redistributable is required for PyTorch on Windows');
+              this.info('If PyInstaller build fails, install from: https://aka.ms/vs/17/release/vc_redist.x64.exe');
+            }
+          }
+          // Check for PyInstaller
+          const hasPyInstaller = spawnSync('pip', ['show', 'pyinstaller'], { stdio: 'ignore' }).status === 0 ||
+                                  spawnSync('pip3', ['show', 'pyinstaller'], { stdio: 'ignore' }).status === 0;
+
+          if (!hasPyInstaller && (await this.prompt('Build Python AST Helper executable? (requires PyInstaller)'))) {
+            const spinner = ora('Installing PyInstaller...').start();
+            try {
+              execSync('pip install pyinstaller', { encoding: 'utf8', stdio: 'pipe' });
+              spinner.succeed('PyInstaller installed');
+            } catch (error) {
+              spinner.fail('Failed to install PyInstaller');
+              this.warning('Skipping Python executable build');
+            }
+          }
+
+          if (hasPyInstaller || spawnSync('pip', ['show', 'pyinstaller'], { stdio: 'ignore' }).status === 0) {
+            if (await this.prompt('Build Python AST Helper executable now? (takes 1-2 minutes)')) {
+              const spinner = ora('Building Python AST Helper executable...').start();
+              try {
+                const scriptPath = join('packages', 'code-intelligence', 'scripts', 'build-python-executable.sh');
+                if (existsSync(scriptPath)) {
+                  if (platform === 'win32') {
+                    // On Windows, run the commands directly since bash might not be available
+                    const cwd = join('packages', 'code-intelligence');
+                    const srcFile = join('src', 'code-parser', 'parsers', 'python_ast_helper.py');
+                    const distDir = join('dist', 'sidecars', 'python');
+
+                    mkdirSync(distDir, { recursive: true });
+
+                    execSync(`pyinstaller --onefile --name ${pythonExe} --distpath ${distDir} ${srcFile}`, {
+                      cwd,
+                      encoding: 'utf8',
+                      stdio: 'pipe'
+                    });
+                  } else {
+                    execSync(`bash ${scriptPath}`, { encoding: 'utf8', stdio: 'pipe' });
+                  }
+                  spinner.succeed('Python AST Helper executable built!');
+                  this.successes.push('Built Python AST Helper executable');
+                } else {
+                  spinner.fail('Build script not found');
+                  this.warning(`Expected script at: ${scriptPath}`);
+                }
+              } catch (error) {
+                spinner.fail('Failed to build Python executable');
+                this.warning('Python parsing will use system Python as fallback');
+              }
+            }
+          }
+        }
+      }
+
+      if (!hasRoslynSidecar) {
+        // Check if we can build Roslyn executable
+        const hasDotnet = spawnSync('dotnet', ['--version'], { stdio: 'ignore' }).status === 0;
+
+        if (!hasDotnet) {
+          this.warning('Roslyn Sidecar executable not found');
+          this.warning('.NET SDK not installed - cannot build Roslyn sidecar');
+          this.info('Install .NET SDK 8.0+ from: https://dotnet.microsoft.com/download');
+          if (platform === 'win32') {
+            this.info('Windows: Download and install .NET 8.0 SDK, then add to PATH');
+            this.info('  After install, you may need to restart your terminal or add to PATH:');
+            this.info('  C:\\Program Files\\dotnet');
+          } else if (platform === 'darwin') {
+            this.info('macOS: Download .NET SDK from the link above or use Homebrew:');
+            this.info('  brew install dotnet');
+          } else {
+            this.info('Linux: Follow instructions at https://learn.microsoft.com/en-us/dotnet/core/install/linux');
+          }
+          this.info('Will fall back to system dotnet when parsing C# files (if available)');
+        } else {
+          if (await this.prompt('Build Roslyn Sidecar executable now? (takes 2-3 minutes)')) {
+            const spinner = ora('Building Roslyn Sidecar executable...').start();
+            try {
+              const sidecarDir = join('packages', 'code-intelligence', 'src', 'code-parser', 'sidecars', 'roslyn');
+              const outputDir = join('packages', 'code-intelligence', 'dist', 'sidecars', 'roslyn', rid);
+
+              mkdirSync(outputDir, { recursive: true });
+
+              // Use absolute path from cwd, quote it for Windows paths with spaces
+              const absoluteOutputPath = join(process.cwd(), outputDir);
+              execSync(`dotnet publish -c Release -r ${rid} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -p:IncludeNativeLibrariesForSelfExtract=true -o "${absoluteOutputPath}"`, {
+                cwd: sidecarDir,
+                encoding: 'utf8',
+                stdio: 'pipe'
+              });
+
+              spinner.succeed('Roslyn Sidecar executable built!');
+              this.successes.push('Built Roslyn Sidecar executable');
+            } catch (error) {
+              spinner.fail('Failed to build Roslyn executable');
+              this.warning('C# parsing will use dotnet fallback');
+            }
+          }
+        }
+      }
+
+      // Summary
+      const recheckhass = existsSync(pythonSidecarPath);
+      const recheckRoslyn = existsSync(roslynSidecarPath);
+
+      if (hasPythonSidecar && hasRoslynSidecar) {
+        this.success('All parser sidecars available');
+      } else if (hasPythonSidecar || hasRoslynSidecar) {
+        this.info('Some sidecars built, others will use system fallbacks');
+      } else {
+        this.info('No sidecars built - will use system Python/dotnet as fallbacks');
+      }
+    } else {
+      this.success('All parser sidecars available');
     }
   }
 
@@ -876,6 +963,27 @@ class SetupValidator {
 
     // Check and install dependencies
     if (venvExists) {
+      // On Windows, check for Visual C++ Redistributable (required for PyTorch)
+      if (process.platform === 'win32') {
+        try {
+          // Check if vcruntime140.dll exists (indicates VC++ Redistributable is installed)
+          const vcCheck = spawnSync('where', ['vcruntime140.dll'], { stdio: 'pipe' });
+          if (vcCheck.status !== 0) {
+            this.warning('Visual C++ Redistributable not detected');
+            this.warning('Visual C++ Redistributable is REQUIRED for PyTorch on Windows');
+            this.info('Download and install from: https://aka.ms/vs/17/release/vc_redist.x64.exe');
+            this.info('After installing, restart your terminal and rerun setup');
+            this.info('Skipping Python dependency installation until VC++ Redistributable is installed');
+            return;
+          } else {
+            this.success('Visual C++ Redistributable is installed');
+          }
+        } catch {
+          this.info('Note: Visual C++ Redistributable is required for PyTorch on Windows');
+          this.info('If PyTorch installation fails, install from: https://aka.ms/vs/17/release/vc_redist.x64.exe');
+        }
+      }
+
       let requirementsFile = 'requirements.txt';
       let requirementNote = 'default dependency set';
 
@@ -1199,12 +1307,10 @@ except: sys.exit(1)`;
       }
     }
 
-    // Check if TypeORM entities are built
-    if (existsSync('apps/server/dist')) {
-      this.success('Backend compiled (apps/server/dist exists)');
-    } else {
-      this.error('Backend not compiled. Run: npm run build');
-    }
+    // Note: We don't check for built artifacts here because:
+    // 1. This runs during postinstall (before any builds)
+    // 2. npm run dev handles building automatically
+    // 3. Checking build artifacts would cause setup to fail unnecessarily
   }
 
   async printSummary() {
