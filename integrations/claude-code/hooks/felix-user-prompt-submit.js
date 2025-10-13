@@ -53,8 +53,10 @@ async function main() {
     let output = '';
 
     // Search for rules based on the user's prompt (semantic search)
+    // Include hook context tag to boost rules tagged for this hook
     debugLog('Searching for rules semantically based on user prompt...');
-    const semanticResults = await searchRulesSemantic(userPrompt, 10);
+    const enhancedQuery = `${userPrompt} user-prompt-submit`;
+    const semanticResults = await searchRulesSemantic(enhancedQuery, 20);
 
     if (semanticResults && semanticResults.results) {
         debugLog('Got semantic search results, formatting...');
@@ -79,9 +81,9 @@ async function main() {
     const allRules = await getAllRules();
 
     if (allRules && allRules.applicable_rules) {
-        // Filter for high-priority constraint rules
+        // Filter for constraint rules with priority >= 5
         const constraints = allRules.applicable_rules.filter(
-            rule => rule.rule_type === 'constraint' && (rule.priority || 0) >= 8
+            rule => rule.rule_type === 'constraint' && (rule.priority || 0) >= 5
         );
 
         if (constraints.length > 0) {
@@ -99,6 +101,11 @@ async function main() {
                 output += '\n\n' + constraintMsg;
             }
         }
+    }
+
+    // Add feedback tracking request
+    if (output) {
+        output += '\n\n---\n**Note:** At the end of this task, please briefly evaluate which of these rules were most applicable and helpful to your response.';
     }
 
     // Output the context to stdout - Claude Code will add this to the conversation

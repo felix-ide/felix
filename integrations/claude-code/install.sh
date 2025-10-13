@@ -156,6 +156,17 @@ HOOKS_CONFIG=$(cat <<EOF
         }
       ]
     }
+  ],
+  "SessionEnd": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node $HOOKS_PATH_WIN\\\\felix-session-end.js"
+        }
+      ]
+    }
   ]
 }
 EOF

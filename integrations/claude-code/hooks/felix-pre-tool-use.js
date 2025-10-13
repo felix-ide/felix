@@ -90,6 +90,9 @@ async function main() {
         searchQuery += ' API endpoint REST validation error handling';
     }
 
+    // Add hook context tag to boost rules tagged for PreToolUse
+    searchQuery += ' pre-tool-use';
+
     debugLog(`Searching for rules with query: ${searchQuery}`);
 
     let output = '';
@@ -105,18 +108,20 @@ async function main() {
         const rulesArray = applicableRules.applicable_rules || [];
 
         if (rulesArray.length > 0) {
-            // Check high priority rules
-            const highPriorityRules = rulesArray
-                .filter(rule => (rule.priority || 0) >= 8)
+            // Check priority rules (>= 5)
+            const relevantRules = rulesArray
+                .filter(rule => (rule.priority || 0) >= 5)
+                .slice(0, 10) // Limit to top 10 rules
                 .map(rule => {
                     const name = rule.name || 'Rule';
+                    const priority = rule.priority || 5;
                     const guidance = (rule.guidance_text || rule.description || '').substring(0, 200);
-                    return `${name}: ${guidance}`;
+                    return `${name} (P${priority}): ${guidance}`;
                 })
                 .join('\n');
 
-            if (highPriorityRules) {
-                output += `⚠️ **Rule Warnings:**\n\n${highPriorityRules}\n`;
+            if (relevantRules) {
+                output += `⚠️ **Applicable Rules:**\n\n${relevantRules}\n`;
             }
         }
     }
@@ -125,7 +130,7 @@ async function main() {
     if (output) {
         console.error(output);
     } else {
-        console.error('🔍 Felix PreToolUse hook ran - no high-priority rules found');
+        console.error('🔍 Felix PreToolUse hook ran - no applicable rules found');
     }
 
     // Allow operation

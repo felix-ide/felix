@@ -77,76 +77,63 @@ async function main() {
     let operationType = '';
     switch (toolName) {
         case 'Write':
-            operationType = 'created new file';
+            operationType = 'file creation post-tool-use';
             break;
         case 'Edit':
-            operationType = 'modified code';
+            operationType = 'code modification refactoring post-tool-use';
             break;
         case 'MultiEdit':
-            operationType = 'bulk refactored';
+            operationType = 'bulk changes refactoring post-tool-use';
             break;
         case 'NotebookEdit':
-            operationType = 'updated notebook';
+            operationType = 'jupyter notebook data science post-tool-use';
             break;
     }
 
-    // Search for post-operation validation rules
-    let validationQuery = `code review validation ${operationType} quality check best practices`;
+    debugLog(`Searching for applicable rules for: ${operationType}`);
 
-    // Add context from file type
-    const fileExtension = filePath.split('.').pop();
-    switch (fileExtension) {
-        case 'ts':
-        case 'tsx':
-            validationQuery += ' typescript react component';
-            break;
-        case 'js':
-        case 'jsx':
-            validationQuery += ' javascript';
-            break;
-        case 'py':
-            validationQuery += ' python';
-            break;
-    }
-
-    if (filePath.includes('test') || filePath.includes('spec')) {
-        validationQuery += ' testing test coverage assertions';
-    }
-
-    debugLog(`Searching for post-operation rules: ${validationQuery}`);
-
-    // Get applicable rules and track compliance
+    // Get applicable rules that should have been considered
     const applicableRules = await getApplicableRules('file', componentId, operationType, newContent);
 
+    let output = '';
+
     if (applicableRules && applicableRules.applicable_rules) {
-        debugLog('Analyzing compliance with applicable rules...');
+        debugLog('Found applicable rules for evaluation...');
 
         const rulesArray = applicableRules.applicable_rules || [];
 
         if (rulesArray.length > 0) {
-            // Track each rule application for analytics
-            for (const rule of rulesArray) {
-                const ruleId = rule.id || 'unknown';
-                const ruleName = rule.name || 'Unknown Rule';
+            // Filter for relevant rules (priority >= 5)
+            const relevantRules = rulesArray
+                .filter(rule => (rule.priority || 0) >= 5)
+                .slice(0, 5); // Top 5 for post-operation evaluation
 
-                debugLog(`Tracking rule: ${ruleName}`);
+            if (relevantRules.length > 0) {
+                const rulesList = relevantRules
+                    .map(rule => {
+                        const name = rule.name || 'Rule';
+                        const ruleId = rule.id || '';
+                        return `- ${name} (ID: ${ruleId})`;
+                    })
+                    .join('\n');
 
-                // Track rule application for analytics (non-blocking)
-                debugLog(`Tracking rule application: ${ruleId}`);
-                trackRuleApplication(
-                    ruleId,
-                    'file',
-                    filePath,
-                    'accepted',
-                    5,
-                    newContent,
-                    operationType
-                ).catch(() => {});
+                output += `\n---\n**Rule Effectiveness Check:**\n\n`;
+                output += `For the ${toolName} operation on \`${filePath.split(/[\\/]/).pop()}\`, please briefly evaluate:\n`;
+                output += `1. Which of these rules were applicable to this change?\n`;
+                output += `2. Did you follow the guidance from these rules?\n`;
+                output += `3. Rate applicability (1-5) for each rule you considered:\n\n`;
+                output += `${rulesList}\n\n`;
+                output += `*Note: This feedback helps improve rule effectiveness tracking.*`;
             }
         }
     }
 
-    // Exit successfully (don't block or output anything to user for PostToolUse)
+    // Output evaluation prompt if we have rules to evaluate
+    if (output) {
+        console.error(output);
+    }
+
+    // Exit successfully
     process.exit(0);
 }
 
