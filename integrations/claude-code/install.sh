@@ -115,11 +115,15 @@ EOF
 fi
 
 # Create the hooks configuration with full paths
-# Convert Git Bash path to Windows path with backslashes
-HOOKS_PATH_WIN="$HOOKS_DEST_DIR"
-if [[ "$HOOKS_PATH_WIN" =~ ^/([a-z])/ ]]; then
+# Detect OS and use appropriate path format
+HOOKS_PATH="$HOOKS_DEST_DIR"
+PATH_SEP="/"
+
+# Check if running on Windows (Git Bash or MSYS)
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]] || [[ "$HOOKS_PATH" =~ ^/([a-z])/ ]]; then
     # Convert /c/Users/... to C:\Users\...
-    HOOKS_PATH_WIN=$(echo "$HOOKS_PATH_WIN" | sed 's|^/\([a-z]\)/|\1:|' | sed 's|/|\\|g')
+    HOOKS_PATH=$(echo "$HOOKS_PATH" | sed 's|^/\([a-z]\)/|\1:|' | sed 's|/|\\|g')
+    PATH_SEP="\\\\"
 fi
 
 HOOKS_CONFIG=$(cat <<EOF
@@ -130,7 +134,7 @@ HOOKS_CONFIG=$(cat <<EOF
       "hooks": [
         {
           "type": "command",
-          "command": "node $HOOKS_PATH_WIN\\\\felix-user-prompt-submit.js"
+          "command": "node $HOOKS_PATH${PATH_SEP}felix-user-prompt-submit.js"
         }
       ]
     }
@@ -141,7 +145,7 @@ HOOKS_CONFIG=$(cat <<EOF
       "hooks": [
         {
           "type": "command",
-          "command": "node $HOOKS_PATH_WIN\\\\felix-pre-tool-use.js"
+          "command": "node $HOOKS_PATH${PATH_SEP}felix-pre-tool-use.js"
         }
       ]
     }
@@ -152,7 +156,7 @@ HOOKS_CONFIG=$(cat <<EOF
       "hooks": [
         {
           "type": "command",
-          "command": "node $HOOKS_PATH_WIN\\\\felix-post-tool-use.js"
+          "command": "node $HOOKS_PATH${PATH_SEP}felix-post-tool-use.js"
         }
       ]
     }
@@ -163,7 +167,7 @@ HOOKS_CONFIG=$(cat <<EOF
       "hooks": [
         {
           "type": "command",
-          "command": "node $HOOKS_PATH_WIN\\\\felix-session-end.js"
+          "command": "node $HOOKS_PATH${PATH_SEP}felix-session-end.js"
         }
       ]
     }
