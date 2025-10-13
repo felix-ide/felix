@@ -397,8 +397,8 @@ class SetupValidator {
       this.success(`PHP installed: ${phpVersion}`);
       return true;
     } catch (error) {
-      this.critical('PHP is not installed or not in PATH - app will crash when parsing PHP files');
-      this.info('PHP is required for parsing PHP code');
+      this.warning('PHP is not installed or not in PATH - PHP parsing will be disabled');
+      this.info('PHP is optional - only needed if you plan to parse PHP files');
 
       if (process.platform === 'darwin') {
         this.info('Install PHP with: brew install php');
@@ -421,11 +421,10 @@ class SetupValidator {
           }
           spinner.succeed('PHP installed successfully');
           this.successes.push('Installed PHP');
-          this.criticalErrors = this.criticalErrors.filter(e => !e.includes('PHP'));
           return true;
         } catch (installError) {
           spinner.fail('Failed to install PHP');
-          this.error('Please install PHP manually before running the app');
+          this.info('You can install PHP manually later if needed');
           return false;
         }
       }

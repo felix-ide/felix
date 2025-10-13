@@ -126,7 +126,7 @@ export class PhpAstBridge {
         stdio: ['pipe', 'pipe', 'pipe']
       });
     } catch (error) {
-      throw new Error(`Failed to spawn PHP helper process: ${error}`);
+      throw new Error(`Failed to spawn PHP helper process. Is PHP installed? ${error}`);
     }
 
     this.process.stdin?.on('error', (error: NodeJS.ErrnoException) => {
@@ -233,4 +233,4 @@ export class PhpAstBridge {
   }
 }
 
-export const phpAstBridge = PhpAstBridge.getInstance();
+// Don't create instance on module load - let PhpParser create it lazily when needed
