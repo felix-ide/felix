@@ -32,13 +32,17 @@ const initializeMermaid = (options: MermaidRendererProps['options'] = {}) => {
 };
 
 export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, options }) => {
+  console.log('[MermaidRenderer] COMPONENT CALLED, code length:', code?.length);
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const idRef = useRef<string>(`mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const isFirstRender = useRef(true);
   const previousCodeRef = useRef<string>(code);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    console.log('[MermaidRenderer useEffect 1] Initializing, options:', options);
+    console.log('[MermaidRenderer useEffect 1] mermaid object:', typeof mermaid, mermaid);
     initializeMermaid(options);
   }, [options]);
 
@@ -54,36 +58,42 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, options 
     }
     previousCodeRef.current = code;
 
-    let isMounted = true;
     const container = ref.current;
 
     const renderMermaid = async () => {
+      console.log('[MermaidRenderer] Starting render, code:', code.substring(0, 100));
       try {
         setError(null);
 
         // Generate unique ID for this render
         const currentId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        console.log('[MermaidRenderer] Generated ID:', currentId);
 
         // Validate syntax before rendering
+        console.log('[MermaidRenderer] Parsing...');
         await mermaid.parse(code);
+        console.log('[MermaidRenderer] Parse success');
 
         // Render mermaid diagram
+        console.log('[MermaidRenderer] Rendering...');
         const { svg } = await mermaid.render(currentId, code);
+        console.log('[MermaidRenderer] Render success, SVG length:', svg.length);
 
-        // Only update DOM if component is still mounted AND we have the same container
-        if (isMounted && container && ref.current === container) {
-          // Don't clear - just set innerHTML which replaces content
-          container.innerHTML = svg;
+        // Only update DOM if ref still exists - don't check isMounted because React strict mode breaks it
+        if (ref.current) {
+          console.log('[MermaidRenderer] Setting innerHTML');
+          ref.current.innerHTML = svg;
           idRef.current = currentId;
+          console.log('[MermaidRenderer] Done');
         } else {
-          // Clean up orphaned elements if we unmounted during render
+          console.log('[MermaidRenderer] Ref is null, cleaning up');
           document.querySelectorAll(`#${currentId}, #d${currentId}`).forEach(el => el.remove());
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to render diagram';
         console.error('[MermaidRenderer] Failed to render diagram', err);
 
-        if (isMounted && container && ref.current === container) {
+        if (isMountedRef.current && container && ref.current === container) {
           setError(errorMessage);
           container.innerHTML = '';
         }
@@ -91,12 +101,17 @@ export const MermaidRenderer: React.FC<MermaidRendererProps> = ({ code, options 
     };
 
     renderMermaid();
-
-    // Cleanup function - only runs on unmount
-    return () => {
-      isMounted = false;
-    };
   }, [code]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    console.log('[MermaidRenderer useEffect unmount tracker] Mounted, setting isMountedRef to true');
+    isMountedRef.current = true;
+    return () => {
+      console.log('[MermaidRenderer useEffect unmount tracker] CLEANUP RUNNING, setting isMountedRef to false');
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return (
     <div ref={ref} className="my-2 overflow-x-auto mermaid-diagram">

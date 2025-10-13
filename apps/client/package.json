@@ -26,8 +26,6 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@felix/extended-markdown": "file:../../packages/extended-markdown",
-    "@felix/theme-system": "file:../../packages/theme-system",
     "@codemirror/lang-java": "^6.0.1",
     "@codemirror/lang-javascript": "^6.2.1",
     "@codemirror/lang-json": "^6.0.1",
@@ -38,6 +36,8 @@
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.37.2",
     "@excalidraw/excalidraw": "^0.18.0",
+    "@felix/extended-markdown": "file:../../packages/extended-markdown",
+    "@felix/theme-system": "file:../../packages/theme-system",
     "@hello-pangea/dnd": "^18.0.1",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -64,7 +64,7 @@
     "date-fns": "^4.1.0",
     "gl-matrix": "^3.4.3",
     "lucide-react": "^0.294.0",
-    "mermaid": "^10.9.3",
+    "mermaid": "^11.12.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",

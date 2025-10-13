@@ -5,6 +5,8 @@ import { cn } from '@/utils/cn';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+console.log('[MarkdownRenderer] MermaidRenderer:', MermaidRenderer, typeof MermaidRenderer);
+
 interface MarkdownRendererProps {
   content: string;
   className?: string;
@@ -99,17 +101,20 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
         ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
         li: ({ children }: any) => <li className="ml-2">{children}</li>,
         code: ({ inline, className, children }: any) => {
+          console.log('[MarkdownRenderer code] inline:', inline, 'className:', className, 'children:', String(children).substring(0, 50));
           const match = /language-(\w+)/.exec(className || '');
           const language = match ? match[1] : '';
-          
+          console.log('[MarkdownRenderer code] language:', language);
+
           // Handle mermaid with ExtendedMarkdownRenderer's MermaidRenderer
           if (!inline && language === 'mermaid') {
-            return (
-              <MermaidRenderer
-                code={String(children).replace(/\n$/, '')}
-                options={mermaidConfig}
-              />
-            );
+            console.log('[MarkdownRenderer code] Calling MermaidRenderer');
+            const codeStr = String(children).replace(/\n$/, '');
+            console.log('[MarkdownRenderer code] Code to render:', codeStr.substring(0, 50));
+            console.log('[MarkdownRenderer code] Options:', mermaidConfig);
+            const element = <MermaidRenderer code={codeStr} options={mermaidConfig} />;
+            console.log('[MarkdownRenderer code] Created element:', element);
+            return element;
           }
           
           // Use custom ExcalidrawBlock for excalidraw to maintain existing behavior
