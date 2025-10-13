@@ -91,21 +91,22 @@ export class RulesRepository {
 
       // Don't use toDbRow - TypeORM's simple-json will handle serialization
       // Pass the IRule directly and let TypeORM serialize the JSON fields
+      // Convert null to undefined for TypeORM (it doesn't accept null for optional fields)
       const ruleEntity = this.ruleRepo.create({
         id: ruleWithDepth.id,
         name: ruleWithDepth.name,
-        description: ruleWithDepth.description,
+        description: ruleWithDepth.description ?? undefined,
         rule_type: ruleWithDepth.rule_type,
-        parent_id: ruleWithDepth.parent_id,
+        parent_id: ruleWithDepth.parent_id ?? undefined,
         sort_order: ruleWithDepth.sort_order,
         depth_level: ruleWithDepth.depth_level,
         guidance_text: ruleWithDepth.guidance_text,
-        code_template: ruleWithDepth.code_template,
-        validation_script: ruleWithDepth.validation_script,
-        trigger_patterns: ruleWithDepth.trigger_patterns, // TypeORM will serialize
-        semantic_triggers: ruleWithDepth.semantic_triggers, // TypeORM will serialize
-        context_conditions: ruleWithDepth.context_conditions, // TypeORM will serialize
-        exclusion_patterns: ruleWithDepth.exclusion_patterns, // TypeORM will serialize
+        code_template: ruleWithDepth.code_template ?? undefined,
+        validation_script: ruleWithDepth.validation_script ?? undefined,
+        trigger_patterns: ruleWithDepth.trigger_patterns ?? undefined, // TypeORM will serialize
+        semantic_triggers: ruleWithDepth.semantic_triggers ?? undefined, // TypeORM will serialize
+        context_conditions: ruleWithDepth.context_conditions ?? undefined, // TypeORM will serialize
+        exclusion_patterns: ruleWithDepth.exclusion_patterns ?? undefined, // TypeORM will serialize
         priority: ruleWithDepth.priority,
         auto_apply: ruleWithDepth.auto_apply,
         merge_strategy: ruleWithDepth.merge_strategy,
@@ -113,13 +114,16 @@ export class RulesRepository {
         usage_count: ruleWithDepth.usage_count,
         acceptance_rate: ruleWithDepth.acceptance_rate,
         effectiveness_score: ruleWithDepth.effectiveness_score,
-        last_used: ruleWithDepth.last_used,
+        last_used: ruleWithDepth.last_used ?? undefined,
         created_by: ruleWithDepth.created_by,
         is_active: ruleWithDepth.active,
-        entity_links: ruleWithDepth.entity_links, // TypeORM will serialize
-        stable_tags: ruleWithDepth.stable_tags, // TypeORM will serialize
-        auto_tags: ruleWithDepth.auto_tags, // TypeORM will serialize
-        contextual_tags: ruleWithDepth.contextual_tags, // TypeORM will serialize
+        entity_links: ruleWithDepth.entity_links ?? undefined, // TypeORM will serialize
+        stable_links: ruleWithDepth.stable_links ?? undefined,
+        fragile_links: ruleWithDepth.fragile_links ?? undefined,
+        stable_tags: ruleWithDepth.stable_tags ?? undefined, // TypeORM will serialize
+        auto_tags: ruleWithDepth.auto_tags ?? undefined, // TypeORM will serialize
+        contextual_tags: ruleWithDepth.contextual_tags ?? undefined, // TypeORM will serialize
+        semantic_context: ruleWithDepth.semantic_context ?? undefined,
         created_at: ruleWithDepth.created_at,
         updated_at: ruleWithDepth.updated_at
       });
