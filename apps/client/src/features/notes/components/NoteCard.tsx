@@ -44,8 +44,24 @@ export function NoteCard({
   const [editTitle, setEditTitle] = useState(note.title || '');
   const [editContent, setEditContent] = useState(note.content);
   const [editType, setEditType] = useState(note.note_type);
-  const [editEntityLinks, setEditEntityLinks] = useState<EntityLink[]>(note.entity_links || []);
-  const [editTags, setEditTags] = useState<string[]>(note.stable_tags || []);
+
+  // Fix double-stringified data from backend
+  const parseIfString = (value: any, fallback: any = []) => {
+    if (!value) return fallback;
+    if (Array.isArray(value)) return value;
+    try {
+      return typeof value === 'string' ? JSON.parse(value) : value;
+    } catch (error) {
+      console.warn('Failed to parse JSON field:', error);
+      return fallback;
+    }
+  };
+
+  const entityLinks = parseIfString(note.entity_links, []);
+  const stableTags = parseIfString(note.stable_tags, []);
+
+  const [editEntityLinks, setEditEntityLinks] = useState<EntityLink[]>(entityLinks);
+  const [editTags, setEditTags] = useState<string[]>(stableTags);
   const [editStableLinks, setEditStableLinks] = useState<Record<string, any>>(note.stable_links || {});
   const [editFragileLinks, setEditFragileLinks] = useState<Record<string, any>>(note.fragile_links || {});
   const [newTag, setNewTag] = useState('');
@@ -62,8 +78,8 @@ export function NoteCard({
       setEditTitle(note.title || '');
       setEditContent(note.content);
       setEditType(note.note_type);
-      setEditEntityLinks(note.entity_links || []);
-      setEditTags(note.stable_tags || []);
+      setEditEntityLinks(entityLinks);
+      setEditTags(stableTags);
       setEditStableLinks(note.stable_links || {});
       setEditFragileLinks(note.fragile_links || {});
     } else if (onEdit) {
@@ -108,8 +124,8 @@ export function NoteCard({
     setEditTitle(note.title || '');
     setEditContent(note.content);
     setEditType(note.note_type);
-    setEditEntityLinks(note.entity_links || []);
-    setEditTags(note.stable_tags || []);
+    setEditEntityLinks(entityLinks);
+    setEditTags(stableTags);
     setEditStableLinks(note.stable_links || {});
     setEditFragileLinks(note.fragile_links || {});
   };
@@ -454,7 +470,7 @@ export function NoteCard({
       {!isContentExpanded && !isEditing && (
         <div className="flex items-center gap-1.5 text-xs flex-wrap">
           {/* Key metadata as nice tags */}
-          {note.entity_links && note.entity_links.length > 0 && note.entity_links.map((link, idx) => (
+          {entityLinks && entityLinks.length > 0 && entityLinks.map((link, idx) => (
             <span
               key={idx}
               className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded font-medium border"
@@ -471,7 +487,7 @@ export function NoteCard({
               </span>
             </span>
           ))}
-          {note.stable_tags && note.stable_tags.length > 0 && (
+          {stableTags && stableTags.length > 0 && (
             <span
               className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded font-medium border"
               style={{
@@ -481,7 +497,7 @@ export function NoteCard({
               }}
             >
               <Tag className="h-3 w-3" />
-              {note.stable_tags.length} {note.stable_tags.length === 1 ? 'tag' : 'tags'}
+              {stableTags.length} {stableTags.length === 1 ? 'tag' : 'tags'}
             </span>
           )}
           <span

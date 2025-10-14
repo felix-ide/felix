@@ -16,18 +16,18 @@
     "lint": "npm run lint --workspaces",
     "test": "npm run --workspaces --if-present test",
     "coverage:clean": "node ./scripts/coverage-clean.mjs",
-    "coverage:run": "npm -w @felix/extended-markdown run test:coverage && npm -w @felix/code-intelligence run test:jest -- --coverage && npm -w @felix/server run test:coverage && npm -w @felix/client test",
+    "coverage:run": "npm -w @felix/code-intelligence run test:jest -- --coverage && npm -w @felix/server run test:coverage && npm -w @felix/client test",
     "coverage:merge": "node ./scripts/merge-coverage.mjs",
     "coverage": "npm run coverage:clean && npm run coverage:run && npm run coverage:merge",
     "coverage:server:run": "npm -w @felix/code-intelligence run test:jest -- --coverage && npm -w @felix/server run test:coverage",
     "coverage:server": "npm run coverage:clean && npm run coverage:server:run && npm run coverage:merge",
     "sidecar": "node ./scripts/ensure-sidecar.mjs",
     "sidecar:stop": "node ./scripts/stop-sidecar.mjs",
-    "build:packages": "npm run build --workspace @felix/code-intelligence && npm run build --workspace @felix/extended-markdown && npm run build --workspace @felix/theme-system",
+    "build:packages": "npm run build --workspace @felix/code-intelligence && npm run build --workspace @felix/theme-system",
     "build:backend": "npm run build --workspace @felix/server",
     "dev:backend": "npm run build:packages && npm run build:backend && concurrently --kill-others-on-fail \"npm run --workspace @felix/code-intelligence dev\" \"npm run --workspace @felix/server dev\"",
-    "dev:frontend": "npm run build:packages && concurrently --kill-others-on-fail \"npm run --workspace @felix/extended-markdown dev\" \"npm run --workspace @felix/theme-system dev\" \"npm run --workspace @felix/client dev\"",
-    "dev": "npm run build:packages && npm run build:backend && concurrently --kill-others-on-fail \"npm run --workspace @felix/code-intelligence dev\" \"npm run --workspace @felix/extended-markdown dev\" \"npm run --workspace @felix/theme-system dev\" \"npm run --workspace @felix/server dev\" \"npm run --workspace @felix/client dev\""
+    "dev:frontend": "npm run build:packages && concurrently --kill-others-on-fail \"npm run --workspace @felix/theme-system dev\" \"npm run --workspace @felix/client dev\"",
+    "dev": "npm run build:packages && npm run build:backend && concurrently --kill-others-on-fail \"npm run --workspace @felix/code-intelligence dev\" \"npm run --workspace @felix/theme-system dev\" \"npm run --workspace @felix/server dev\" \"npm run --workspace @felix/client dev\""
   },
   "devDependencies": {
     "chalk": "^5.3.0",

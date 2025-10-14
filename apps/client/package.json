@@ -36,7 +36,6 @@
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.37.2",
     "@excalidraw/excalidraw": "^0.18.0",
-    "@felix/extended-markdown": "file:../../packages/extended-markdown",
     "@felix/theme-system": "file:../../packages/theme-system",
     "@hello-pangea/dnd": "^18.0.1",
     "@modelcontextprotocol/sdk": "^1.12.0",

@@ -48,8 +48,8 @@ export const useNotesStore = create<NotesStore>()(
             entityId: options.entityId,
             limit: options.limit || 50,
           });
-          
-          set({ 
+
+          set({
             notes: result.notes,
             loading: false,
           });

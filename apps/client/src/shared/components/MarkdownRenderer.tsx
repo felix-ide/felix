@@ -1,9 +1,19 @@
-import { memo, useMemo } from 'react';
-import { ExtendedMarkdownRenderer, MermaidRenderer } from '@felix/extended-markdown';
-import { MockupViewer } from '@client/features/notes/components/MockupViewer';
+import React, { memo, useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import mermaid from 'mermaid';
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
+import { php } from '@codemirror/lang-php';
+import { java } from '@codemirror/lang-java';
+import { markdown } from '@codemirror/lang-markdown';
+import { json } from '@codemirror/lang-json';
+import { EditorView } from '@codemirror/view';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { Excalidraw } from '@excalidraw/excalidraw';
+import { useTheme } from '@felix/theme-system';
 import { cn } from '@/utils/cn';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface MarkdownRendererProps {
   content: string;
@@ -11,57 +21,12 @@ interface MarkdownRendererProps {
   prose?: boolean;
 }
 
-const normalizeDiagramSource = (input: string) => {
-  const normalized = input.replace(/\r\n?/g, '\n');
-  const lines = normalized.split('\n');
-  const meaningful = lines.filter(line => line.trim().length > 0);
-  if (meaningful.length === 0) {
-    return normalized.trim();
-  }
-  const indent = meaningful.reduce((min, line) => {
-    const match = line.match(/^\s*/);
-    const current = match ? match[0].length : 0;
-    return min === null ? current : Math.min(min, current);
-  }, null as number | null);
-  if (indent && indent > 0) {
-    return lines.map(line => line.slice(Math.min(indent, line.length))).join('\n').trim();
-  }
-  return normalized.trim();
-};
-
-// Keep the original ExcalidrawBlock that uses MockupViewer for consistency
-const ExcalidrawBlock = memo(({ content }: { content: string }) => {
-  return (
-    <div className="my-2 excalidraw-embed">
-      <style>{`
-        .excalidraw-embed .App-menu__left {
-          display: none !important;
-        }
-      `}</style>
-      <MockupViewer 
-        content={content}
-        minHeight={300}
-        maxHeight={500}
-      />
-    </div>
-  );
-});
-
-export const MarkdownRenderer = memo(({ content, className, prose = true }: MarkdownRendererProps) => {
-  // Create stable key from content to prevent unnecessary re-renders
-  const contentKey = useMemo(() => {
-    // Use a hash of the content for the key to detect actual content changes
-    let hash = 0;
-    for (let i = 0; i < content.length; i++) {
-      const char = content.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return `md-${hash}`;
-  }, [content]);
-
-  const mermaidConfig = useMemo(() => ({
-    theme: 'dark' as const,
+// Initialize mermaid once globally
+let mermaidInitialized = false;
+if (!mermaidInitialized && typeof window !== 'undefined') {
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
     themeVariables: {
       primaryColor: '#3b82f6',
       primaryTextColor: '#ffffff',
@@ -70,148 +35,340 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
       sectionBkgColor: '#1f2937',
       altSectionBkgColor: '#374151',
       gridColor: '#4b5563',
-      secondaryColor: '#f59e0b',
-      tertiaryColor: '#8b5cf6',
-      fontFamily: 'Inter, sans-serif',
     },
-    securityLevel: 'loose' as const,
-  }) as const, []);
+    securityLevel: 'loose',
+  });
+  mermaidInitialized = true;
+}
 
-  const excalidrawConfig = useMemo(() => ({
-    theme: 'light' as const,
-    viewModeEnabled: true,
-    minHeight: 300,
-    maxHeight: 500,
-  }), []);
+// Get the appropriate language extension for CodeMirror
+const getLanguageExtension = (language: string) => {
+  switch (language) {
+    case 'javascript':
+    case 'js':
+    case 'jsx':
+    case 'typescript':
+    case 'ts':
+    case 'tsx':
+      return javascript({ jsx: true, typescript: true });
+    case 'python':
+    case 'py':
+      return python();
+    case 'php':
+      return php();
+    case 'java':
+      return java();
+    case 'markdown':
+    case 'md':
+      return markdown();
+    case 'json':
+      return json();
+    default:
+      // Default to javascript for unknown languages
+      return javascript();
+  }
+};
 
-  const options = useMemo(() => ({
-    mermaid: mermaidConfig,
-    excalidraw: excalidrawConfig,
-  }), [mermaidConfig, excalidrawConfig]);
+// Mermaid diagram component
+const MermaidDiagram = ({ code }: { code: string }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const components = useMemo(() => ({
-        // Customize markdown components to fit in cards  
-        h1: ({ children }: any) => <h3 className="text-base font-semibold mt-2 mb-1">{children}</h3>,
-        h2: ({ children }: any) => <h4 className="text-sm font-semibold mt-2 mb-1">{children}</h4>,
-        h3: ({ children }: any) => <h5 className="text-sm font-medium mt-1 mb-1">{children}</h5>,
-        p: ({ children }: any) => <p className="mb-2">{children}</p>,
-        ul: ({ children }: any) => <ul className="list-disc list-inside mb-2">{children}</ul>,
-        ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
-        li: ({ children }: any) => <li className="ml-2">{children}</li>,
-        code: ({ inline, className, children }: any) => {
-          console.log('[MarkdownRenderer code] inline:', inline, 'className:', className, 'children:', String(children).substring(0, 50));
-          const match = /language-(\w+)/.exec(className || '');
-          const language = match ? match[1] : '';
-          console.log('[MarkdownRenderer code] language:', language);
+  useEffect(() => {
+    if (!containerRef.current || !code) return;
 
-          // Handle mermaid with ExtendedMarkdownRenderer's MermaidRenderer
-          if (!inline && language === 'mermaid') {
-            console.log('[MarkdownRenderer code] Calling MermaidRenderer');
-            const codeStr = String(children).replace(/\n$/, '');
-            console.log('[MarkdownRenderer code] Code to render:', codeStr.substring(0, 50));
-            console.log('[MarkdownRenderer code] Options:', mermaidConfig);
-            const element = <MermaidRenderer code={codeStr} options={mermaidConfig} />;
-            console.log('[MarkdownRenderer code] Created element:', element);
-            return element;
-          }
-          
-          // Use custom ExcalidrawBlock for excalidraw to maintain existing behavior
-          if (!inline && language === 'excalidraw') {
-            const content = normalizeDiagramSource(String(children));
-            try {
-              JSON.parse(content);
-              return <ExcalidrawBlock content={content} />;
-            } catch (e) {
-              return (
-                <div className="text-red-500 p-2 border border-red-200 rounded text-xs my-2">
-                  <strong>Excalidraw Error:</strong> Invalid JSON content
-                </div>
-              );
+    const renderDiagram = async () => {
+      try {
+        setError(null);
+        const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // Clear previous content
+        containerRef.current.innerHTML = '';
+
+        // Render new diagram
+        const { svg } = await mermaid.render(id, code);
+
+        if (containerRef.current) {
+          containerRef.current.innerHTML = svg;
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to render diagram';
+        console.error('Mermaid error:', err);
+        setError(message);
+        if (containerRef.current) {
+          containerRef.current.innerHTML = '';
+        }
+      }
+    };
+
+    renderDiagram();
+  }, [code]);
+
+  if (error) {
+    return (
+      <div className="my-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <p className="text-sm text-red-700 dark:text-red-400 font-medium">Mermaid Error</p>
+        <p className="text-xs text-red-600 dark:text-red-500 mt-1">{error}</p>
+        <details className="mt-2">
+          <summary className="text-xs text-red-600 dark:text-red-500 cursor-pointer">Show code</summary>
+          <pre className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded text-xs overflow-x-auto">
+            {code}
+          </pre>
+        </details>
+      </div>
+    );
+  }
+
+  return <div ref={containerRef} className="my-3 overflow-x-auto mermaid-diagram" />;
+};
+
+// CodeBlock component with CodeMirror
+const CodeBlock = ({ code, language }: { code: string; language?: string }) => {
+  const { theme } = useTheme();
+  const extensions = language ? [getLanguageExtension(language), EditorView.lineWrapping] : [EditorView.lineWrapping];
+  const isDark = theme?.type === 'dark';
+
+  return (
+    <div className="my-3 rounded-lg border border-gray-700 dark:border-gray-600 overflow-hidden">
+      <CodeMirror
+        value={code}
+        height="auto"
+        maxHeight="500px"
+        extensions={extensions}
+        theme={isDark ? oneDark : undefined}
+        editable={false}
+        basicSetup={{
+          lineNumbers: true,
+          foldGutter: true,
+          highlightActiveLine: false,
+          searchKeymap: false,
+          completionKeymap: false,
+        }}
+      />
+    </div>
+  );
+};
+
+// Excalidraw diagram component
+const ExcalidrawDiagram = ({ content }: { content: string }) => {
+  const { theme } = useTheme();
+  const isDark = theme?.type === 'dark';
+  const [error, setError] = useState<string | null>(null);
+
+  try {
+    const data = JSON.parse(content);
+
+    // Excalidraw expects specific data format
+    const initialData = {
+      elements: data.elements || [],
+      appState: {
+        ...data.appState,
+        theme: isDark ? 'dark' : 'light',
+        viewModeEnabled: true,
+        zenModeEnabled: false,
+        gridModeEnabled: false,
+      },
+      scrollToContent: true,
+      libraryItems: data.libraryItems || [],
+    };
+
+    return (
+      <div className="my-3 border border-gray-700 dark:border-gray-600 rounded-lg overflow-hidden" style={{ height: '400px' }}>
+        <Excalidraw
+          initialData={initialData}
+          viewModeEnabled={true}
+          zenModeEnabled={false}
+          gridModeEnabled={false}
+          theme={isDark ? 'dark' : 'light'}
+          UIOptions={{
+            canvasActions: {
+              export: false,
+              loadScene: false,
+              saveScene: false,
+              saveAsImage: false,
+              saveToActiveFile: false,
+              toggleTheme: false,
+              changeViewBackgroundColor: false,
+            },
+          }}
+        />
+      </div>
+    );
+  } catch (err) {
+    return (
+      <div className="my-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <p className="text-sm text-red-700 dark:text-red-400 font-medium">Excalidraw Error</p>
+        <p className="text-xs text-red-600 dark:text-red-500 mt-1">
+          {err instanceof Error ? err.message : 'Invalid Excalidraw data format'}
+        </p>
+        <details className="mt-2">
+          <summary className="text-xs text-red-600 dark:text-red-500 cursor-pointer">Show content</summary>
+          <pre className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded text-xs overflow-x-auto">
+            {content}
+          </pre>
+        </details>
+      </div>
+    );
+  }
+};
+
+export const MarkdownRenderer = memo(({ content, className, prose = true }: MarkdownRendererProps) => {
+  return (
+    <ReactMarkdown
+      className={cn(
+        prose && 'prose prose-sm dark:prose-invert max-w-none',
+        className
+      )}
+      remarkPlugins={[remarkGfm]}
+      components={{
+        // Headers - smaller for card context
+        h1: ({ children }) => <h3 className="text-lg font-semibold mt-3 mb-2">{children}</h3>,
+        h2: ({ children }) => <h4 className="text-base font-semibold mt-3 mb-2">{children}</h4>,
+        h3: ({ children }) => <h5 className="text-sm font-medium mt-2 mb-1">{children}</h5>,
+        h4: ({ children }) => <h6 className="text-sm font-medium mt-2 mb-1">{children}</h6>,
+
+        // Paragraph
+        p: ({ children }) => <p className="mb-2">{children}</p>,
+
+        // Lists
+        ul: ({ children }) => <ul className="list-disc list-inside mb-2 ml-2">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 ml-2">{children}</ol>,
+        li: ({ children }) => <li className="mb-0.5">{children}</li>,
+
+        // Blockquote
+        blockquote: ({ children }) => (
+          <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-3">
+            {children}
+          </blockquote>
+        ),
+
+        // Code blocks - handle both inline and block
+        code: ({ inline, className, children, ...props }) => {
+          // Check if this is a code block with a language
+          if (!inline && className) {
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match ? match[1] : '';
+
+            // Handle special diagram types
+            if (language === 'mermaid') {
+              const code = String(children).replace(/\n$/, '');
+              // Clean up any JSON comments that might have leaked through
+              const cleanCode = code.replace(/\/\/\s*JSON string/g, '');
+              return <MermaidDiagram code={cleanCode} />;
             }
+
+            if (language === 'excalidraw') {
+              const content = String(children).replace(/\n$/, '');
+              return <ExcalidrawDiagram content={content} />;
+            }
+
+            // Use CodeMirror for regular code blocks
+            const code = String(children).replace(/\n$/, '');
+            return <CodeBlock code={code} language={language} />;
           }
-          
-          // Default code rendering with syntax highlighting
+
+          // Inline code
           if (inline) {
             return (
-              <code className="px-1 py-0.5 bg-card rounded text-xs">
+              <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
                 {children}
               </code>
             );
           }
 
-          // For code blocks, use SyntaxHighlighter
-          return (
-            <SyntaxHighlighter
-              language={language || 'typescript'}
-              style={vscDarkPlus}
-              showLineNumbers
-              PreTag="div"
-              className="text-xs rounded-md !max-w-full"
-              customStyle={{
-                margin: 0,
-                padding: '0.75rem',
-                fontSize: '0.75rem',
-                backgroundColor: 'hsl(var(--card))',
-                maxWidth: '100%',
-                overflowX: 'auto',
-              }}
-              codeTagProps={{
-                style: {
-                  maxWidth: '100%',
-                }
-              }}
-            >
-              {String(children).replace(/\n$/, '')}
-            </SyntaxHighlighter>
-          );
+          // Block code without language - use CodeBlock without highlighting
+          const code = String(children).replace(/\n$/, '');
+          return <CodeBlock code={code} />;
         },
-        blockquote: ({ children }: any) => (
-          <blockquote className="border-l-2 border-primary/50 pl-2 italic my-2">
-            {children}
-          </blockquote>
-        ),
+
+        // Pre tag wrapper - skip it since CodeMirror handles its own wrapper
+        pre: ({ children }) => {
+          // Check if the child is our custom code component (CodeBlock/MermaidDiagram/etc)
+          // If so, return it directly without wrapping in pre
+          if (React.isValidElement(children) && (
+            children.type === CodeBlock ||
+            children.type === MermaidDiagram ||
+            children.type === ExcalidrawDiagram
+          )) {
+            return children;
+          }
+          // For anything else, just return the children (the code component will handle it)
+          return <>{children}</>;
+        },
+
         // Tables
-        table: ({ children }: any) => (
-          <div className="overflow-x-auto my-2">
-            <table className="min-w-full border border-border text-xs">
+        table: ({ children }) => (
+          <div className="overflow-x-auto my-3">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               {children}
             </table>
           </div>
         ),
-        th: ({ children }: any) => (
-          <th className="border border-border px-2 py-1 bg-muted font-semibold text-left">
+        thead: ({ children }) => (
+          <thead className="bg-gray-50 dark:bg-gray-800">{children}</thead>
+        ),
+        tbody: ({ children }) => (
+          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+            {children}
+          </tbody>
+        ),
+        tr: ({ children }) => <tr>{children}</tr>,
+        th: ({ children }) => (
+          <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
             {children}
           </th>
         ),
-        td: ({ children }: any) => (
-          <td className="border border-border px-2 py-1">
+        td: ({ children }) => (
+          <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
             {children}
           </td>
         ),
+
         // Links
-        a: ({ href, children }: any) => (
+        a: ({ href, children }) => (
           <a
             href={href}
-            className="text-primary hover:text-primary/80 underline"
+            className="text-blue-600 dark:text-blue-400 hover:underline"
             target="_blank"
             rel="noopener noreferrer"
           >
             {children}
           </a>
         ),
-  }), [mermaidConfig]);
 
-  return (
-    <ExtendedMarkdownRenderer
-      key={contentKey}
-      content={content}
-      className={cn(
-        prose && 'prose prose-sm  max-w-none text-sm text-muted-foreground',
-        className
-      )}
-      prose={prose}
-      options={options}
-      components={components}
-    />
+        // Horizontal rule
+        hr: () => <hr className="my-4 border-gray-300 dark:border-gray-600" />,
+
+        // Images
+        img: ({ src, alt }) => (
+          <img
+            src={src}
+            alt={alt}
+            className="max-w-full h-auto rounded-lg my-3"
+            loading="lazy"
+          />
+        ),
+
+        // Task lists (GitHub Flavored Markdown)
+        input: ({ type, checked, ...props }) => {
+          if (type === 'checkbox') {
+            return (
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled
+                className="mr-2"
+                {...props}
+              />
+            );
+          }
+          return <input type={type} {...props} />;
+        },
+      }}
+    >
+      {content}
+    </ReactMarkdown>
   );
 });
+
+MarkdownRenderer.displayName = 'MarkdownRenderer';

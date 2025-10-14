@@ -86,7 +86,28 @@ export class NotesRepository {
       const note = await this.repository.findOne({ where: { id } });
       if (!note) return null;
 
-      return this.convertToINote(note);
+      // Debug: Log raw note from TypeORM
+      logger.debug('Raw note from DB:', {
+        id: note.id,
+        entity_links_type: typeof note.entity_links,
+        entity_links_value: note.entity_links,
+        stable_tags_type: typeof note.stable_tags,
+        stable_tags_value: note.stable_tags
+      });
+
+      const converted = this.convertToINote(note);
+
+      // Debug: Log converted note
+      logger.debug('Converted note:', {
+        id: converted.id,
+        entity_links_type: typeof converted.entity_links,
+        entity_links_value: converted.entity_links,
+        tags_type: typeof converted.tags,
+        tags_stable_type: typeof converted.tags?.stable_tags,
+        tags_stable_value: converted.tags?.stable_tags
+      });
+
+      return converted;
     } catch (error) {
       return null;
     }
@@ -374,25 +395,20 @@ export class NotesRepository {
    * Handles legacy double-stringified data from old format
    */
   private convertToINote(note: Note): INote {
-    // Helper to parse double-stringified legacy data
-    const parseIfString = (value: any, fallback: any = []) => {
-      if (!value) return fallback;
-      try {
-        return typeof value === 'string' ? JSON.parse(value) : value;
-      } catch (error) {
-        logger.warn('Failed to parse JSON field:', error);
-        return fallback;
-      }
-    };
-
     return {
       id: note.id,
       parent_id: note.parent_id,
       title: note.title || '',
       content: note.content,
       note_type: note.note_type as any,
-      entity_links: parseIfString(note.entity_links, []),
-      stable_tags: parseIfString(note.stable_tags, []),
+      // TypeORM's simple-json already handles parsing, no need for parseIfString
+      entity_links: note.entity_links || [],
+      // INote expects tags object with stable_tags inside
+      tags: {
+        stable_tags: note.stable_tags || [],
+        auto_tags: note.auto_tags || [],
+        contextual_tags: note.contextual_tags || []
+      },
       sort_order: note.sort_order,
       depth_level: note.depth_level,
       created_at: note.created_at,
