@@ -244,40 +244,39 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
 
         // Code blocks - handle both inline and block
         code: ({ inline, className, children, ...props }) => {
+          const code = String(children).replace(/\n$/, '');
+          const isMultiline = code.includes('\n');
+
+          // Inline code - single backticks
+          if (inline || !isMultiline) {
+            return (
+              <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-xs font-mono">
+                {children}
+              </code>
+            );
+          }
+
           // Check if this is a code block with a language
-          if (!inline && className) {
+          if (className) {
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : '';
 
             // Handle special diagram types
             if (language === 'mermaid') {
-              const code = String(children).replace(/\n$/, '');
               // Clean up any JSON comments that might have leaked through
               const cleanCode = code.replace(/\/\/\s*JSON string/g, '');
               return <MermaidDiagram code={cleanCode} />;
             }
 
             if (language === 'excalidraw') {
-              const content = String(children).replace(/\n$/, '');
-              return <ExcalidrawDiagram content={content} />;
+              return <ExcalidrawDiagram content={code} />;
             }
 
             // Use CodeMirror for regular code blocks
-            const code = String(children).replace(/\n$/, '');
             return <CodeBlock code={code} language={language} />;
           }
 
-          // Inline code
-          if (inline) {
-            return (
-              <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
-                {children}
-              </code>
-            );
-          }
-
           // Block code without language - use CodeBlock without highlighting
-          const code = String(children).replace(/\n$/, '');
           return <CodeBlock code={code} />;
         },
 

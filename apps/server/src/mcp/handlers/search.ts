@@ -106,6 +106,49 @@ export async function handleSearchTools(request: SearchToolRequest) {
         searchResults = { ...searchResults, results: filtered };
       }
 
+      // Filter by Knowledge Base if kb_ids specified
+      const kbIds = ensureArray<string>(searchRequest.kb_ids) ?? [];
+      if (kbIds.length > 0) {
+        const { DatabaseManager } = await import('../../features/storage/DatabaseManager.js');
+        const { KnowledgeBase } = await import('../../features/storage/entities/metadata/KnowledgeBase.entity.js');
+
+        const dbManager = DatabaseManager.getInstance(request.project);
+        await dbManager.initialize();
+        const kbRepo = dbManager.getMetadataDataSource().getRepository(KnowledgeBase);
+        const notesRepo = dbManager.getNotesRepository();
+
+        // Helper function to recursively get all descendant note IDs
+        async function getAllDescendants(parentId: string, visited = new Set<string>()): Promise<Set<string>> {
+          if (visited.has(parentId)) return visited;
+          visited.add(parentId);
+          const childIds = await notesRepo.getNoteChildren(parentId);
+          for (const childId of childIds) {
+            await getAllDescendants(childId, visited);
+          }
+          return visited;
+        }
+
+        // Get all allowed note IDs from the specified KBs
+        const allowedNoteIds = new Set<string>();
+        for (const kbId of kbIds) {
+          const kb = await kbRepo.findOne({ where: { id: kbId } });
+          if (kb) {
+            const descendants = await getAllDescendants(kb.root_note_id);
+            descendants.forEach(id => allowedNoteIds.add(id));
+          }
+        }
+
+        // Filter search results to only include notes in the allowed KBs
+        const filtered = searchResults.results.filter((r: any) => {
+          if (r.entityType === 'note') {
+            return allowedNoteIds.has(r.entity?.id);
+          }
+          // Keep non-note entities
+          return true;
+        });
+        searchResults = { ...searchResults, results: filtered };
+      }
+
       const { ContentOptimizer } = await import('@felix/code-intelligence');
       const tokenLimit = searchRequest.context_window_size || 25000;
       const optimizer = new ContentOptimizer({

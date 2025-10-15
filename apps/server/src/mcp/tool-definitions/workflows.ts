@@ -2,44 +2,24 @@ import type { McpToolDefinition } from './common.js';
 
 export const WORKFLOWS_TOOL: McpToolDefinition = {
   name: 'workflows',
-  description: `Workflow configuration and task validation. Workflows are templates that define requirements for different task types.
+  description: `Admin tool for configuring workflow templates that define task requirements. Most users don't need this - tasks tool provides automatic validation and guidance.
 
-What this tool does:
-- Validates tasks against workflow requirements (most common use)
-- Configures workflow definitions and status flows (admin/setup)
-- Most projects have workflows pre-configured - use 'list' to see available workflows
+PURPOSE: Define what makes a task "spec ready" per task type. System validates tasks against these rules.
 
-Common validation workflow:
-1. User creates task with tasks tool (action: add)
-2. Optionally validate with workflows tool (action: validate) to check spec readiness
-3. Tasks tool automatically includes validation in add/update responses
+Required: project, action
+Validation(for checking): validate(task), scaffold(task_id,sections[],dry_run=T)
+Config(admin only): list|get(workflow_name), create(workflow), update(workflow_name,updates), delete(workflow_name)
+Defaults: get_default, set_default(workflow_name), reseed(force=F)
+Mappings: set_type_mapping(task_type,workflow_name), get_type_mapping, resolve(task_type)
+Status System: list_statuses, upsert_status, delete_status, list_status_flows, upsert_status_flow, get_flow_mapping, set_flow_mapping
 
-Actions:
-Validation:
-- validate: Check if task meets workflow requirements {is_valid, completion_percentage, missing_requirements, can_override}
-  Note: Pass childTasks array in task object to validate child_requirements (e.g., task: { childTasks: [{id, task_type, task_status}] })
-- scaffold: Get guidance for missing requirements (dry_run=true default, set false to create items)
+HOW IT WORKS:
+- Workflows define requirements: notes (with diagram types), checklists (with min counts), rules, child tasks
+- Tasks tool auto-validates against assigned workflow
+- Validation blocks status=in_progress until spec_state=spec_ready
+- Use tasks tool for normal work; use workflows tool to customize requirements
 
-Configuration (admin):
-- list/get: View available workflows
-- create: Define new workflow template (fails if name exists - use update instead)
-- update: Modify existing workflow definition
-- delete: Remove workflow definition
-- get_default/set_default: Default workflow for new tasks
-- set_type_mapping/get_type_mapping: Map task types to workflows
-- resolve: Get workflow for a task type
-
-Status management:
-- list_statuses/upsert_status/delete_status: Define available task statuses
-- list_status_flows/upsert_status_flow/delete_status_flow: Define status progressions
-- get_flow_mapping/set_flow_mapping: Map task types to status flows
-
-Example workflow requirements (feature_development):
-- Notes: Architecture (mermaid), ERD (erDiagram), API Contract (openapi 3.1)
-- Checklists: "Acceptance Criteria" (≥3 G/W/T), "Implementation Checklist" (≥3), "Test Verification" (≥2 unit+integration/e2e), "Regression Testing" (≥1)
-- Rules: entity_links with ≥1 {entity_type:'rule', entity_id}
-- Child Requirements: Tasks can require specific child tasks (e.g., feature requires child tasks of type 'task' using 'simple' workflow)
-`,
+TYPICAL USE: Most users never touch this - just use tasks tool. Advanced users customize workflows for team standards.`,
   // Quick Ref for AIs:
   // Spec Readiness (feature_development):
   // - Architecture note (documentation + mermaid)

@@ -33,6 +33,7 @@ import knowledgeGraphRoutes from './server/routes/knowledgeGraphRoutes.js';
 import embeddingRoutes from './server/routes/embeddingRoutes.js';
 import workflowRoutes from './server/routes/workflowRoutes.js';
 import helpRoutes from './server/routes/helpRoutes.js';
+import kbRoutes from './server/routes/kbRoutes.js';
 
 // MCP server setup
 import { setupMCPRoutesHttpStreaming } from './server/mcpServerHttpStreaming.js';
@@ -106,6 +107,7 @@ app.use('/api', knowledgeGraphRoutes);
 app.use('/api', embeddingRoutes);
 app.use('/api', workflowRoutes);
 app.use('/api', helpRoutes);
+app.use('/api', kbRoutes);
 
 // Project API
 app.post('/api/project', async (req, res) => {

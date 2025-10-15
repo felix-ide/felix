@@ -25,11 +25,12 @@ export { GlobalWorkflowSetting } from './GlobalWorkflowSetting.entity.js';
 export { TransitionGate } from './TransitionGate.entity.js';
 export { TaskStatus } from './TaskStatus.entity.js';
 export { TaskStatusFlow } from './TaskStatusFlow.entity.js';
+export { KnowledgeBase } from './KnowledgeBase.entity.js';
 
 // Array of all metadata entities for DataSource configuration
 export const METADATA_ENTITIES = [
   'Task',
-  'Note', 
+  'Note',
   'Rule',
   'TaskDependency',
   'TaskCodeLink',
@@ -40,5 +41,6 @@ export const METADATA_ENTITIES = [
   'GlobalWorkflowSetting',
   'TransitionGate',
   'TaskStatus',
-  'TaskStatusFlow'
+  'TaskStatusFlow',
+  'KnowledgeBase'
 ];

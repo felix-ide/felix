@@ -33,6 +33,7 @@ export interface ValidationRule {
 @Entity('workflow_configurations')
 @Index('idx_workflow_default', ['is_default'])
 @Index('idx_workflow_name', ['name'], { unique: true })
+@Index('idx_workflow_system', ['is_system'])
 export class WorkflowConfiguration {
   @PrimaryColumn({ type: 'text' })
   id!: string;
@@ -48,6 +49,12 @@ export class WorkflowConfiguration {
 
   @Column({ type: 'boolean', default: false })
   is_default!: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  is_system!: boolean; // true for built-in workflows, false for user-customized
+
+  @Column({ type: 'text', nullable: true })
+  system_version?: string; // Version of the system workflow (e.g., "1.0.0")
 
   @Column({ type: 'simple-json' })
   required_sections!: RequiredSection[] | string;

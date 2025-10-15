@@ -6,7 +6,6 @@
 const {
     debugLog,
     searchRulesSemantic,
-    getAllRules,
     formatRulesAsMarkdown,
     trackRuleDiscovery,
     validateEnvironment
@@ -76,36 +75,9 @@ async function main() {
         }
     }
 
-    // Get high-priority constraint rules
-    debugLog('Fetching high-priority rules...');
-    const allRules = await getAllRules();
-
-    if (allRules && allRules.applicable_rules) {
-        // Filter for constraint rules with priority >= 5
-        const constraints = allRules.applicable_rules.filter(
-            rule => rule.rule_type === 'constraint' && (rule.priority || 0) >= 5
-        );
-
-        if (constraints.length > 0) {
-            debugLog('Found high-priority constraint rules');
-
-            let constraintMsg = '⚠️ **Active Constraints:**\n\n';
-            for (const rule of constraints) {
-                const name = rule.name || 'Rule';
-                const priority = rule.priority || 5;
-                const guidance = rule.guidance_text || rule.description || '';
-                constraintMsg += `• **${name}** (Priority: ${priority})\n  ${guidance}\n`;
-            }
-
-            if (constraints.length > 0) {
-                output += '\n\n' + constraintMsg;
-            }
-        }
-    }
-
-    // Add feedback tracking request
+    // Add tracking instruction for AI
     if (output) {
-        output += '\n\n---\n**Note:** At the end of this task, please briefly evaluate which of these rules were most applicable and helpful to your response.';
+        output += '\n\n---\n**Tracking:** After completing this task, use the mcp__felix__rules tool (action=track_application) to record which rules were most helpful:\n- Set track_entity_type="task", track_entity_id=<task_context>\n- Set user_action: "accepted" (rule was followed), "modified" (partially used), "rejected" (not applicable), or "ignored"\n- Set feedback_score: 1-5 (1=not helpful, 5=very helpful)\n- Include applied_context with details on how the rule was applied\nThis data improves rule recommendations for future tasks.';
     }
 
     // Output the context to stdout - Claude Code will add this to the conversation

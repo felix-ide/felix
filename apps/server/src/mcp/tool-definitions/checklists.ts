@@ -2,11 +2,19 @@ import type { McpToolDefinition } from './common.js';
 
 export const CHECKLISTS_TOOL: McpToolDefinition = {
   name: 'checklists',
-  description: `Checklists (compact). Manage named checklists for a task.
+  description: `Task checklist management. Create named checklists for tasks with toggleable items. Idempotent operations.
 
-Actions: add | update | toggle_item | add_item | remove_item | delete | get_progress.
-Idempotency: add/update are idempotent by checklist name; toggle is reversible.
-Reference: items belong to a task via task_id + checklist name.`,
+PURPOSE: Track subtasks, acceptance criteria, test verification within tasks. Workflows validate checklist completeness.
+
+Required: project, action(add|update|toggle_item|add_item|remove_item|delete|get_progress), task_id*
+Checklist: name(add), checklist_name(update/toggle/add_item/remove_item/delete), new_name(update), items[]
+Items: item_index|item_text(toggle/remove), text(add_item), position(add_item)
+
+IDEMPOTENT: add/update by name - can safely re-run. Toggle is reversible.
+WORKFLOWS: Tasks need specific checklists for spec_ready (Acceptance Criteria, Implementation, Test Verification, Regression)
+EXAMPLE: Add "Acceptance Criteria" checklist with 3 Given/When/Then items, workflow validates minimum count
+
+Items belong to task via task_id+checklist_name combination.`,
   inputSchema: {
     type: 'object',
     properties: {

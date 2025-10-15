@@ -113,22 +113,39 @@ export async function handleTasksTools(request: TasksToolRequest) {
         responseText += `\n\n✓ Workflow auto-corrected from '${workflow}' to '${defaultWorkflow}' to match parent requirements.`;
       }
 
-      if (!skip_validation) {
-        const { WorkflowService } = await import('../../features/workflows/services/WorkflowService.js');
-        const db: any = (projectInfo.codeIndexer as any).dbManager;
-        const wfSvc = new WorkflowService(db);
-        const validationStatus = await wfSvc.validate(newTask as any, (newTask as any).workflow);
-        if (!validationStatus.is_valid) {
-          responseText += `\n\n⚠️ WORKFLOW WARNING: Task violates user guidelines for task management.\n`;
-          responseText += `Missing required components:\n`;
-          validationStatus.missing_requirements.forEach((req: any) => { responseText += `- ${req.action_needed}\n`; });
-          responseText += `\nAdd these immediately to comply with user expectations.`;
-        }
-      }
-
+      // Generate comprehensive guidance
       const { GuidanceService } = await import('../../features/workflows/services/GuidanceService.js');
       const gsvc = new GuidanceService((projectInfo.codeIndexer as any).dbManager);
       const guidance = await gsvc.build(newTask as any);
+
+      // Format guidance into actionable text instructions
+      if (!skip_validation && !guidance.progress.is_minimum_met) {
+        responseText += `\n\n━━━ MINIMUM REQUIREMENTS (${guidance.requirements.minimum.length}) ━━━\n`;
+        responseText += `Progress: ${guidance.progress.completion_percentage.toFixed(0)}% complete\n`;
+        responseText += `${guidance.instructions.summary}\n\n`;
+
+        guidance.instructions.tool_calls.forEach((toolCall: any, i: number) => {
+          responseText += `${i + 1}. ${toolCall.description.toUpperCase()}\n`;
+          responseText += `   Tool: ${toolCall.tool}\n`;
+          responseText += `   ${toolCall.notes}\n\n`;
+          responseText += `   Example:\n`;
+          const exampleLines = JSON.stringify(toolCall.params, null, 2).split('\n');
+          exampleLines.forEach((line: string) => {
+            responseText += `   ${line}\n`;
+          });
+          responseText += `\n`;
+        });
+
+        responseText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        responseText += `NOTE: These are MINIMUMS. Exceed them for production quality.\n`;
+
+        if (guidance.tips && guidance.tips.length > 0) {
+          responseText += `\nTIPS:\n`;
+          guidance.tips.forEach((tip: string) => {
+            responseText += `• ${tip}\n`;
+          });
+        }
+      }
 
       return { content: [createTextContent(responseText), createJsonContent({ guidance })] };
     }
@@ -182,18 +199,27 @@ export async function handleTasksTools(request: TasksToolRequest) {
                 taskWorkflow = DEFAULT_WORKFLOW_CONFIG.default_workflow;
               }
             }
-            const { WorkflowService } = await import('../../features/workflows/services/WorkflowService.js');
             const { GuidanceService } = await import('../../features/workflows/services/GuidanceService.js');
             const db: any = (projectInfo.codeIndexer as any).dbManager;
-            const wfSvc = new WorkflowService(db);
             const guideSvc = new GuidanceService(db);
-            const validationStatus = await wfSvc.validate(fullTask as any, taskWorkflow);
             const guidance = await guideSvc.build({ ...(fullTask as any), workflow: taskWorkflow } as any);
-            if (!validationStatus.is_valid) responseText += `\n\n⚠️ WORKFLOW WARNING: Missing items remain. See guidance JSON for exact actions.`;
+
+            // Format guidance if requirements remain
+            if (!guidance.progress.is_minimum_met) {
+              responseText += `\n\n━━━ REMAINING REQUIREMENTS (${guidance.requirements.minimum.length}) ━━━\n`;
+              responseText += `Progress: ${guidance.progress.completion_percentage.toFixed(0)}% complete\n\n`;
+              guidance.instructions.next_steps.forEach((step: string, i: number) => {
+                responseText += `${i + 1}. ${step}\n`;
+              });
+              responseText += `\nSee guidance JSON for tool examples.`;
+            } else {
+              responseText += `\n\n✅ All minimum requirements met (${guidance.progress.completion_percentage.toFixed(0)}%)`;
+            }
+
             return {
               content: [
                 createTextContent(responseText),
-                createJsonContent({ task: updatedTask, validation: validationStatus, guidance })
+                createJsonContent({ task: updatedTask, guidance })
               ]
             };
           }

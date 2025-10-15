@@ -18,8 +18,33 @@ export async function handleNotesTools(request: NotesToolRequest) {
       return { content: [createJsonContent(pack)] };
     }
     case 'add': {
-      const { title, content, note_type, entity_links, stable_tags, parent_id } = request as NotesAddRequest;
-      if (!content) throw new Error('Content is required for add action');
+      const { title, content, note_type, entity_links, stable_tags, parent_id, kb_template } = request as NotesAddRequest & { kb_template?: string };
+
+      // Handle KB template creation
+      if (kb_template) {
+        const { KBBuilder } = await import('../../features/knowledge-base/KBBuilder.js');
+        const { DatabaseManager } = await import('../../features/storage/DatabaseManager.js');
+
+        const dbManager = DatabaseManager.getInstance(request.project);
+        await dbManager.initialize();
+        const notesRepo = dbManager.getNotesRepository();
+        const rulesRepo = dbManager.getRulesRepository();
+        const metadataDataSource = dbManager.getMetadataDataSource();
+        const kbBuilder = new KBBuilder(notesRepo, rulesRepo, metadataDataSource);
+
+        // Create KB from template
+        const result = await kbBuilder.buildFromTemplate(
+          request.project,
+          kb_template,
+          parent_id,
+          title // Use title as custom KB name if provided
+        );
+
+        return { content: [createTextContent(`Knowledge Base created from template '${kb_template}':\n- KB ID: ${result.kbId}\n- Root Note ID: ${result.rootId}\n- Created ${result.createdNodes} nodes\n\nUse kb_ids=['${result.kbId}'] to filter searches and notes to this KB.`)] };
+      }
+
+      // Regular note creation
+      if (!content) throw new Error('Content is required for add action (unless using kb_template)');
       const { processedContent, isValid, error } = processExcalidrawContent(content, note_type || 'note');
       if (note_type === 'excalidraw' && !isValid) {
         return { content: [createTextContent(`Error: ${error}\n\nFor excalidraw notes, content must be valid Excalidraw JSON.`)] };

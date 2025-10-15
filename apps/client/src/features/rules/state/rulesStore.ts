@@ -37,8 +37,8 @@ export const useRulesStore = create<RulesStore>()(
             includeAutomation: true
           });
 
-          set({ 
-            rules: result.applicable_rules ?? [],
+          set({
+            rules: result.rules,
             loading: false,
           });
         } catch (error) {

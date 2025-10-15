@@ -2,6 +2,7 @@ import { ChevronDown, Tag } from 'lucide-react';
 import type { Theme } from '@felix/theme-system';
 import type { RuleData } from '@/types/api';
 import { MarkdownRenderer } from '@client/shared/components/MarkdownRenderer';
+import { MarkdownEditor } from '@client/shared/components/MarkdownEditor';
 import type { RuleCardEditingApi } from './useRuleCardEditing';
 
 interface RuleCardExpandedContentProps {
@@ -41,16 +42,15 @@ export function RuleCardExpandedContent({
             />
           </div>
 
-          <div>
+          <div onClick={(event) => event.stopPropagation()}>
             <label className="text-xs text-muted-foreground">Guidance Text (Markdown supported)</label>
-            <textarea
-              value={formState.guidance_text}
-              onChange={(event) => updateField('guidance_text', event.target.value)}
-              onClick={(event) => event.stopPropagation()}
-              placeholder="Detailed guidance text for this rule... (supports markdown)"
-              className="w-full text-sm bg-background border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none font-mono mt-1"
-              rows={4}
-            />
+            <div className="mt-1">
+              <MarkdownEditor
+                value={formState.guidance_text}
+                onChange={(value) => updateField('guidance_text', value)}
+                placeholder="Detailed guidance text for this rule... (supports markdown)"
+              />
+            </div>
           </div>
         </>
       ) : (

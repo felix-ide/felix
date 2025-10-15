@@ -33,7 +33,7 @@ export const addRule = (rule: {
   );
 
 export interface ListRulesResponse {
-  applicable_rules: RuleData[];
+  rules: RuleData[];
 }
 
 export const listRules = async (options: { includeAutomation?: boolean } = {}): Promise<ListRulesResponse> => {
@@ -43,7 +43,7 @@ export const listRules = async (options: { includeAutomation?: boolean } = {}): 
   try {
     return await fetchJson<ListRulesResponse>(url, undefined, 'Failed to list rules');
   } catch {
-    return { applicable_rules: [] };
+    return { rules: [] };
   }
 };
 

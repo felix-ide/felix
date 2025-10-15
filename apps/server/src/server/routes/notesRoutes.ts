@@ -19,24 +19,31 @@ router.get('/notes', async (req: ProjectRequest, res: Response) => {
     const indexer = requireProjectIndexer(req, res);
     if (!indexer) return;
 
-    const { note_type, tags, linkedToTask, limit = 20 } = req.query;
-    
+    const { note_type, tags, linkedToTask, limit = 20, exclude_kb } = req.query;
+
     let notes = await indexer.listNotes({
       note_type: note_type as NoteType | undefined,
       tags: tags as string[] | undefined,
       limit: parseInt(limit as string)
     });
-    
+
     // Filter notes that are linked to a specific task via entity_links
     if (linkedToTask) {
-      notes = notes.filter((note: any) => 
-        note.entity_links?.some((link: any) => 
+      notes = notes.filter((note: any) =>
+        note.entity_links?.some((link: any) =>
           link.entity_type === 'task' && link.entity_id === linkedToTask
         )
       );
     }
-    
-    res.json({ 
+
+    // Filter out KB nodes if requested
+    if (exclude_kb === 'true') {
+      notes = notes.filter((note: any) =>
+        !(note.metadata && note.metadata.kb_node === true)
+      );
+    }
+
+    res.json({
       items: notes,
       notes,  // Keep for backward compatibility
       total: notes.length,

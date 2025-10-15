@@ -2,36 +2,26 @@ import type { McpToolDefinition } from './common.js';
 
 export const RULES_TOOL: McpToolDefinition = {
   name: 'rules',
-  description: `Coding standards and patterns system for maintaining consistency and best practices.
+  description: `Coding standards, patterns, and automation. Triggers based on context to provide guidance or generate code.
 
-WHEN TO USE:
-- Defining team coding standards and patterns
-- Creating automated code generation templates
-- Setting validation rules for code quality
-- Documenting architectural decisions as enforceable rules
-- Getting context-aware suggestions while coding
+PURPOSE: Maintain consistency through pattern enforcement. Get context-aware suggestions while coding.
 
-RULE TYPES:
-- pattern: Coding patterns to follow (naming, structure)
-- constraint: Validation rules (security, performance)
-- semantic: Context-aware suggestions based on code meaning
-- automation: Templates that generate boilerplate code
+Types: pattern (naming, structure), constraint (validation), semantic (smart suggestions), automation (code gen)
 
-FEATURES:
-- Triggers on file patterns, component types, or semantics
-- Provides guidance or generates code automatically
-- Tracks usage and effectiveness metrics
-- Applies based on current context and intent
-- Integrates with component relationships
+Required: project, action(add|get|list|update|delete|get_applicable|apply_rule|get_tree|get_analytics|track_application)
+Create: name*, description, rule_type*, guidance_text, code_template, validation_script, trigger_patterns{files[],components[],relationships[]}, semantic_triggers{patterns[],domains[],layers[]}, priority=5, auto_apply=F, confidence_threshold=0.8
+Update: rule_id*, active
+Query: rule_id, rule_type_filter, limit=20, offset=0, root_rule_id, include_inactive=F
+Apply: entity_type, entity_id, context{current_task,user_intent,file_content}, apply_rule_id, target_entity, application_context
+Analytics: days_since=30, track_entity_type, track_entity_id, user_action(accepted|modified|rejected|ignored), feedback_score(1-5)
 
-WORKFLOW:
-- Use get_applicable to find relevant rules for current context
-- Apply rules manually or set auto_apply for automation
-- Track effectiveness with analytics
+USAGE WORKFLOW:
+- Use search tool for semantic rule discovery
+- Use get_applicable to find rules matching current context
+- Use apply_rule to manually apply, or set auto_apply=T for automatic
+- Track effectiveness with track_application for analytics
 
-⚠️ TOKEN LIMITS: List operations may be truncated. Use limit parameter to control results.
-
-SEARCH: Use the main 'search' tool to find rules - it provides semantic search across all entities.`,
+TRIGGERS: File patterns, component types, semantic context, relationships. Rules surface when conditions match.`,
   inputSchema: {
     type: 'object',
     properties: {

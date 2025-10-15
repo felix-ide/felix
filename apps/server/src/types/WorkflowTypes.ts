@@ -43,6 +43,10 @@ export interface ChildTaskRequirement {
   // Description for why these children are needed
   description?: string;
 
+  // Only enforce this child requirement when parent has this task_type
+  // e.g., when_parent_type='epic' means "require these children only for epic parents"
+  when_parent_type?: string;
+
   // Additional validation for children
   validation?: {
     // All children must be in these statuses for parent to advance
@@ -107,7 +111,8 @@ export type WorkflowSectionType =
   | 'next_steps'
   | 'knowledge_rules'
   | 'rules_creation'
-  | 'scope_definition';
+  | 'scope_definition'
+  | 'children'; // Child task requirements
 
 export interface SubtaskRequirement {
   label?: string;
@@ -203,6 +208,7 @@ export interface MissingRequirement {
   action_needed: string;
   is_conditional: boolean;
   condition_not_met?: string;
+  metadata?: any; // Additional context (e.g., child_requirements data for guidance generation)
 }
 
 export type WorkflowType = 'simple' | 'feature_development' | 'bugfix' | 'research';

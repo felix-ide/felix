@@ -12,14 +12,15 @@ import { WriteQueue } from '../../shared/WriteQueue.js';
 
 // Import entities
 import { Component, Relationship, Embedding, IndexMetadata } from './entities/index/index.js';
-import { 
-  Task, Note, Rule, 
+import {
+  Task, Note, Rule,
   TaskDependency, TaskCodeLink, TaskMetric,
   RuleRelationship, RuleApplication,
   WorkflowConfiguration, GlobalWorkflowSetting,
   TransitionGate,
   TaskStatus,
-  TaskStatusFlow
+  TaskStatusFlow,
+  KnowledgeBase
 } from './entities/metadata/index.js';
 
 // Import repositories
@@ -100,7 +101,7 @@ export class DatabaseManager {
         entities: [
           Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
           RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate,
-          TaskStatus, TaskStatusFlow
+          TaskStatus, TaskStatusFlow, KnowledgeBase
         ],
         synchronize: true,
         logging: false
@@ -133,6 +134,9 @@ export class DatabaseManager {
 
       // Initialize repositories
       this.initializeRepositories();
+
+      // Ensure project KB exists
+      await this.ensureProjectKB();
     } catch (error) {
       logger.error('Failed to initialize databases:', error);
       throw error;
@@ -140,6 +144,60 @@ export class DatabaseManager {
       this.initializing = null;
     }})();
     await this.initializing;
+  }
+
+  /**
+   * Ensure the project Knowledge Base exists
+   * This creates the default project KB if it doesn't exist yet
+   */
+  private async ensureProjectKB(): Promise<void> {
+    try {
+      if (!this.notesRepo || !this.rulesRepo) return;
+
+      // Check if a project KB already exists
+      const result = await this.notesRepo.searchNotes({
+        limit: 1,
+        offset: 0,
+        note_type: 'documentation' as any
+      });
+
+      const hasProjectKB = result.items.some((note: any) =>
+        note.metadata?.is_kb_root === true && note.metadata?.is_project_kb === true
+      );
+
+      if (hasProjectKB) {
+        logger.debug('✓ Project Knowledge Base exists');
+        return;
+      }
+
+      // Create the project KB
+      logger.info('📚 Creating default Project Knowledge Base...');
+      const { KBBuilder } = await import('../knowledge-base/KBBuilder.js');
+      const kbBuilder = new KBBuilder(this.notesRepo, this.rulesRepo, this.metadataDataSource || undefined);
+
+      const kbResult = await kbBuilder.buildFromTemplate(this.projectPath, 'project');
+
+      // Mark it as the project KB
+      await this.notesRepo.updateNote(kbResult.rootId, {
+        metadata: {
+          icon: 'book',
+          color: 'blue',
+          kb_type: 'project',
+          template_name: 'project',
+          template_version: '1.0.0',
+          is_kb_root: true,
+          is_project_kb: true,  // ← Special flag for THE project KB
+          kb_node: true,
+          kb_description: 'Root node for project documentation',
+          project_path: this.projectPath
+        }
+      });
+
+      logger.info(`✅ Project Knowledge Base created (${kbResult.createdNodes} nodes)`);
+    } catch (error) {
+      logger.warn('Could not ensure project KB:', error);
+      // Don't throw - KB creation is optional
+    }
   }
 
   private async resolveDbPath(primaryName: string, legacyName: string): Promise<string> {

@@ -12,10 +12,12 @@ interface TaskHierarchyProps {
   tasks: TaskData[];
   selectedTaskId?: string;
   onTaskSelect?: (taskId: string) => void;
-  onTaskEdit?: (task: TaskData) => void;
   onTaskUpdate?: (taskId: string, updates: Partial<TaskData>) => void;
   onTaskDelete?: (taskId: string) => void;
   onCreateNew?: (parentId?: string) => void;
+  onCancelAdd?: () => void;
+  isAddingNew?: boolean;
+  onTaskAdd?: (task: Omit<TaskData, 'id' | 'created_at' | 'updated_at' | 'sort_order' | 'depth_level'>) => Promise<void>;
   onStatusChange?: (taskId: string, status: TaskData['task_status']) => void;
   onReorder?: (taskId: string, newParentId: string | null, newSortOrder: number) => void;
   onAddNote?: (taskId: string) => void;
@@ -34,10 +36,12 @@ export function TaskHierarchy({
   tasks,
   selectedTaskId,
   onTaskSelect,
-  onTaskEdit,
   onTaskUpdate,
   onTaskDelete,
   onCreateNew,
+  onCancelAdd,
+  isAddingNew = false,
+  onTaskAdd,
   onStatusChange,
   onReorder,
   onAddNote,
@@ -186,7 +190,6 @@ export function TaskHierarchy({
         isChecked={selectedTaskIds.has(task.id)}
         onSelect={() => onTaskSelect?.(task.id)}
         onToggleCheck={isSelectionMode ? () => toggleTaskSelection(task.id) : undefined}
-        onEdit={() => onTaskEdit?.(task)}
         onUpdate={onTaskUpdate}
         onDelete={() => onTaskDelete?.(task.id)}
         onStatusChange={(status) => onStatusChange?.(task.id, status)}
@@ -199,12 +202,50 @@ export function TaskHierarchy({
     );
   };
 
+  // Handler for saving new task
+  const handleSaveNewTask = async (updates: Partial<TaskData>) => {
+    if (onTaskAdd && onCancelAdd) {
+      try {
+        await onTaskAdd(updates as any);
+        onCancelAdd(); // Close the add card
+      } catch (error) {
+        console.error('Failed to create task:', error);
+      }
+    }
+  };
+
   // (removed) legacy export/import handlers
 
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* Task List */}
       <div className="flex-1 overflow-auto p-4 min-h-0">
+        {/* New Task Card - inline add */}
+        {isAddingNew && (
+          <div className="mb-4">
+            <TaskCard
+              task={{
+                id: 'temp-new-task',
+                title: '',
+                description: '',
+                task_type: 'task',
+                task_status: 'todo',
+                task_priority: 'medium',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                sort_order: 0,
+                depth_level: 0
+              }}
+              isEditing={true}
+              forceEditMode={true}
+              onUpdate={handleSaveNewTask}
+              onCancelEdit={onCancelAdd}
+              childTasksCount={0}
+              completedChildTasksCount={0}
+            />
+          </div>
+        )}
+
         <DragDropHierarchy
           items={tasks}
           onReorder={onReorder || (() => {})}

@@ -5,16 +5,20 @@ import type { McpToolDefinition } from './common.js';
  */
 export const PROJECTS_TOOL: McpToolDefinition = {
   name: 'projects',
-  description: `Project management - Index/re-index projects or get statistics.
+  description: `Project indexing and statistics. Auto-loads when used by other tools - rarely need to call directly.
 
-Projects auto-load when used, so you only need this tool to:
-- Index a project (first time or re-index with force: true)
-- Get statistics about a project
+PURPOSE: Index content for search/context tools. Tracks files, components, relationships. Creates embeddings for semantic search.
 
-EXAMPLES:
-{ action: "index", path: "/path/to/project" }  // Index or connect
-{ action: "index", path: "/path/to/project", force: true }  // Force re-index
-{ action: "get_stats", path: "/path/to/project" }`,
+Required: action(index|get_stats), path
+Optional: force=F (force re-index), with_embeddings=T (include embeddings, F=background)
+
+WHEN TO USE:
+- Index new project first time (auto-creates databases)
+- Force re-index after major refactoring or file structure changes
+- Get statistics to see what's indexed
+
+AUTO-LOADING: Other tools (search, context) auto-load projects - you rarely call this directly
+EXAMPLE: Force re-index after moving files around to update relationships`,
   inputSchema: {
     type: 'object',
     properties: {

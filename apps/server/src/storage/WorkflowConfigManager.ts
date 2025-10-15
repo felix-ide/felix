@@ -16,6 +16,9 @@ import {
 } from '../types/WorkflowTypes.js';
 import { BUILT_IN_WORKFLOWS } from '../validation/WorkflowDefinitions.js';
 
+// System workflow version - increment when making breaking changes to built-in workflows
+const SYSTEM_WORKFLOW_VERSION = '1.1.0';
+
 export class WorkflowConfigManager {
   private dataSource: DataSource;
   private initialized = false;
@@ -31,7 +34,10 @@ export class WorkflowConfigManager {
     if (this.initialized) return;
 
     // Tables are created by TypeORM synchronize - no need to create manually
-    
+
+    // Run migration for existing data (one-time, idempotent)
+    await this.runMigrations();
+
     // Load built-in workflows if not already present
     await this.loadBuiltInWorkflows();
 
@@ -41,12 +47,32 @@ export class WorkflowConfigManager {
     // Seed core task statuses and flows when missing
     await this.ensureDefaultStatuses();
     await this.ensureDefaultStatusFlows();
-    
+
     this.initialized = true;
   }
 
   /**
+   * Run migrations for existing data
+   */
+  private async runMigrations(): Promise<void> {
+    try {
+      const { SystemEntityMigration } = await import('./migrations/SystemEntityMigration.js');
+      const migration = new SystemEntityMigration(this.dataSource);
+
+      const needsMigration = await migration.needsMigration();
+      if (needsMigration) {
+        console.log('[WorkflowConfigManager] Running system entity migration...');
+        await migration.run();
+      }
+    } catch (error) {
+      console.warn('[WorkflowConfigManager] Migration failed (non-fatal):', error);
+      // Don't throw - migrations are best-effort
+    }
+  }
+
+  /**
    * Load built-in workflows into database if not present
+   * Auto-updates system workflows (is_system=true) to latest definitions
    */
   private async loadBuiltInWorkflows(): Promise<void> {
     const workflowRepo = this.dataSource.getRepository(WorkflowConfiguration);
@@ -55,12 +81,15 @@ export class WorkflowConfigManager {
       const existing = await workflowRepo.findOne({ where: { name: workflow.name } });
 
       if (!existing) {
+        // Create new system workflow with stable ID
         await workflowRepo.save({
-          id: `workflow_${workflow.name}_${Date.now()}`,
+          id: `workflow_${workflow.name}`, // Stable ID without timestamp
           name: workflow.name,
           display_name: workflow.display_name,
           description: workflow.description,
           is_default: workflow.name === 'feature_development',
+          is_system: true, // Mark as system workflow
+          system_version: SYSTEM_WORKFLOW_VERSION,
           required_sections: workflow.required_sections as any,
           conditional_requirements: workflow.conditional_requirements as any || [],
           validation_rules: workflow.validation_rules as any || [],
@@ -70,24 +99,14 @@ export class WorkflowConfigManager {
           child_requirements: workflow.child_requirements as any || [],
           use_cases: workflow.use_cases || []
         });
-      } else {
-        // If existing differs materially from the built-in, update it to match
-        // Heuristic: update when required_sections count or section keys diverge
-        const existingSections = Array.isArray(existing.required_sections) ? existing.required_sections : [];
-        const builtInSections = workflow.required_sections || [];
-        const differsInCount = (existingSections as any[]).length !== builtInSections.length;
-        const differsInKeys = (() => {
-          try {
-            const a = (existingSections as any[]).map((s: any) => s.section_type || s.name).join('|');
-            const b = (builtInSections as any[]).map((s: any) => s.section_type || s.name).join('|');
-            return a !== b;
-          } catch { return true; }
-        })();
-
-        if (differsInCount || differsInKeys) {
+      } else if (existing.is_system) {
+        // Auto-update system workflows only if version changed
+        if (existing.system_version !== SYSTEM_WORKFLOW_VERSION) {
+          console.log(`[WorkflowConfigManager] Updating system workflow: ${workflow.name} (${existing.system_version} → ${SYSTEM_WORKFLOW_VERSION})`);
           await workflowRepo.update({ name: workflow.name }, {
             display_name: workflow.display_name,
             description: workflow.description,
+            system_version: SYSTEM_WORKFLOW_VERSION,
             required_sections: workflow.required_sections as any,
             conditional_requirements: workflow.conditional_requirements as any || [],
             validation_rules: workflow.validation_rules as any || [],
@@ -99,6 +118,7 @@ export class WorkflowConfigManager {
           });
         }
       }
+      // If is_system=false, user has customized it - don't update
     }
   }
 
@@ -255,18 +275,23 @@ export class WorkflowConfigManager {
     await repo.save(defaults.map((flow) => repo.create(flow)));
   }
 
-  /** Reseed built-ins explicitly, with optional force overwrite */
+  /**
+   * Reseed built-ins explicitly, with optional force overwrite
+   * Only updates if force=true OR if is_system=true (not user-customized)
+   */
   async reseedBuiltIns(force = false): Promise<void> {
     const workflowRepo = this.dataSource.getRepository(WorkflowConfiguration);
     for (const w of BUILT_IN_WORKFLOWS) {
       const existing = await workflowRepo.findOne({ where: { name: w.name } });
       if (!existing) {
         await workflowRepo.insert({
-          id: `workflow_${w.name}_${Date.now()}`,
+          id: `workflow_${w.name}`, // Stable ID
           name: w.name,
           display_name: w.display_name,
           description: w.description,
           is_default: w.name === 'feature_development',
+          is_system: true,
+          system_version: SYSTEM_WORKFLOW_VERSION,
           required_sections: w.required_sections as any,
           conditional_requirements: w.conditional_requirements as any || [],
           validation_rules: w.validation_rules as any || [],
@@ -276,10 +301,12 @@ export class WorkflowConfigManager {
           child_requirements: w.child_requirements as any || [],
           use_cases: w.use_cases || []
         });
-      } else if (force) {
+      } else if (force || existing.is_system) {
+        // Update if force=true OR if it's still a system workflow
         await workflowRepo.update({ name: w.name }, {
           display_name: w.display_name,
           description: w.description,
+          system_version: SYSTEM_WORKFLOW_VERSION,
           required_sections: w.required_sections as any,
           conditional_requirements: w.conditional_requirements as any || [],
           validation_rules: w.validation_rules as any || [],
@@ -561,23 +588,26 @@ export class WorkflowConfigManager {
 
   /**
    * Create a custom workflow
+   * User-created workflows have is_system=false
    */
   async createWorkflow(workflow: WorkflowDefinition): Promise<void> {
     await this.initialize();
-    
+
     // Check if workflow already exists
     const existing = await this.getWorkflowConfig(workflow.name);
     if (existing) {
       throw new Error(`Workflow already exists: ${workflow.name}`);
     }
-    
+
     const workflowRepo = this.dataSource.getRepository(WorkflowConfiguration);
     await workflowRepo.save({
-      id: `workflow_${workflow.name}_${Date.now()}`,
+      id: `workflow_custom_${workflow.name}_${Date.now()}`, // User workflows get timestamp for uniqueness
       name: workflow.name,
       display_name: workflow.display_name,
       description: workflow.description,
-      is_default: false, // Not default
+      is_default: false,
+      is_system: false, // User-created, not system
+      system_version: undefined,
       required_sections: workflow.required_sections as any,
       conditional_requirements: workflow.conditional_requirements as any || [],
       validation_rules: workflow.validation_rules as any || [],
@@ -590,24 +620,61 @@ export class WorkflowConfigManager {
   }
 
   /**
+   * Copy a workflow to create a customizable version
+   * Used for "copy to customize" pattern with system workflows
+   */
+  async copyWorkflow(sourceName: string, newName: string, newDisplayName?: string): Promise<void> {
+    await this.initialize();
+
+    const source = await this.getWorkflowConfig(sourceName);
+    if (!source) {
+      throw new Error(`Source workflow not found: ${sourceName}`);
+    }
+
+    const existing = await this.getWorkflowConfig(newName);
+    if (existing) {
+      throw new Error(`Workflow already exists: ${newName}`);
+    }
+
+    const workflowRepo = this.dataSource.getRepository(WorkflowConfiguration);
+    await workflowRepo.save({
+      id: `workflow_custom_${newName}_${Date.now()}`,
+      name: newName,
+      display_name: newDisplayName || `${source.display_name} (Custom)`,
+      description: source.description,
+      is_default: false,
+      is_system: false, // Custom copy, not system
+      system_version: undefined,
+      required_sections: source.required_sections as any,
+      conditional_requirements: source.conditional_requirements as any || [],
+      validation_rules: source.validation_rules as any || [],
+      validation_bundles: source.validation_bundles as WorkflowValidationBundle[] | undefined,
+      status_flow_ref: source.status_flow_ref || null,
+      status_flow: source.status_flow as WorkflowStatusFlow | undefined,
+      child_requirements: source.child_requirements as any || [],
+      use_cases: source.use_cases || []
+    });
+  }
+
+  /**
    * Delete a custom workflow
    */
   async deleteWorkflow(name: string): Promise<void> {
     await this.initialize();
-    
-    // Prevent deletion of built-in workflows
-    const builtInNames = BUILT_IN_WORKFLOWS.map(w => w.name);
-    if (builtInNames.includes(name)) {
-      throw new Error(`Cannot delete built-in workflow: ${name}`);
+
+    // Prevent deletion of system workflows
+    const workflowRepo = this.dataSource.getRepository(WorkflowConfiguration);
+    const workflow = await workflowRepo.findOne({ where: { name } });
+    if (workflow?.is_system) {
+      throw new Error(`Cannot delete system workflow: ${name}`);
     }
-    
+
     // Check if it's the default workflow
     const defaultWorkflow = await this.getDefaultWorkflow();
     if (defaultWorkflow === name) {
       throw new Error('Cannot delete the default workflow');
     }
-    
-    const workflowRepo = this.dataSource.getRepository(WorkflowConfiguration);
+
     await workflowRepo.delete({ name });
   }
 

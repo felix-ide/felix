@@ -5,6 +5,7 @@
 
 const {
     debugLog,
+    searchRulesSemantic,
     getApplicableRules,
     getComponentIdFromPath,
     trackRuleApplication,
@@ -70,61 +71,129 @@ async function main() {
 
     debugLog(`Analyzing generated code for file: ${filePath}`);
 
-    // Get component ID for the file
-    const componentId = await getComponentIdFromPath(filePath);
+    // Build intelligent search query based on actual code content
+    let searchQuery = '';
 
-    // Build search query based on what was done
-    let operationType = '';
+    // Start with tool-specific context
     switch (toolName) {
         case 'Write':
-            operationType = 'file creation post-tool-use';
+            searchQuery = 'created new file ';
             break;
         case 'Edit':
-            operationType = 'code modification refactoring post-tool-use';
+            searchQuery = 'modified code ';
             break;
         case 'MultiEdit':
-            operationType = 'bulk changes refactoring post-tool-use';
+            searchQuery = 'bulk refactored ';
             break;
         case 'NotebookEdit':
-            operationType = 'jupyter notebook data science post-tool-use';
+            searchQuery = 'notebook cell ';
             break;
     }
 
-    debugLog(`Searching for applicable rules for: ${operationType}`);
+    // Extract file info
+    const fileExt = filePath.split('.').pop() || '';
+    const fileName = filePath.split('/').pop() || '';
+    searchQuery += `${fileExt} ${fileName} `;
 
-    // Get applicable rules that should have been considered
-    const applicableRules = await getApplicableRules('file', componentId, operationType, newContent);
+    // Analyze the generated code content
+    const codeToAnalyze = newContent || '';
+    if (codeToAnalyze) {
+        const tokens = [];
+
+        // Look for what was actually implemented
+        const importMatches = codeToAnalyze.match(/(?:import|require|from)\s+['"]([^'"]+)['"]/g);
+        if (importMatches) {
+            tokens.push('imports', 'dependencies');
+        }
+
+        const functionMatches = codeToAnalyze.match(/(?:function|const|let|var|async|class)\s+(\w+)/g);
+        if (functionMatches) {
+            functionMatches.slice(0, 5).forEach(fn => tokens.push(fn.split(/\s+/).pop()));
+        }
+
+        // Pattern detection
+        if (codeToAnalyze.match(/fetch|axios|http/i)) tokens.push('API', 'HTTP');
+        if (codeToAnalyze.match(/useState|useEffect|component/i)) tokens.push('React', 'component');
+        if (codeToAnalyze.match(/describe|test|it\(|expect/)) tokens.push('testing');
+        if (codeToAnalyze.match(/router|route|endpoint/i)) tokens.push('routing', 'endpoint');
+        if (codeToAnalyze.match(/auth|login|password/i)) tokens.push('authentication', 'security');
+        if (codeToAnalyze.match(/database|query|sql/i)) tokens.push('database');
+        if (codeToAnalyze.match(/try|catch|error/i)) tokens.push('error-handling');
+
+        searchQuery += tokens.slice(0, 15).join(' ');
+    }
+
+    // Add file path context
+    if (filePath.includes('test')) searchQuery += ' testing';
+    if (filePath.includes('auth')) searchQuery += ' authentication';
+    if (filePath.includes('api') || filePath.includes('route')) searchQuery += ' API';
+    if (filePath.includes('component')) searchQuery += ' component';
+
+    debugLog(`Post-tool search query: ${searchQuery}`);
+
+    // Get component ID for the file
+    const componentId = await getComponentIdFromPath(filePath);
+
+    // Use semantic search to find rules that should have been considered
+    const semanticResults = await searchRulesSemantic(searchQuery, 15);
+
+    // Also get entity-specific rules
+    const applicableRules = await getApplicableRules('file', componentId, searchQuery, newContent);
+
+    // Combine rules from both sources
+    const allRules = new Map();
+
+    if (semanticResults && semanticResults.results) {
+        semanticResults.results.forEach(rule => {
+            if (rule.id && !allRules.has(rule.id)) {
+                allRules.set(rule.id, { ...rule, source: 'semantic' });
+            }
+        });
+    }
+
+    if (applicableRules && applicableRules.applicable_rules) {
+        applicableRules.applicable_rules.forEach(rule => {
+            if (rule.id) {
+                allRules.set(rule.id, { ...rule, source: 'entity' });
+            }
+        });
+    }
 
     let output = '';
 
-    if (applicableRules && applicableRules.applicable_rules) {
-        debugLog('Found applicable rules for evaluation...');
+    if (allRules.size > 0) {
+        debugLog(`Found ${allRules.size} rules for post-tool evaluation`);
 
-        const rulesArray = applicableRules.applicable_rules || [];
+        // Filter for relevant rules (priority >= 5) for evaluation
+        const relevantRules = Array.from(allRules.values())
+            .filter(rule => (rule.priority || 0) >= 5)
+            .sort((a, b) => {
+                if (a.source !== b.source) {
+                    return a.source === 'entity' ? -1 : 1;
+                }
+                return (b.priority || 0) - (a.priority || 0);
+            })
+            .slice(0, 5); // Top 5 for post-operation evaluation
 
-        if (rulesArray.length > 0) {
-            // Filter for relevant rules (priority >= 5)
-            const relevantRules = rulesArray
-                .filter(rule => (rule.priority || 0) >= 5)
-                .slice(0, 5); // Top 5 for post-operation evaluation
+        if (relevantRules.length > 0) {
+            const rulesList = relevantRules
+                .map(rule => {
+                    const name = rule.name || 'Rule';
+                    const ruleId = rule.id || '';
+                    const source = rule.source === 'entity' ? '📌' : '🔍';
+                    const guidance = (rule.guidance_text || rule.description || '').substring(0, 150);
+                    return `- ${source} **${name}** (ID: ${ruleId})\n  _${guidance}_`;
+                })
+                .join('\n');
 
-            if (relevantRules.length > 0) {
-                const rulesList = relevantRules
-                    .map(rule => {
-                        const name = rule.name || 'Rule';
-                        const ruleId = rule.id || '';
-                        return `- ${name} (ID: ${ruleId})`;
-                    })
-                    .join('\n');
-
-                output += `\n---\n**Rule Effectiveness Check:**\n\n`;
-                output += `For the ${toolName} operation on \`${filePath.split(/[\\/]/).pop()}\`, please briefly evaluate:\n`;
-                output += `1. Which of these rules were applicable to this change?\n`;
-                output += `2. Did you follow the guidance from these rules?\n`;
-                output += `3. Rate applicability (1-5) for each rule you considered:\n\n`;
-                output += `${rulesList}\n\n`;
-                output += `*Note: This feedback helps improve rule effectiveness tracking.*`;
-            }
+            output += `\n---\n**Rule Effectiveness Check:**\n\n`;
+            output += `For the ${toolName} operation on \`${fileName}\`, please briefly evaluate:\n`;
+            output += `1. Which of these rules were applicable to this change?\n`;
+            output += `2. Did you follow the guidance from these rules?\n`;
+            output += `3. Rate applicability (1-5) for each rule you considered:\n\n`;
+            output += `${rulesList}\n\n`;
+            output += `_📌 = file-specific, 🔍 = semantic match_\n`;
+            output += `*Note: This feedback helps improve rule effectiveness tracking.*`;
         }
     }
 

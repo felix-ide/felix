@@ -1,12 +1,12 @@
-import type { KeyboardEvent, MouseEvent } from 'react';
+import type { MouseEvent } from 'react';
 import { MarkdownRenderer } from '@client/shared/components/MarkdownRenderer';
+import { MarkdownEditor } from '@client/shared/components/MarkdownEditor';
 
 interface TaskDescriptionSectionProps {
   isEditing: boolean;
   description?: string | null;
   editDescription: string;
   onEditDescriptionChange: (value: string) => void;
-  onDescriptionKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onClickPropagationBlock?: (event: MouseEvent) => void;
 }
 
@@ -15,21 +15,16 @@ export function TaskDescriptionSection({
   description,
   editDescription,
   onEditDescriptionChange,
-  onDescriptionKeyDown,
   onClickPropagationBlock,
 }: TaskDescriptionSectionProps) {
   if (isEditing) {
     return (
-      <div>
+      <div onClick={onClickPropagationBlock}>
         <div className="mb-1 text-xs text-muted-foreground">Description (supports markdown)</div>
-        <textarea
+        <MarkdownEditor
           value={editDescription}
-          onChange={(event) => onEditDescriptionChange(event.target.value)}
-          onKeyDown={onDescriptionKeyDown}
-          onClick={onClickPropagationBlock}
+          onChange={onEditDescriptionChange}
           placeholder="Add description... (supports markdown)"
-          className="w-full text-sm bg-background border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none font-mono"
-          rows={6}
         />
       </div>
     );

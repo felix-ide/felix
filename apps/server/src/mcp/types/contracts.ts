@@ -310,6 +310,7 @@ export interface SearchQueryRequest extends ProjectScopedRequest {
   context_window_size?: number;
   view?: ProjectionView;
   fields?: string[];
+  kb_ids?: string[];
 }
 
 export interface SearchRelatedRequest extends ProjectScopedRequest {

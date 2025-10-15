@@ -18,6 +18,7 @@ import { Button } from '@client/shared/ui/Button';
 import { cn } from '@/utils/cn';
 import type { Theme } from '@felix/theme-system';
 import type { RuleData } from '@/types/api';
+import { MarkdownEditor } from '@client/shared/components/MarkdownEditor';
 import { getRuleTypeInfo, toShortId } from './utils';
 import type { RuleCardEditingApi } from './useRuleCardEditing';
 
@@ -254,15 +255,12 @@ export function RuleCardHeader({
             </div>
 
             {formState.rule_type === 'automation' && (
-              <div className="space-y-1">
+              <div className="space-y-1" onClick={(event) => event.stopPropagation()}>
                 <label className="text-xs text-muted-foreground">Code Template</label>
-                <textarea
+                <MarkdownEditor
                   value={formState.code_template}
-                  onChange={(event) => updateField('code_template', event.target.value)}
-                  onClick={(event) => event.stopPropagation()}
+                  onChange={(value) => updateField('code_template', value)}
                   placeholder="Code template for automation..."
-                  className="w-full text-xs bg-background border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary/50"
-                  rows={2}
                 />
               </div>
             )}

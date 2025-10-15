@@ -17,8 +17,16 @@ router.get('/rules', async (req: ProjectRequest, res: any) => {
     const indexer = requireProjectIndexer(req, res);
     if (!indexer) return;
 
-    const { entity_type, entity_id, include_suggestions = true, include_automation = true } = req.query;
-    
+    const {
+      entity_type,
+      entity_id,
+      include_suggestions = true,
+      include_automation = true,
+      rule_type,
+      priority_min,
+      limit
+    } = req.query;
+
     if (entity_type && entity_id) {
       const applicableRules = await indexer.getApplicableRules({
         entity_type,
@@ -27,11 +35,27 @@ router.get('/rules', async (req: ProjectRequest, res: any) => {
         user_intent: req.query.user_intent,
         file_content: req.query.file_content
       });
-      
+
       res.json(applicableRules);
     } else {
-      const allRules = await indexer.listRules(include_automation !== 'false');
-      res.json({ applicable_rules: allRules });
+      let allRules = await indexer.listRules(include_automation !== 'false');
+
+      // Apply filters
+      if (rule_type) {
+        allRules = allRules.filter((r: any) => r.rule_type === rule_type);
+      }
+
+      if (priority_min) {
+        const minPriority = parseInt(priority_min as string);
+        allRules = allRules.filter((r: any) => (r.priority || 0) >= minPriority);
+      }
+
+      if (limit) {
+        const limitNum = parseInt(limit as string);
+        allRules = allRules.slice(0, limitNum);
+      }
+
+      res.json({ rules: allRules });
     }
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });

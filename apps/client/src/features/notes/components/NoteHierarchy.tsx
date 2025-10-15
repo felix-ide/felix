@@ -14,12 +14,19 @@ interface NoteHierarchyProps {
   notes: NoteData[];
   selectedNoteId?: string;
   onNoteSelect?: (noteId: string) => void;
-  onNoteEdit?: (note: NoteData) => void;
   onNoteUpdate?: (noteId: string, updates: Partial<NoteData>) => void;
   onNoteDelete?: (noteId: string) => void;
   onCreateNew?: (parentId?: string) => void;
+  onCancelAdd?: () => void;
+  isAddingNew?: boolean;
+  onNoteAdd?: (note: Omit<NoteData, 'id' | 'created_at' | 'updated_at' | 'sort_order' | 'depth_level'>) => Promise<void>;
   onReorder?: (noteId: string, newParentId: string | null, newSortOrder: number) => void;
   onAddSubNote?: (noteId: string) => void;
+  hideHeader?: boolean;
+  searchQuery?: string;
+  typeFilter?: string;
+  entityFilter?: string;
+  isSelectionMode?: boolean;
   className?: string;
 }
 
@@ -27,40 +34,55 @@ export function NoteHierarchy({
   notes,
   selectedNoteId,
   onNoteSelect,
-  onNoteEdit,
   onNoteUpdate,
   onNoteDelete,
   onCreateNew,
+  onCancelAdd,
+  isAddingNew = false,
+  onNoteAdd,
   onReorder,
   onAddSubNote,
+  hideHeader = false,
+  searchQuery: externalSearchQuery,
+  typeFilter: externalTypeFilter,
+  entityFilter: externalEntityFilter,
+  isSelectionMode: externalIsSelectionMode,
   className,
 }: NoteHierarchyProps) {
-  const { 
-    expandedNotes, 
-    noteTypeFilter, 
-    toggleNoteExpanded, 
-    setNoteTypeFilter 
+  const {
+    expandedNotes,
+    noteTypeFilter,
+    toggleNoteExpanded,
+    setNoteTypeFilter
   } = useUIStore();
-  
-  const { 
-    selectedNoteIds, 
-    toggleNoteSelection, 
+
+  const {
+    selectedNoteIds,
+    toggleNoteSelection,
     clearSelection,
     selectAll
   } = useNotesStore();
-  
+
   const [localTypeFilter, setLocalTypeFilter] = useState(noteTypeFilter);
-  const [entityFilter, setEntityFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [localEntityFilter, setLocalEntityFilter] = useState<string>('all');
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [localIsSelectionMode, setLocalIsSelectionMode] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
-  
+
+  // Use external values if provided, otherwise use local state
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : localSearchQuery;
+  const typeFilter = externalTypeFilter !== undefined ? externalTypeFilter : localTypeFilter;
+  const entityFilter = externalEntityFilter !== undefined ? externalEntityFilter : localEntityFilter;
+  const isSelectionMode = externalIsSelectionMode !== undefined ? externalIsSelectionMode : localIsSelectionMode;
+
   // Sync local state with store
   useEffect(() => {
-    setNoteTypeFilter(localTypeFilter);
-  }, [localTypeFilter, setNoteTypeFilter]);
+    if (externalTypeFilter === undefined) {
+      setNoteTypeFilter(localTypeFilter);
+    }
+  }, [localTypeFilter, externalTypeFilter, setNoteTypeFilter]);
 
   // Handle click outside for export menu
   useEffect(() => {
@@ -76,12 +98,12 @@ export function NoteHierarchy({
     }
   }, [showExportMenu]);
 
-  // Clear selection when exiting selection mode
+  // Clear selection when exiting selection mode (only for local mode)
   useEffect(() => {
-    if (!isSelectionMode) {
+    if (externalIsSelectionMode === undefined && !localIsSelectionMode) {
       clearSelection();
     }
-  }, [isSelectionMode, clearSelection]);
+  }, [localIsSelectionMode, externalIsSelectionMode, clearSelection]);
 
   // Filter notes
   const filterNote = (note: NoteData): boolean => {
@@ -136,13 +158,24 @@ export function NoteHierarchy({
       isChecked={selectedNoteIds.has(note.id)}
       onSelect={() => onNoteSelect?.(note.id)}
       onToggleCheck={isSelectionMode ? () => toggleNoteSelection(note.id) : undefined}
-      onEdit={() => onNoteEdit?.(note)}
       onUpdate={onNoteUpdate}
       onDelete={() => onNoteDelete?.(note.id)}
       onAddSubNote={() => onAddSubNote?.(note.id)}
       dragHandleProps={dragHandleProps}
     />
   );
+
+  // Handler for saving new note
+  const handleSaveNewNote = async (updates: Partial<NoteData>) => {
+    if (onNoteAdd && onCancelAdd) {
+      try {
+        await onNoteAdd(updates as any);
+        onCancelAdd(); // Close the add card
+      } catch (error) {
+        console.error('Failed to create note:', error);
+      }
+    }
+  };
 
   const uniqueTypes = Array.from(new Set(notes.map(note => note.note_type)));
   const uniqueEntityTypes = Array.from(new Set(notes.map(note => note.entity_type).filter(Boolean)));
@@ -226,6 +259,7 @@ export function NoteHierarchy({
   return (
     <div className={cn("h-full flex flex-col", className)}>
       {/* Header with filters and actions */}
+      {!hideHeader && (
       <div className="px-4 py-2 border-b border-border flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           <h2 className="text-lg font-semibold">Notes</h2>
@@ -391,9 +425,32 @@ export function NoteHierarchy({
           </Button>
         </div>
       </div>
+      )}
 
       {/* Hierarchy */}
       <div className="flex-1 overflow-auto p-4 min-h-0">
+        {/* New Note Card - inline add */}
+        {isAddingNew && (
+          <div className="mb-4">
+            <NoteCard
+              note={{
+                id: 'temp-new-note',
+                title: '',
+                content: '',
+                note_type: 'note',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                sort_order: 0,
+                depth_level: 0,
+                entity_type: 'note'
+              }}
+              isEditing={true}
+              onUpdate={handleSaveNewNote}
+              onCancelEdit={onCancelAdd}
+            />
+          </div>
+        )}
+
         <DragDropHierarchy
           items={notes}
           onReorder={onReorder || (() => {})}

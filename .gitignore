@@ -8,6 +8,7 @@ dist/
 release/
 .code-indexer.index.db-*
 .felix.index.db-*
+.felix.metadata.db-*
 *.db-wal
 *.db-shm
 *.db

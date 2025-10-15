@@ -63,6 +63,7 @@ export class NotesRepository {
         entity_id: (params as any).entity_id,
         entity_links: parseIfString(params.entity_links),
         stable_tags: parseIfString(params.stable_tags),
+        metadata: params.metadata,
         sort_order: params.sort_order || 0,
         depth_level: (params as any).depth_level || 0
       });
@@ -143,6 +144,7 @@ export class NotesRepository {
         // Fix double-stringified data from old format
         updateData.stable_tags = parseIfString(updates.stable_tags);
       }
+      if (updates.metadata !== undefined) updateData.metadata = updates.metadata;
       if (updates.parent_id !== undefined) updateData.parent_id = updates.parent_id;
       if (updates.sort_order !== undefined) updateData.sort_order = updates.sort_order;
 
@@ -409,6 +411,7 @@ export class NotesRepository {
         auto_tags: note.auto_tags || [],
         contextual_tags: note.contextual_tags || []
       },
+      metadata: note.metadata,
       sort_order: note.sort_order,
       depth_level: note.depth_level,
       created_at: note.created_at,

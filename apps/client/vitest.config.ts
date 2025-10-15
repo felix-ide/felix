@@ -30,7 +30,7 @@ export default defineConfig({
     reporter: ['text', 'html', 'lcov', 'json', 'json-summary'],
     // keep local output, our merger script will glob these
     reportsDirectory: 'coverage',
-    // include linked workspace packages in coverage (theme-system, extended-markdown)
+    // include linked workspace packages in coverage (theme-system)
     allowExternal: true,
     exclude: ['**/node_modules/**', '**/dist/**', '**/__mocks__/**'],
   },

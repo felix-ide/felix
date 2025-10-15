@@ -9,7 +9,7 @@ const BACKEND_PORT = process.env.BACKEND_PORT || '9000';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const isLibrary = mode === 'library';
-  
+
   return {
   plugins: [react()],
   resolve: {
@@ -17,7 +17,6 @@ export default defineConfig(({ mode }) => {
       '@': path.resolve(__dirname, './src'),
       '@client/features': path.resolve(__dirname, './src/features'),
       '@client/shared': path.resolve(__dirname, './src/shared'),
-      '@felix/extended-markdown': path.resolve(__dirname, '../../packages/extended-markdown/dist/index.mjs'),
       '@felix/theme-system': path.resolve(__dirname, '../../packages/theme-system/dist/index.js'),
     },
   },
@@ -82,7 +81,7 @@ export default defineConfig(({ mode }) => {
     'import.meta.env.VITE_FELIX_SERVER': JSON.stringify(`http://localhost:${BACKEND_PORT}/api`),
   },
   optimizeDeps: {
-    include: ['@felix/extended-markdown', '@felix/theme-system'],
+    include: ['@felix/theme-system'],
     exclude: [
       'fs', 'path', 'os', 'crypto',
       'better-sqlite3',

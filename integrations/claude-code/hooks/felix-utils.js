@@ -68,11 +68,21 @@ async function makeRequest(url, options = {}) {
     });
 }
 
-// Get all rules from Felix
-async function getAllRules() {
+// Get all rules from Felix (with optional filters)
+async function getAllRules(filters = {}) {
     debugLog('Getting all rules from Felix API');
+
+    // Build query string from filters
+    const params = new URLSearchParams();
+    if (filters.rule_type) params.append('rule_type', filters.rule_type);
+    if (filters.priority_min) params.append('priority_min', filters.priority_min.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+
+    const queryString = params.toString();
+    const url = `${FELIX_SERVER_URL}/api/rules${queryString ? '?' + queryString : ''}`;
+
     try {
-        const response = await makeRequest(`${FELIX_SERVER_URL}/api/rules`);
+        const response = await makeRequest(url);
         debugLog(`Response: ${JSON.stringify(response)}`);
         return response;
     } catch (err) {

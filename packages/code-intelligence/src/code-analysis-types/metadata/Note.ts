@@ -76,7 +76,10 @@ export interface INote {
   
   // Semantic embedding for finding similar content
   semantic_embedding?: Float32Array;
-  
+
+  // Metadata for KB and other extensions
+  metadata?: any;
+
   // Timestamps
   created_at: Date;
   updated_at: Date;
@@ -98,6 +101,7 @@ export interface CreateNoteParams {
     link_strength?: 'primary' | 'secondary' | 'reference';
   }>;
   stable_tags?: string[];
+  metadata?: any;
 }
 
 /**
@@ -116,6 +120,7 @@ export interface UpdateNoteParams {
   parent_id?: string;
   sort_order?: number;
   stable_tags?: string[];
+  metadata?: any;
 }
 
 /**

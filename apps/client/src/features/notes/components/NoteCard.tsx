@@ -3,6 +3,7 @@ import { Edit, Trash2, GripVertical, FileText, AlertTriangle, BookOpen, Check, X
 import { Button } from '@client/shared/ui/Button';
 import { cn } from '@/utils/cn';
 import { MarkdownRenderer } from '@client/shared/components/MarkdownRenderer';
+import { MarkdownEditor } from '@client/shared/components/MarkdownEditor';
 import { MockupViewer } from './MockupViewer';
 import { MockupEditor } from './MockupEditor';
 import { EntityLinksSection, EntityLink } from '@client/shared/components/EntityLinksSection';
@@ -544,20 +545,16 @@ export function NoteCard({
               className="border border-border rounded"
             />
           ) : (
-            <>
+            <div onClick={(e) => e.stopPropagation()}>
               <div className="mb-1 text-xs text-muted-foreground">
                 Supports markdown formatting
               </div>
-              <textarea
+              <MarkdownEditor
                 value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onClick={(e) => e.stopPropagation()}
+                onChange={setEditContent}
                 placeholder="Note content... (supports markdown)"
-                className="w-full text-sm bg-background border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none font-mono"
-                rows={6}
               />
-            </>
+            </div>
           )
         ) : note.note_type === 'excalidraw' ? (
           <MockupViewer content={note.content} minHeight={300} maxHeight={500} />

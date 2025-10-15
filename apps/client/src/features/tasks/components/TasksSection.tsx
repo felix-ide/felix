@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTasksStore } from '@client/features/tasks/state/tasksStore';
-import { useNotesStore } from '@client/features/notes/state/notesStore';
 import { useAppStore } from '@client/features/app-shell/state/appStore';
 import { TaskHierarchy } from '@client/features/tasks/components/TaskHierarchy';
-import { TaskEditor } from '@client/features/tasks/components/TaskEditor';
-import { NoteEditor } from '@client/features/notes/components/NoteEditor';
 import { TaskViewsSection } from './TaskViewsSection';
 import { Alert, AlertDescription } from '@client/shared/ui/Alert';
 import { Button } from '@client/shared/ui/Button';
@@ -21,11 +18,7 @@ export function TasksSection() {
     const saved = localStorage.getItem('task-view-mode');
     return (saved as any) || 'hierarchy';
   });
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<TaskData | undefined>();
-  const [parentTaskId, setParentTaskId] = useState<string | undefined>();
-  const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false);
-  const [noteTargetTaskId, setNoteTargetTaskId] = useState<string | undefined>();
+  const [isAddingNew, setIsAddingNew] = useState(false);
   
   // View-specific filters
   const [filters, setFilters] = useState({
@@ -76,10 +69,6 @@ export function TasksSection() {
     }
   }, [isSelectionMode, clearSelection]);
 
-  const {
-    addNote
-  } = useNotesStore();
-
   const { autoRefresh, refreshInterval } = useAppStore();
 
   // Load tasks on mount and handle polling
@@ -105,39 +94,11 @@ export function TasksSection() {
   }, [loadTasks, autoRefresh, refreshInterval, startPolling, stopPolling]);
 
   const handleCreateNew = (parentId?: string) => {
-    setEditingTask(undefined);
-    setParentTaskId(parentId);
-    setIsEditorOpen(true);
+    setIsAddingNew(true);
   };
 
-  const handleEditTask = (task: TaskData) => {
-    setEditingTask(task);
-    setParentTaskId(undefined);
-    setIsEditorOpen(true);
-  };
-
-  const handleSaveTask = async (taskData: Omit<TaskData, 'id' | 'created_at' | 'updated_at' | 'sort_order' | 'depth_level'>) => {
-    try {
-      if (editingTask) {
-        // Update existing task
-        await updateTask(editingTask.id, taskData);
-      } else {
-        // Create new task
-        await addTask(taskData);
-      }
-      setIsEditorOpen(false);
-      setEditingTask(undefined);
-      setParentTaskId(undefined);
-    } catch (error) {
-      console.error('Failed to save task:', error);
-      // Error is handled by the store
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditorOpen(false);
-    setEditingTask(undefined);
-    setParentTaskId(undefined);
+  const handleCancelAdd = () => {
+    setIsAddingNew(false);
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -177,37 +138,8 @@ export function TasksSection() {
   };
 
   const handleAddNote = (taskId: string) => {
-    setNoteTargetTaskId(taskId);
-    setIsNoteEditorOpen(true);
-  };
-
-  const handleSaveNote = async (noteData: any) => {
-    try {
-      await addNote({
-        title: noteData.title,
-        content: noteData.content,
-        note_type: noteData.note_type || 'note',
-        parent_id: undefined,
-        sort_order: 0,
-        depth_level: 0,
-        entity_type: 'note',
-        entity_links: [{
-          entity_type: 'task',
-          entity_id: noteTargetTaskId!,
-          link_strength: 'primary'
-        }],
-        stable_tags: noteData.stable_tags || [],
-      });
-      setIsNoteEditorOpen(false);
-      setNoteTargetTaskId(undefined);
-    } catch (error) {
-      console.error('Failed to save note:', error);
-    }
-  };
-
-  const handleCancelNote = () => {
-    setIsNoteEditorOpen(false);
-    setNoteTargetTaskId(undefined);
+    // TODO: Implement inline note adding
+    console.log('Add note for task:', taskId);
   };
 
   const switchView = (view: 'hierarchy' | 'gantt' | 'timeline' | 'kanban') => {
@@ -525,10 +457,12 @@ export function TasksSection() {
             tasks={tasks}
             selectedTaskId={selectedTaskId}
             onTaskSelect={selectTask}
-            onTaskEdit={handleEditTask}
             onTaskUpdate={updateTask}
             onTaskDelete={handleDeleteTask}
             onCreateNew={handleCreateNew}
+            onCancelAdd={handleCancelAdd}
+            isAddingNew={isAddingNew}
+            onTaskAdd={addTask}
             onStatusChange={handleStatusChange}
             onReorder={handleReorder}
             onAddNote={handleAddNote}
@@ -540,22 +474,6 @@ export function TasksSection() {
           <TaskViewsSection currentView={currentView} filters={filters} />
         )}
       </div>
-
-      {/* Task Editor Modal */}
-      <TaskEditor
-        task={editingTask}
-        parentId={parentTaskId}
-        isOpen={isEditorOpen}
-        onSave={handleSaveTask}
-        onCancel={handleCancelEdit}
-      />
-
-      {/* Note Editor Modal */}
-      <NoteEditor
-        isOpen={isNoteEditorOpen}
-        onSave={handleSaveNote}
-        onCancel={handleCancelNote}
-      />
 
       {/* Help Panel */}
       <HelpPanel section="tasks" isOpen={showHelp} onClose={() => setShowHelp(false)} />

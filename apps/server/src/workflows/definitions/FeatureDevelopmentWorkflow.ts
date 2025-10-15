@@ -172,9 +172,11 @@ export const FeatureDevelopmentWorkflow: WorkflowDefinition = {
     }
   ],
 
-  status_flow_ref: 'flow_feature',
+  status_flow_ref: null,
 
   status_flow: {
+    initial_state: 'planning',
+    states: ['planning', 'spec_ready', 'in_progress', 'in_review', 'done', 'cancelled'],
     transitions: [
       {
         id: 'planning_to_spec_ready',
@@ -301,34 +303,25 @@ export const FeatureDevelopmentWorkflow: WorkflowDefinition = {
 
   child_requirements: [
     {
-      child_task_type: 'epic',
-      required_workflow: 'feature_development',
-      min_count: 0,
-      max_count: 3,
-      label: 'Epics (for very large features)',
-      description: 'For large initiatives, break down into epics. Each epic contains 3-10 stories.',
-      validation: {
-        at_least_one_in: ['in_progress', 'done']
-      }
-    },
-    {
       child_task_type: 'story',
+      when_parent_type: 'epic',
       required_workflow: 'feature_development',
-      min_count: 0,
+      min_count: 3,
       max_count: 10,
-      label: 'Stories (for medium features)',
-      description: 'For medium features, break down into user stories. Each story contains 2-5 tasks.',
+      label: 'User Stories',
+      description: 'Epics must be broken down into 3-10 user stories, each delivering specific user value',
       validation: {
         at_least_one_in: ['in_progress', 'done']
       }
     },
     {
       child_task_type: 'task',
+      when_parent_type: 'story',
       required_workflow: 'feature_development',
-      min_count: 0,
-      max_count: 20,
-      label: 'Tasks (for small features)',
-      description: 'For small features, create tasks directly without epics/stories.',
+      min_count: 2,
+      max_count: 5,
+      label: 'Implementation Tasks',
+      description: 'Stories must be broken down into 2-5 implementation tasks',
       validation: {
         at_least_one_in: ['in_progress', 'done']
       }

@@ -2,24 +2,20 @@ import type { McpToolDefinition } from './common.js';
 
 export const DEGRADATION_TOOL: McpToolDefinition = {
   name: 'degradation',
-  description: `Automatic cleanup system for maintaining metadata quality over time.
+  description: `Automatic metadata cleanup system. Maintains data quality by removing stale information and deactivating ineffective rules.
 
-PURPOSE:
-- Removes stale or unused tags automatically
-- Reduces inactive rules based on usage metrics
-- Maintains lean, relevant metadata
-- Prevents accumulation of obsolete information
+PURPOSE: Keep metadata lean and relevant. Prevents accumulation of obsolete tags and unused rules over time.
 
-ACTIONS:
-- status: Check degradation scheduler status and last run
-- run_cleanup: Manually trigger cleanup process
-- configure: Adjust automatic cleanup schedule
-- start/stop: Control automatic scheduler
+Required: project, action(status|run_cleanup|configure|stop|start)
+Configure: config{enabled,intervalHours,runOnStartup,maxRetries,retryDelayMinutes}
 
 DEFAULT BEHAVIOR:
 - Runs automatically every 24 hours
 - Removes tags unused for 30+ days
-- Marks rules as inactive if unused/ineffective`,
+- Marks rules as inactive if unused or ineffective
+- Non-blocking background process
+
+TYPICAL USE: Check status or run manual cleanup. Configure only if you need different intervals. Most users never touch this.`,
   inputSchema: {
     type: 'object',
     properties: {

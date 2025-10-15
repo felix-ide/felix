@@ -2,15 +2,21 @@ import type { McpToolDefinition } from './common.js';
 
 export const NOTES_TOOL: McpToolDefinition = {
   name: 'notes',
-  description: `Create and manage documentation with markdown, mermaid, and excalidraw.
+  description: `Documentation and diagram management with markdown, mermaid, excalidraw. Creates hierarchical docs and Knowledge Bases.
 
-EXAMPLES:
-{ project: "my-app", action: "add", title: "Architecture", content: "# System Design\n..." }
-{ project: "my-app", action: "list", limit: 10 }
-{ project: "my-app", action: "get", note_id: "note_123" }
+PURPOSE: Capture architecture docs, diagrams, mockups, warnings. Create structured Knowledge Bases from templates.
 
-Supports mermaid (\`\`\`mermaid), excalidraw (\`\`\`excalidraw), markdown.
-Link to tasks: entity_links: [{ entity_type: "task", entity_id: "task_123" }]`,
+Required: project, action(add|get|list|update|delete|get_tree|help)
+Create/Update: title, content, note_type(note|warning|documentation|excalidraw)=note, entity_links[{entity_type,entity_id,link_strength}], stable_tags[], kb_template(project|feature_planning|refactor|initial_planning)
+Query: note_id, query, semantic=T, tags[], limit=20, kb_ids[] (filter to specific KBs)
+Tree: root_note_id, include_all=T
+
+FORMATS: Markdown, \`\`\`mermaid diagrams (flowchart, sequence, ERD, etc.), \`\`\`excalidraw drawings
+LINKING: Attach to tasks, components, files, rules via entity_links - notes appear in their context automatically
+WORKFLOWS: Tasks require specific note types (Architecture, ERD, API Contract) for spec_ready gate
+KNOWLEDGE BASES: Use kb_template to create structured KB from template. Filter list by kb_ids to scope to specific KBs.
+
+EXAMPLE: Create project KB with kb_template='project', or filter notes with kb_ids=['kb_project'] to see only project KB notes`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -66,10 +72,21 @@ Link to tasks: entity_links: [{ entity_type: "task", entity_id: "task_123" }]`,
         items: { type: 'string' },
         description: 'Note tags (for add/update actions)'
       },
+      // Knowledge Base creation
+      kb_template: {
+        type: 'string',
+        enum: ['project', 'feature_planning', 'refactor', 'initial_planning'],
+        description: 'Create a Knowledge Base from template (for add action). Creates structured note hierarchy.'
+      },
       // For list/search actions
       query: {
         type: 'string',
         description: 'Search query (for search action)'
+      },
+      kb_ids: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Filter notes to specific Knowledge Base(s) (for list action). Use KB IDs like "kb_project".'
       },
       semantic: {
         type: 'boolean',

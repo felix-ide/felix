@@ -64,65 +64,128 @@ async function main() {
 
     debugLog(`Validating rules for file: ${filePath}`);
 
-    // Build search query based on tool type
+    let output = '';
+
+    // Build intelligent search query based on actual code content and tool parameters
     let searchQuery = '';
+
+    // Start with tool-specific context
     switch (toolName) {
         case 'Write':
-            searchQuery = 'file creation new file boilerplate template scaffold';
+            searchQuery = 'creating new file ';
             break;
         case 'Edit':
-            searchQuery = 'code modification refactoring update change edit';
+            searchQuery = 'modifying existing code ';
             break;
         case 'MultiEdit':
-            searchQuery = 'bulk changes refactoring multiple files consistency';
+            searchQuery = 'bulk refactoring multiple edits ';
             break;
         case 'NotebookEdit':
-            searchQuery = 'jupyter notebook data science analysis cell';
+            searchQuery = 'jupyter notebook cell ';
             break;
     }
 
-    // Add file-specific context to search
-    if (filePath.includes('test')) {
-        searchQuery += ' testing test coverage unit test integration test';
-    } else if (filePath.includes('auth')) {
-        searchQuery += ' authentication security authorization login';
-    } else if (filePath.includes('api')) {
-        searchQuery += ' API endpoint REST validation error handling';
+    // Extract file type and add to query
+    const fileExt = filePath.split('.').pop() || '';
+    const fileName = filePath.split('/').pop() || '';
+    searchQuery += `${fileExt} ${fileName} `;
+
+    // Analyze the actual code content being written/edited
+    const codeToAnalyze = newContent || '';
+    if (codeToAnalyze) {
+        // Extract meaningful tokens from the code
+        const tokens = [];
+
+        // Look for imports/requires
+        const importMatches = codeToAnalyze.match(/(?:import|require|from)\s+['"]([^'"]+)['"]/g);
+        if (importMatches) {
+            tokens.push('imports', 'dependencies');
+            importMatches.forEach(imp => tokens.push(imp.replace(/['"`]/g, '')));
+        }
+
+        // Look for function/class definitions
+        const functionMatches = codeToAnalyze.match(/(?:function|const|let|var|async|class)\s+(\w+)/g);
+        if (functionMatches) {
+            functionMatches.forEach(fn => tokens.push(fn.split(/\s+/).pop()));
+        }
+
+        // Look for common patterns
+        if (codeToAnalyze.match(/fetch|axios|http/i)) tokens.push('API', 'HTTP', 'network');
+        if (codeToAnalyze.match(/useState|useEffect|component/i)) tokens.push('React', 'component', 'state');
+        if (codeToAnalyze.match(/describe|test|it\(|expect/)) tokens.push('testing', 'unit-test');
+        if (codeToAnalyze.match(/router|route|endpoint/i)) tokens.push('routing', 'API-endpoint');
+        if (codeToAnalyze.match(/auth|login|password|token/i)) tokens.push('authentication', 'security');
+        if (codeToAnalyze.match(/database|query|sql|orm/i)) tokens.push('database', 'data-access');
+        if (codeToAnalyze.match(/try|catch|throw|error/i)) tokens.push('error-handling', 'exceptions');
+
+        // Add tokens to search query
+        searchQuery += tokens.slice(0, 15).join(' ');
     }
 
-    // Add hook context tag to boost rules tagged for PreToolUse
-    searchQuery += ' pre-tool-use';
+    // Add file path context
+    if (filePath.includes('test')) searchQuery += ' testing test-coverage';
+    if (filePath.includes('auth')) searchQuery += ' authentication security';
+    if (filePath.includes('api') || filePath.includes('route')) searchQuery += ' API endpoint';
+    if (filePath.includes('component')) searchQuery += ' UI component';
+    if (filePath.includes('hook')) searchQuery += ' React hooks';
+    if (filePath.includes('util') || filePath.includes('helper')) searchQuery += ' utility helper-function';
 
-    debugLog(`Searching for rules with query: ${searchQuery}`);
+    debugLog(`Smart search query: ${searchQuery}`);
 
-    let output = '';
-    let shouldBlock = false;
+    // Use semantic search to find relevant rules based on what's actually being done
+    const semanticResults = await searchRulesSemantic(searchQuery, 15);
 
-    // Get applicable rules for this specific file
+    // Also get entity-specific rules for this file
     const componentId = await getComponentIdFromPath(filePath);
-    const applicableRules = await getApplicableRules('file', componentId, searchQuery, newContent);
+    const entityRules = await getApplicableRules('file', componentId, searchQuery, codeToAnalyze);
 
-    if (applicableRules && applicableRules.applicable_rules) {
-        debugLog('Found applicable rules, checking...');
+    // Combine rules from both sources, deduplicate by ID
+    const allRules = new Map();
 
-        const rulesArray = applicableRules.applicable_rules || [];
-
-        if (rulesArray.length > 0) {
-            // Check priority rules (>= 5)
-            const relevantRules = rulesArray
-                .filter(rule => (rule.priority || 0) >= 5)
-                .slice(0, 10) // Limit to top 10 rules
-                .map(rule => {
-                    const name = rule.name || 'Rule';
-                    const priority = rule.priority || 5;
-                    const guidance = (rule.guidance_text || rule.description || '').substring(0, 200);
-                    return `${name} (P${priority}): ${guidance}`;
-                })
-                .join('\n');
-
-            if (relevantRules) {
-                output += `⚠️ **Applicable Rules:**\n\n${relevantRules}\n`;
+    // Add semantic search results
+    if (semanticResults && semanticResults.results) {
+        semanticResults.results.forEach(rule => {
+            if (rule.id && !allRules.has(rule.id)) {
+                allRules.set(rule.id, { ...rule, source: 'semantic' });
             }
+        });
+    }
+
+    // Add entity-specific rules (these take precedence if duplicate)
+    if (entityRules && entityRules.applicable_rules) {
+        entityRules.applicable_rules.forEach(rule => {
+            if (rule.id) {
+                allRules.set(rule.id, { ...rule, source: 'entity' });
+            }
+        });
+    }
+
+    if (allRules.size > 0) {
+        debugLog(`Found ${allRules.size} total applicable rules`);
+
+        // Filter for high-priority rules and format for output
+        const relevantRules = Array.from(allRules.values())
+            .filter(rule => (rule.priority || 0) >= 5)
+            .sort((a, b) => {
+                // Sort by: entity rules first, then by priority
+                if (a.source !== b.source) {
+                    return a.source === 'entity' ? -1 : 1;
+                }
+                return (b.priority || 0) - (a.priority || 0);
+            })
+            .slice(0, 10) // Limit to top 10
+            .map(rule => {
+                const name = rule.name || 'Rule';
+                const priority = rule.priority || 5;
+                const guidance = (rule.guidance_text || rule.description || '').substring(0, 250);
+                const source = rule.source === 'entity' ? '📌' : '🔍';
+                return `${source} **${name}** (P${priority})\n  ${guidance}`;
+            })
+            .join('\n\n');
+
+        if (relevantRules) {
+            output += `⚠️ **Rules for ${toolName} on \`${fileName}\`:**\n\n${relevantRules}\n\n`;
+            output += `_📌 = file-specific, 🔍 = semantic match_`;
         }
     }
 

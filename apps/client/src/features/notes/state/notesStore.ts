@@ -41,12 +41,13 @@ export const useNotesStore = create<NotesStore>()(
 
       loadNotes: async (options = {}) => {
         set({ loading: true, error: null });
-        
+
         try {
           const result = await felixService.listNotes({
             entityType: options.entityType,
             entityId: options.entityId,
-            limit: options.limit || 50,
+            limit: options.limit || 200,
+            excludeKB: true // Exclude KB nodes on the backend
           });
 
           set({
@@ -54,7 +55,7 @@ export const useNotesStore = create<NotesStore>()(
             loading: false,
           });
         } catch (error) {
-          set({ 
+          set({
             error: error instanceof Error ? error.message : 'Failed to load notes',
             loading: false,
           });

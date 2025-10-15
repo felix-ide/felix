@@ -49,6 +49,7 @@ export const listNotes = (options: {
   linkedToTask?: string;
   limit?: number;
   offset?: number;
+  excludeKB?: boolean;
 } = {}) => {
   const url = buildUrl(API_BASE, 'notes', {
     entity_type: options.entityType,
@@ -56,7 +57,8 @@ export const listNotes = (options: {
     note_type: options.noteType,
     linkedToTask: options.linkedToTask,
     limit: options.limit,
-    offset: options.offset
+    offset: options.offset,
+    exclude_kb: options.excludeKB ? 'true' : undefined
   });
   return fetchJson<{ notes: NoteData[]; total: number }>(url, undefined, 'Failed to list notes');
 };

@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTaskData } from '../shared/TaskDataProvider';
 import { GanttChart } from './GanttChart';
-import { TaskEditor } from '../../TaskEditor';
 import { Alert } from '@client/shared/ui/Alert';
 import { Button } from '@client/shared/ui/Button';
-import { BarChart3, Plus } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import type { TaskData } from '@/types/api';
 import { felixService } from '@/services/felixService';
 
@@ -26,9 +25,6 @@ export function GanttView({ onTaskClick, filters }: GanttViewProps) {
     createTask
   } = useTaskData();
 
-  const [selectedTask, setSelectedTask] = useState<TaskData | null>(null);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const viewMode = (filters?.viewMode as 'Quarter' | 'Month' | 'Week' | 'Day' | 'Hour') || 'Month';
 
   // State for dependencies
@@ -129,30 +125,9 @@ export function GanttView({ onTaskClick, filters }: GanttViewProps) {
 
   const handleTaskClick = (task: any) => {
     const taskData = filteredTasks.find(t => t.id === task.id);
-    if (taskData) {
-      if (onTaskClick) {
-        onTaskClick(taskData);
-      } else {
-        // Fallback to old editor behavior
-        setSelectedTask(taskData);
-        setIsEditorOpen(true);
-      }
+    if (taskData && onTaskClick) {
+      onTaskClick(taskData);
     }
-  };
-
-  const handleTaskSave = async (taskData: Omit<TaskData, 'id' | 'created_at' | 'updated_at' | 'sort_order' | 'depth_level'>) => {
-    if (selectedTask) {
-      await updateTask(selectedTask.id, taskData);
-      await refreshTasks();
-      setIsEditorOpen(false);
-      setSelectedTask(null);
-    }
-  };
-
-  const handleTaskCreate = async (taskData: Omit<TaskData, 'id' | 'created_at' | 'updated_at' | 'sort_order' | 'depth_level'>) => {
-    await createTask(taskData);
-    await refreshTasks();
-    setIsCreating(false);
   };
 
   if (isLoading) {
@@ -188,14 +163,8 @@ export function GanttView({ onTaskClick, filters }: GanttViewProps) {
               <p className="text-muted-foreground text-sm mt-1">
                 {searchQuery || statusFilter !== 'all' || typeFilter !== 'all'
                   ? 'Try adjusting your filters'
-                  : 'Create your first task to get started'}
+                  : 'Use the main task list to create your first task'}
               </p>
-              {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && (
-                <Button onClick={() => setIsCreating(true)} className="mt-4">
-                  <Plus className="h-4 w-4 mr-1" />
-                  Create Task
-                </Button>
-              )}
           </div>
         </div>
       ) : (
@@ -227,36 +196,6 @@ export function GanttView({ onTaskClick, filters }: GanttViewProps) {
                 }
               }}
           />
-        </div>
-      )}
-
-      {/* Task Editor Modal */}
-      {isEditorOpen && selectedTask && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-card rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <TaskEditor
-              task={selectedTask}
-              isOpen={isEditorOpen}
-              onSave={handleTaskSave}
-              onCancel={() => {
-                setIsEditorOpen(false);
-                setSelectedTask(null);
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Create Task Modal */}
-      {isCreating && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-card rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <TaskEditor
-              isOpen={isCreating}
-              onSave={handleTaskCreate}
-              onCancel={() => setIsCreating(false)}
-            />
-          </div>
         </div>
       )}
     </div>

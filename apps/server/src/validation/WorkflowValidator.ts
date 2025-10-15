@@ -84,8 +84,14 @@ export class WorkflowValidator {
     // Validate child task requirements
     if (workflow.child_requirements && workflow.child_requirements.length > 0) {
       const childTasks = opts?.childTasks || [];
+      const parentTaskType = (taskParams as any).task_type;
 
       for (const childReq of workflow.child_requirements) {
+        // Skip if this requirement only applies to specific parent types and this isn't one
+        if (childReq.when_parent_type && childReq.when_parent_type !== parentTaskType) {
+          continue;
+        }
+
         const childrenOfType = childTasks.filter(t => t.task_type === childReq.child_task_type);
         const minCount = childReq.min_count ?? 1;
 
@@ -100,7 +106,16 @@ export class WorkflowValidator {
             section_type: 'children' as any,
             description: `${childReq.label || childReq.child_task_type} (${childrenOfType.length}/${minCount})`,
             action_needed: `Add ${minCount - childrenOfType.length} more ${childReq.child_task_type}(s)${childReq.description ? ': ' + childReq.description : ''}`,
-            is_conditional: false
+            is_conditional: false,
+            metadata: {
+              child_task_type: childReq.child_task_type,
+              min_count: minCount,
+              max_count: childReq.max_count,
+              current_count: childrenOfType.length,
+              required_workflow: childReq.required_workflow,
+              label: childReq.label,
+              description: childReq.description
+            }
           });
           continue;
         }
@@ -158,8 +173,14 @@ export class WorkflowValidator {
       }
     }
 
-    // Count only required child requirements (min_count > 0)
-    const requiredChildCount = (workflow.child_requirements || []).filter(cr => (cr.min_count ?? 1) > 0).length;
+    // Count only required child requirements (min_count > 0) that apply to this parent task type
+    const parentTaskType = (taskParams as any).task_type;
+    const requiredChildCount = (workflow.child_requirements || []).filter(cr => {
+      if (cr.when_parent_type && cr.when_parent_type !== parentTaskType) {
+        return false;
+      }
+      return (cr.min_count ?? 1) > 0;
+    }).length;
 
     const totalRequired = workflow.required_sections.filter(s =>
       this.isSectionRequired(s, workflow, context)
@@ -529,7 +550,8 @@ export class WorkflowValidator {
       conclusions: 'Research conclusions notes',
       next_steps: 'Next steps/action items checklist',
       knowledge_rules: `Knowledge rules (${section.min_rules || 1}+ rules)`,
-      scope_definition: 'Scope definition checklist'
+      scope_definition: 'Scope definition checklist',
+      children: 'Child tasks'
     };
 
     return descriptions[section.section_type] || section.section_type;
@@ -563,7 +585,8 @@ export class WorkflowValidator {
       conclusions: 'Create note with research conclusions',
       next_steps: 'Add next steps as actionable checklist',
       knowledge_rules: 'Create rules from research learnings',
-      scope_definition: 'Define scope with what is included/excluded as checklist'
+      scope_definition: 'Define scope with what is included/excluded as checklist',
+      children: 'Create required child tasks'
     };
 
     return actions[section.section_type] || `Complete ${section.section_type}`;

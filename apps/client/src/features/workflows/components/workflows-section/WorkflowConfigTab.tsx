@@ -579,7 +579,9 @@ export function WorkflowConfigTab({
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="font-semibold">{flow.display_label || flow.name}</div>
-                              <div className="text-xs text-muted-foreground">{flow.status_ids.join(' → ')}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {(Array.isArray(flow.status_ids) ? flow.status_ids : JSON.parse(flow.status_ids as string)).join(' → ')}
+                              </div>
                               {flow.description && (
                                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{flow.description}</p>
                               )}

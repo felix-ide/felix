@@ -74,6 +74,9 @@ export class Note {
   @Column({ type: 'simple-json', nullable: true })
   contextual_tags?: string[];
 
+  @Column({ type: 'simple-json', nullable: true })
+  metadata?: any;
+
   @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
 
