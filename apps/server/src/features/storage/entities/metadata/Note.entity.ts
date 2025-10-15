@@ -62,7 +62,7 @@ export class Note {
   @Column({ type: 'text', nullable: true })
   semantic_context?: string;
 
-  @Column({ type: 'blob', nullable: true })
+  @Column({ type: 'bytea', nullable: true })
   semantic_embedding?: Buffer;
 
   @Column({ type: 'simple-json', nullable: true })
@@ -77,10 +77,10 @@ export class Note {
   @Column({ type: 'simple-json', nullable: true })
   metadata?: any;
 
-  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updated_at!: Date;
 
   // Relations

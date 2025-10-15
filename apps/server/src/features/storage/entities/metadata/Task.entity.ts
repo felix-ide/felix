@@ -68,7 +68,7 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   actual_effort?: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   due_date?: Date;
 
   @Column({ type: 'text', nullable: true })
@@ -102,7 +102,7 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   semantic_context?: string;
 
-  @Column({ type: 'blob', nullable: true })
+  @Column({ type: 'bytea', nullable: true })
   semantic_embedding?: Buffer;
 
   @Column({
@@ -135,13 +135,13 @@ export class Task {
   })
   checklists?: Checklist[];
 
-  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updated_at!: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   completed_at?: Date;
 
   // Workflow name (nullable for legacy tasks)
@@ -157,7 +157,7 @@ export class Task {
   spec_waivers?: Array<{ code: string; reason: string; added_by?: string; added_at?: string }>;
 
   // Last validation metadata
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   last_validated_at?: Date;
 
   @Column({ type: 'text', nullable: true })

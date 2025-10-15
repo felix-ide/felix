@@ -107,7 +107,7 @@ export class Rule {
   @Column({ type: 'text', nullable: true })
   semantic_context?: string;
 
-  @Column({ type: 'blob', nullable: true })
+  @Column({ type: 'bytea', nullable: true })
   semantic_embedding?: Buffer;
 
   @Column({ type: 'simple-json', nullable: true })
@@ -125,7 +125,7 @@ export class Rule {
   @Column({ type: 'integer', default: 0 })
   usage_count!: number;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   last_used?: Date;
 
   @Column({ type: 'text', default: 'replace' })
@@ -140,10 +140,10 @@ export class Rule {
   @Column({ type: 'text', nullable: true })
   created_by?: string;
 
-  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updated_at!: Date;
 
   // Relations

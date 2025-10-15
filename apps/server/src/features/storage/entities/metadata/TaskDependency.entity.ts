@@ -37,7 +37,7 @@ export class TaskDependency {
   @Column({ type: 'boolean', default: false })
   auto_created!: boolean;
 
-  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
 
   // Relations

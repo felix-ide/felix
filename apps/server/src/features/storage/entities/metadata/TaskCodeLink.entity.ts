@@ -39,13 +39,13 @@ export class TaskCodeLink {
   @Column({ type: 'boolean', default: false })
   auto_detected!: boolean;
 
-  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   last_verified!: Date;
 
   @Column({ type: 'text', nullable: true })
   code_hash?: string;
 
-  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
 
   // Relations

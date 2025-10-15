@@ -12,6 +12,11 @@ release/
 *.db-wal
 *.db-shm
 *.db
+
+
+.felix/
+# Felix configuration (contains credentials)
+.felix/config.json
 **/.claude/settings.local.json
 python-sidecar/.venv/
 # Test coverage and reports

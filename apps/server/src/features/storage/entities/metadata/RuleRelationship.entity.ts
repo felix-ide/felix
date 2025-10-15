@@ -33,7 +33,7 @@ export class RuleRelationship {
   @Column({ type: 'integer', default: 0 })
   priority_adjustment!: number;
 
-  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
 
   // Relations

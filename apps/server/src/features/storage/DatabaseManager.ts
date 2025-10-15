@@ -6,7 +6,7 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { logger } from '../../shared/logger.js';
 import path from 'path';
-import { access } from 'fs/promises';
+import { access, readFile } from 'fs/promises';
 import { constants as fsConstants } from 'fs';
 import { WriteQueue } from '../../shared/WriteQueue.js';
 
@@ -31,6 +31,26 @@ import { NotesRepository } from './repositories/NotesRepository.js';
 import { TasksRepository } from './repositories/TasksRepository.js';
 import { RulesRepository } from './repositories/RulesRepository.js';
 
+interface ProjectConfig {
+  version: string;
+  databases: {
+    index?: {
+      type: 'sqlite';
+      path: string;
+    };
+    metadata: {
+      type: 'sqlite' | 'postgres';
+      path?: string;
+      host?: string;
+      port?: number;
+      database?: string;
+      username?: string;
+      password?: string;
+      ssl?: boolean;
+    };
+  };
+}
+
 export class DatabaseManager {
   private static instances: Map<string, DatabaseManager> = new Map();
   private indexDataSource: DataSource | null = null;
@@ -39,6 +59,7 @@ export class DatabaseManager {
   private writeQueue: WriteQueue = new WriteQueue();
   private writeQueueEnabled: boolean;
   private initializing: Promise<void> | null = null;
+  private config: ProjectConfig | null = null;
   
   // Repository instances
   private componentRepo: ComponentRepository | null = null;
@@ -70,6 +91,22 @@ export class DatabaseManager {
   }
 
   /**
+   * Load project configuration from .felix/config.json
+   */
+  private async loadProjectConfig(): Promise<ProjectConfig | null> {
+    const configPath = path.join(this.projectPath, '.felix', 'config.json');
+    try {
+      const content = await readFile(configPath, 'utf-8');
+      const config = JSON.parse(content);
+      logger.info('📝 Loaded configuration from .felix/config.json');
+      return config;
+    } catch (error) {
+      // No config file, use defaults
+      return null;
+    }
+  }
+
+  /**
    * Initialize both databases with PROJECT-SPECIFIC paths
    */
   async initialize(): Promise<void> {
@@ -77,15 +114,16 @@ export class DatabaseManager {
     if (this.initializing) { await this.initializing; return; }
     this.initializing = (async () => {
     try {
+      // Load project config
+      this.config = await this.loadProjectConfig();
+
       // Build project-specific database paths
       const indexDbPath = await this.resolveDbPath('.felix.index.db', '.code-indexer.index.db');
-      const metadataDbPath = await this.resolveDbPath('.felix.metadata.db', '.code-indexer.metadata.db');
 
       logger.info(`🗄️  Initializing databases for project: ${this.projectPath}`);
       logger.debug(`Index DB: ${indexDbPath}`);
-      logger.debug(`Metadata DB: ${metadataDbPath}`);
 
-      // Index database configuration
+      // Index database configuration (always local SQLite)
       const indexConfig: DataSourceOptions = {
         type: 'sqlite',
         database: indexDbPath,
@@ -94,18 +132,67 @@ export class DatabaseManager {
         logging: false
       };
 
-      // Metadata database configuration  
-      const metadataConfig: DataSourceOptions = {
-        type: 'sqlite',
-        database: metadataDbPath,
-        entities: [
-          Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
-          RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate,
-          TaskStatus, TaskStatusFlow, KnowledgeBase
-        ],
-        synchronize: true,
-        logging: false
-      };
+      // Metadata database configuration (from config or env vars)
+      let metadataConfig: DataSourceOptions;
+
+      if (this.config?.databases.metadata.type === 'postgres') {
+        // Use Postgres from config file
+        const pgConfig = this.config.databases.metadata;
+        logger.info(`🌐 Using remote Postgres: ${pgConfig.host}:${pgConfig.port}/${pgConfig.database}`);
+
+        metadataConfig = {
+          type: 'postgres',
+          host: pgConfig.host,
+          port: pgConfig.port || 5432,
+          database: pgConfig.database,
+          username: pgConfig.username,
+          password: pgConfig.password,
+          ssl: pgConfig.ssl ? { rejectUnauthorized: false } : false,
+          entities: [
+            Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
+            RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate,
+            TaskStatus, TaskStatusFlow, KnowledgeBase
+          ],
+          synchronize: true,
+          logging: false
+        };
+      } else if (process.env.METADATA_DB_TYPE === 'postgres') {
+        // Use Postgres from environment variables (existing behavior)
+        logger.info(`🌐 Using remote Postgres from env vars`);
+
+        metadataConfig = {
+          type: 'postgres',
+          host: process.env.DB_HOST || 'localhost',
+          port: parseInt(process.env.DB_PORT || '5432'),
+          database: process.env.DB_NAME || 'code_indexer_metadata',
+          username: process.env.DB_USER || 'postgres',
+          password: process.env.DB_PASSWORD || '',
+          ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+          entities: [
+            Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
+            RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate,
+            TaskStatus, TaskStatusFlow, KnowledgeBase
+          ],
+          synchronize: true,
+          logging: false
+        };
+      } else {
+        // Use local SQLite (default)
+        const metadataDbPath = await this.resolveDbPath('.felix.metadata.db', '.code-indexer.metadata.db');
+        logger.debug(`Metadata DB: ${metadataDbPath}`);
+
+        metadataConfig = {
+          type: 'sqlite',
+          database: metadataDbPath,
+          entities: [
+            Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
+            RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate,
+            TaskStatus, TaskStatusFlow, KnowledgeBase
+          ],
+          synchronize: true,
+          logging: false
+        };
+      }
 
       // Initialize index database
       this.indexDataSource = new DataSource(indexConfig);

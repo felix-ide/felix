@@ -47,7 +47,7 @@ export class RuleApplication {
   @Column({ type: 'text', nullable: true })
   error_message?: string;
 
-  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   applied_at!: Date;
 
   // Relations

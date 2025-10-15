@@ -21,6 +21,6 @@ export class GlobalWorkflowSetting {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @UpdateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updated_at!: Date;
 }
