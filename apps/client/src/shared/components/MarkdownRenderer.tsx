@@ -129,7 +129,7 @@ const CodeBlock = ({ code, language }: { code: string; language?: string }) => {
   const isDark = theme?.type === 'dark';
 
   return (
-    <div className="my-3 rounded-lg border border-gray-700 dark:border-gray-600 overflow-hidden">
+    <div className="my-3 rounded-lg border border-border overflow-hidden">
       <CodeMirror
         value={code}
         height="auto"
@@ -173,7 +173,7 @@ const ExcalidrawDiagram = ({ content }: { content: string }) => {
     };
 
     return (
-      <div className="my-3 border border-gray-700 dark:border-gray-600 rounded-lg overflow-hidden" style={{ height: '400px' }}>
+      <div className="my-3 border border-border rounded-lg overflow-hidden" style={{ height: '400px' }}>
         <Excalidraw
           initialData={initialData}
           viewModeEnabled={true}
@@ -235,9 +235,9 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
         ol: ({ children }) => <ol className="list-decimal list-inside mb-2 ml-2">{children}</ol>,
         li: ({ children }) => <li className="mb-0.5">{children}</li>,
 
-        // Blockquote
+        // Blockquote - use theme border color
         blockquote: ({ children }) => (
-          <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-3">
+          <blockquote className="border-l-4 border-border pl-4 italic my-3">
             {children}
           </blockquote>
         ),
@@ -247,10 +247,10 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
           const code = String(children).replace(/\n$/, '');
           const isMultiline = code.includes('\n');
 
-          // Inline code - single backticks
+          // Inline code - single backticks, use theme colors
           if (inline || !isMultiline) {
             return (
-              <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded text-xs font-mono">
+              <code className="px-1 py-0.5 bg-muted text-foreground rounded text-xs font-mono">
                 {children}
               </code>
             );
@@ -295,39 +295,53 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
           return <>{children}</>;
         },
 
-        // Tables
+        // Tables - use theme colors
         table: ({ children }) => (
           <div className="overflow-x-auto my-3">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <table className="min-w-full divide-y divide-border">
               {children}
             </table>
           </div>
         ),
         thead: ({ children }) => (
-          <thead className="bg-gray-50 dark:bg-gray-800">{children}</thead>
+          <thead className="bg-muted">{children}</thead>
         ),
         tbody: ({ children }) => (
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="bg-background divide-y divide-border">
             {children}
           </tbody>
         ),
         tr: ({ children }) => <tr>{children}</tr>,
         th: ({ children }) => (
-          <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+          <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
             {children}
           </th>
         ),
         td: ({ children }) => (
-          <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+          <td className="px-3 py-2 text-sm text-foreground">
             {children}
           </td>
         ),
 
-        // Links
+        // Bold text - let prose handle colors via theme
+        strong: ({ children }) => (
+          <strong className="font-semibold">
+            {children}
+          </strong>
+        ),
+
+        // Italic text - let prose handle colors via theme
+        em: ({ children }) => (
+          <em className="italic">
+            {children}
+          </em>
+        ),
+
+        // Links - use theme primary color
         a: ({ href, children }) => (
           <a
             href={href}
-            className="text-blue-600 dark:text-blue-400 hover:underline"
+            className="text-primary hover:underline"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -335,8 +349,8 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
           </a>
         ),
 
-        // Horizontal rule
-        hr: () => <hr className="my-4 border-gray-300 dark:border-gray-600" />,
+        // Horizontal rule - use theme border color
+        hr: () => <hr className="my-4 border-border" />,
 
         // Images
         img: ({ src, alt }) => (
