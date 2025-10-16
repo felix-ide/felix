@@ -51,7 +51,7 @@ export class TaskMetric {
   @Column({ type: 'boolean', default: false })
   critical_path!: boolean;
 
-  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updated_at!: Date;
 
   // Relations

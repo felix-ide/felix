@@ -196,7 +196,7 @@ export class NotesRepository {
       // Search inside entity_links JSON array for entity_type and entity_id
       if (criteria.entity_type && criteria.entity_id) {
         if (isPostgres) {
-          query.andWhere(`note.entity_links @> :link::jsonb`, {
+          query.andWhere(`note.entity_links::jsonb @> :link::jsonb`, {
             link: JSON.stringify([{ entity_type: criteria.entity_type, entity_id: criteria.entity_id }])
           });
         } else {
@@ -293,8 +293,8 @@ export class NotesRepository {
       const query = this.repository.createQueryBuilder('note');
 
       if (isPostgres) {
-        // PostgreSQL JSONB query
-        query.where(`note.entity_links @> :link::jsonb`, {
+        // PostgreSQL JSONB query - cast text column to jsonb
+        query.where(`note.entity_links::jsonb @> :link::jsonb`, {
           link: JSON.stringify([{ entity_type: entityType, entity_id: entityId }])
         });
       } else {
@@ -441,7 +441,7 @@ export class NotesRepository {
       // Search inside entity_links JSON array for entity_type and entity_id
       if (criteria.entity_type && criteria.entity_id) {
         if (isPostgres) {
-          query.andWhere(`note.entity_links @> :link::jsonb`, {
+          query.andWhere(`note.entity_links::jsonb @> :link::jsonb`, {
             link: JSON.stringify([{ entity_type: criteria.entity_type, entity_id: criteria.entity_id }])
           });
         } else {

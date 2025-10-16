@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   Index
 } from 'typeorm';
+import { DateColumn } from '../DbAwareColumn.js';
 
 @Entity('transition_gates')
 @Index('idx_transition_gate_task', ['task_id'])
@@ -41,12 +42,12 @@ export class TransitionGate {
   })
   metadata?: Record<string, any> | null;
 
-  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updated_at!: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
-  acknowledged_at?: Date | null;
+  @DateColumn({ nullable: true })
+  acknowledged_at?: Date;
 }

@@ -9,6 +9,8 @@ import path from 'path';
 import chokidar from 'chokidar';
 import { IgnorePatterns } from '../utils/IgnorePatterns.js';
 import { logger } from '../shared/logger.js';
+import { appConfig } from '../shared/config.js';
+import { DegradationScheduler } from '../features/metadata/services/DegradationScheduler.js';
 
 export interface ProjectInfo {
   name: string;          // Short name for easy reference
@@ -16,6 +18,7 @@ export interface ProjectInfo {
   dbManager: DatabaseManager;
   codeIndexer: CodeIndexer;
   watcher: any;         // chokidar watcher
+  degradationScheduler?: any; // DegradationScheduler instance
   createdAt: Date;
   lastAccessed: Date;
   reconcileTimer?: NodeJS.Timeout;
@@ -170,10 +173,13 @@ export class ProjectManager {
     // Setup file watcher (with option to disable)
     const disableWatcher = process.env.DISABLE_FILE_WATCHER === 'true';
     const watcher = disableWatcher ? null : this.setupFileWatcher(absolutePath, codeIndexer);
-    
+
     if (disableWatcher) {
       console.log('⚠️ File watcher disabled by DISABLE_FILE_WATCHER environment variable');
     }
+
+    // Setup degradation scheduler
+    const degradationScheduler = this.setupDegradationScheduler(dbManager);
 
     const projectInfo: ProjectInfo = {
       name: projectName,
@@ -181,6 +187,7 @@ export class ProjectManager {
       dbManager,
       codeIndexer,
       watcher,
+      degradationScheduler,
       createdAt: new Date(),
       lastAccessed: new Date()
     };
@@ -304,10 +311,13 @@ export class ProjectManager {
     // Setup file watcher (with option to disable)
     const disableWatcher = process.env.DISABLE_FILE_WATCHER === 'true';
     const watcher = disableWatcher ? null : this.setupFileWatcher(absolutePath, codeIndexer);
-    
+
     if (disableWatcher) {
       console.log('⚠️ File watcher disabled by DISABLE_FILE_WATCHER environment variable');
     }
+
+    // Setup degradation scheduler
+    const degradationScheduler = this.setupDegradationScheduler(dbManager);
 
     const projectInfo: ProjectInfo = {
       name: projectName,
@@ -315,6 +325,7 @@ export class ProjectManager {
       dbManager,
       codeIndexer,
       watcher,
+      degradationScheduler,
       createdAt: new Date(),
       lastAccessed: new Date()
     };
@@ -382,6 +393,33 @@ export class ProjectManager {
     return await project.codeIndexer.getStats();
   }
 
+
+  /**
+   * Setup degradation scheduler for a project
+   */
+  private setupDegradationScheduler(dbManager: DatabaseManager): DegradationScheduler | null {
+    if (!appConfig.degradation.enabled) {
+      return null;
+    }
+
+    const scheduler = new DegradationScheduler(
+      dbManager,
+      {
+        enabled: true,
+        intervalHours: appConfig.degradation.intervalHours,
+        runOnStartup: appConfig.degradation.runOnStartup,
+        maxRetries: 3,
+        retryDelayMinutes: 60
+      }
+    );
+
+    scheduler.start().catch(err => {
+      logger.warn('Failed to start degradation scheduler:', err);
+    });
+
+    logger.info(`🧹 Degradation scheduler started (every ${appConfig.degradation.intervalHours}h)`);
+    return scheduler;
+  }
 
   /**
    * Setup file watcher for a project
@@ -513,6 +551,11 @@ export class ProjectManager {
     if (!project) return;
 
     try {
+      // Stop degradation scheduler
+      if (project.degradationScheduler) {
+        project.degradationScheduler.stop();
+      }
+
       // Close file watcher
       if (project.watcher) {
         await project.watcher.close();

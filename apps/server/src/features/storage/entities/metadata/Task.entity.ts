@@ -3,17 +3,18 @@
  * TypeORM entity for the tasks table in metadata database
  */
 
-import { 
-  Entity, 
-  PrimaryColumn, 
-  Column, 
-  CreateDateColumn, 
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
   JoinColumn,
   Index
 } from 'typeorm';
+import { DateColumn, JsonColumn } from '../DbAwareColumn.js';
 
 // Entity interfaces
 export interface EntityLink {
@@ -68,7 +69,7 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   actual_effort?: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @DateColumn({ nullable: true })
   due_date?: Date;
 
   @Column({ type: 'text', nullable: true })
@@ -80,7 +81,7 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   entity_id?: string;
 
-  // JSON columns - TypeORM simple-json handles serialization
+  // JSON columns - using jsonb for PostgreSQL compatibility
   @Column({
     type: 'simple-json',
     nullable: true
@@ -101,9 +102,6 @@ export class Task {
 
   @Column({ type: 'text', nullable: true })
   semantic_context?: string;
-
-  @Column({ type: 'bytea', nullable: true })
-  semantic_embedding?: Buffer;
 
   @Column({
     type: 'simple-json',
@@ -135,13 +133,13 @@ export class Task {
   })
   checklists?: Checklist[];
 
-  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updated_at!: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @DateColumn({ nullable: true })
   completed_at?: Date;
 
   // Workflow name (nullable for legacy tasks)
@@ -157,7 +155,7 @@ export class Task {
   spec_waivers?: Array<{ code: string; reason: string; added_by?: string; added_at?: string }>;
 
   // Last validation metadata
-  @Column({ type: 'timestamp', nullable: true })
+  @DateColumn({ nullable: true })
   last_validated_at?: Date;
 
   @Column({ type: 'text', nullable: true })

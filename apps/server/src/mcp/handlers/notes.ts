@@ -3,15 +3,34 @@ import { processExcalidrawContent } from '../../utils/excalidraw-validator.js';
 import { handleNotesList } from './notes.list.js';
 import { createJsonContent, createTextContent, type NotesAddRequest, type NotesDeleteRequest, type NotesGetRequest, type NotesGetSpecBundleRequest, type NotesListRequest, type NotesToolRequest, type NotesUpdateRequest } from '../types/contracts.js';
 
-export async function handleNotesTools(request: NotesToolRequest) {
+export async function handleNotesTools(request: any) {
   const projectInfo = await projectManager.getProject(request.project);
   if (!projectInfo) throw new Error(`Project not found: ${request.project}`);
 
-  if (request.action === 'list') {
+  // Extract tool name from new format or fallback to action
+  const toolName = request._toolName || 'notes';
+
+  // Map new tool names to actions for compatibility
+  let action = request.action;
+  if (toolName === 'notes_write') {
+    action = request.mode === 'create' ? 'add' : 'update';
+  } else if (toolName === 'notes_get') {
+    action = 'get';
+  } else if (toolName === 'notes_list') {
+    action = 'list';
+  } else if (toolName === 'notes_search') {
+    action = 'list'; // search uses list handler with query
+  } else if (toolName === 'notes_delete') {
+    action = 'delete';
+  } else if (toolName === 'notes_tree') {
+    action = 'get_tree';
+  }
+
+  if (action === 'list') {
     return await handleNotesList(request as NotesListRequest);
   }
 
-  switch (request.action) {
+  switch (action) {
     case 'help': {
       const { HelpService } = await import('../../features/help/services/HelpService.js');
       const pack = HelpService.get('notes');

@@ -3,17 +3,18 @@
  * TypeORM entity for the notes table in metadata database
  */
 
-import { 
-  Entity, 
-  PrimaryColumn, 
-  Column, 
-  CreateDateColumn, 
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
   JoinColumn,
   Index
 } from 'typeorm';
+import { JsonColumn } from '../DbAwareColumn.js';
 import type { EntityLink } from './Task.entity.js';
 
 @Entity('notes')
@@ -50,7 +51,7 @@ export class Note {
   entity_id?: string;
 
   // JSON columns
-  @Column({ type: 'simple-json', nullable: true })
+  @JsonColumn({ nullable: true })
   entity_links?: EntityLink[];
 
   @Column({ type: 'simple-json', nullable: true })
@@ -61,9 +62,6 @@ export class Note {
 
   @Column({ type: 'text', nullable: true })
   semantic_context?: string;
-
-  @Column({ type: 'bytea', nullable: true })
-  semantic_embedding?: Buffer;
 
   @Column({ type: 'simple-json', nullable: true })
   stable_tags?: string[];
@@ -77,10 +75,10 @@ export class Note {
   @Column({ type: 'simple-json', nullable: true })
   metadata?: any;
 
-  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updated_at!: Date;
 
   // Relations

@@ -1,11 +1,11 @@
 import fs from 'fs/promises';
 import { createHash } from 'crypto';
 import { projectManager } from '../project-manager.js';
-import { createJsonContent, createTextContent, type ContextToolRequest } from '../types/contracts.js';
+import { createJsonContent, createTextContent, type SearchContextRequest } from '../types/contracts.js';
 import { getProjectNotFoundError } from '../utils/project-errors.js';
 import { buildContextResponse } from '../../server/context/contextBuilder.js';
 
-export async function handleContextTool(request: ContextToolRequest) {
+export async function handleContextTool(request: SearchContextRequest) {
   const projectInfo = await projectManager.getProject(request.project);
   if (!projectInfo) {
     const errorMessage = await getProjectNotFoundError(request.project);

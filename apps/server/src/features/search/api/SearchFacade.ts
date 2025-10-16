@@ -70,10 +70,6 @@ export class SearchFacade {
     return { results: mapped };
   }
 
-  async searchDiscover(options: any): Promise<any> {
-    return this.searchSemanticUniversal(options.query || '', options);
-  }
-
   async findSimilarEntities(queryEmbedding: number[], limit?: number, entityTypes?: ('component' | 'task' | 'note' | 'rule')[]): Promise<Array<{ entity: any; entityType: string; similarity: number }>> {
     const results: Array<{ entity: any; entityType: string; similarity: number }> = [];
     const maxLimit = limit || 10;

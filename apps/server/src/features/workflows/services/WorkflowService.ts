@@ -24,7 +24,7 @@ export class WorkflowService {
     return workflows.map((wf) => {
       if (wf.status_flow_ref && flowMap.has(wf.status_flow_ref)) {
         const flow = flowMap.get(wf.status_flow_ref)!;
-        const states = Array.isArray(flow.status_ids) ? flow.status_ids : [flow.status_ids].filter(Boolean);
+        const states = Array.isArray(flow.status_ids) ? flow.status_ids : (flow.status_ids ? [flow.status_ids] : []);
         return {
           ...wf,
           status_flow: {

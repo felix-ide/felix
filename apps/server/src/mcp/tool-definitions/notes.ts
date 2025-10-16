@@ -6,11 +6,6 @@ export const NOTES_TOOL: McpToolDefinition = {
 
 PURPOSE: Capture architecture docs, diagrams, mockups, warnings. Create structured Knowledge Bases from templates.
 
-Required: project, action(add|get|list|update|delete|get_tree|help)
-Create/Update: title, content, note_type(note|warning|documentation|excalidraw)=note, entity_links[{entity_type,entity_id,link_strength}], stable_tags[], kb_template(project|feature_planning|refactor|initial_planning)
-Query: note_id, query, semantic=T, tags[], limit=20, kb_ids[] (filter to specific KBs)
-Tree: root_note_id, include_all=T
-
 FORMATS: Markdown, \`\`\`mermaid diagrams (flowchart, sequence, ERD, etc.), \`\`\`excalidraw drawings
 LINKING: Attach to tasks, components, files, rules via entity_links - notes appear in their context automatically
 WORKFLOWS: Tasks require specific note types (Architecture, ERD, API Contract) for spec_ready gate
@@ -27,7 +22,7 @@ EXAMPLE: Create project KB with kb_template='project', or filter notes with kb_i
       action: {
         type: 'string',
         enum: ['add', 'get', 'list', 'update', 'delete', 'get_tree', 'help'],
-        description: 'Action to perform'
+        description: 'add=create note, get=fetch one, list=fetch many, update=modify, delete=remove, get_tree=get hierarchical structure'
       },
       // For add action
       title: {

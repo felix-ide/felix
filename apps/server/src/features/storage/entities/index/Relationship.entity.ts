@@ -60,10 +60,10 @@ export class Relationship {
   @Column({ type: 'simple-json', nullable: true })
   metadata?: any;
 
-  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updated_at!: Date;
 
   // Relations

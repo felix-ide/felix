@@ -22,8 +22,8 @@ export class TaskStatusFlow {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column({ type: 'simple-json' })
-  status_ids!: string[];
+  @Column({ type: 'simple-json', nullable: true })
+  status_ids?: string[];
 
   @Column({ type: 'text', nullable: true })
   initial_state?: string;
@@ -31,9 +31,9 @@ export class TaskStatusFlow {
   @Column({ type: 'simple-json', nullable: true })
   metadata?: Record<string, unknown> | null;
 
-  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updated_at!: Date;
 }

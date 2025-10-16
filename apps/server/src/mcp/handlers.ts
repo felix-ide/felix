@@ -6,14 +6,10 @@
 import { projectManager } from './project-manager.js';
 import { logger } from '../shared/logger.js';
 import { handleWorkflowTools } from './workflow-handlers.js';
-import { handleChecklistTools } from './checklist-handlers.js';
-import { handleProjectsTools as projectsHandler } from './handlers/projects.js';
 import { handleSearchTools as searchHandler } from './handlers/search.js';
-import { handleContextTool as contextHandler } from './handlers/context.js';
 import { handleTasksTools as tasksHandler } from './handlers/tasks.js';
 import { handleNotesTools as notesHandler } from './handlers/notes.js';
 import { handleRulesTools as rulesHandler } from './handlers/rules.js';
-import { handleDegradationTools } from './handlers/degradation.js';
 
 /**
  * Main handler router for consolidated MCP tools.
@@ -22,21 +18,25 @@ export async function handleToolCall(name: string, args: any): Promise<any> {
   try {
     logger.info(`[HANDLER] Tool: ${name}`);
 
+    // Check if it's a tasks.* tool
+    if (name.startsWith('tasks_')) {
+      return await tasksHandler({ ...args, _toolName: name });
+    }
+
+    // Check if it's a notes.* tool
+    if (name.startsWith('notes_')) {
+      return await notesHandler({ ...args, _toolName: name });
+    }
+
+    // Check if it's a rules.* tool
+    if (name.startsWith('rules_')) {
+      return await rulesHandler({ ...args, _toolName: name });
+    }
+
     switch (name) {
-      case 'projects':
-        return await projectsHandler(args);
       case 'search':
+        // Handles search, context, index, and stats actions
         return await searchHandler(args);
-      case 'context':
-        return await contextHandler(args);
-      case 'notes':
-        return await notesHandler(args);
-      case 'tasks':
-        return await tasksHandler(args);
-      case 'rules':
-        return await rulesHandler(args);
-      case 'degradation':
-        return await handleDegradationTools(args);
       case 'workflows': {
         const { project } = args;
         if (!project) {
@@ -48,8 +48,6 @@ export async function handleToolCall(name: string, args: any): Promise<any> {
         }
         return await handleWorkflowTools(args, (projectInfo as any).codeIndexer?.dbManager);
       }
-      case 'checklists':
-        return await handleChecklistTools(args);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }

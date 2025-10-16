@@ -74,7 +74,7 @@ export class Component {
   content_hash?: string;
 
   // When the canonical content for this component last changed.
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ nullable: true })
   content_updated_at?: Date;
 
   @Column({ type: 'simple-json', nullable: true })
@@ -86,10 +86,10 @@ export class Component {
   @Column({ type: 'text', nullable: true })
   embedding_version?: string;
 
-  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updated_at!: Date;
 
   // Relations - we'll add these when all entities are created

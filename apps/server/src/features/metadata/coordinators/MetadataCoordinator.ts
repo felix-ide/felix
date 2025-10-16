@@ -75,6 +75,10 @@ export class MetadataCoordinator {
     await this.metadataFacade.removeTaskDependency(dependencyId);
   }
 
+  async removeTaskDependencyByTasks(dependentTaskId: string, dependencyTaskId: string, type?: 'blocks' | 'related' | 'follows'): Promise<void> {
+    await this.metadataFacade.removeTaskDependencyByTasks(dependentTaskId, dependencyTaskId, type);
+  }
+
   async listTaskDependencies(): Promise<any[]> {
     return this.metadataFacade.listTaskDependencies();
   }
@@ -179,25 +183,6 @@ export class MetadataCoordinator {
     await this.metadataFacade.toggleChecklistItem(taskId, checklistName, itemIdentifier);
   }
 
-  async getDegradationStatus(): Promise<any> {
-    return this.metadataFacade.getDegradationStatus();
-  }
-
-  async runDegradationCleanup(): Promise<any> {
-    return this.metadataFacade.runDegradationCleanup();
-  }
-
-  async configureDegradation(config: any): Promise<any> {
-    return this.metadataFacade.configureDegradation(config);
-  }
-
-  async startDegradation(): Promise<any> {
-    return this.metadataFacade.startDegradation();
-  }
-
-  async stopDegradation(): Promise<any> {
-    return this.metadataFacade.stopDegradation();
-  }
 
   async exportIndex(format: 'json' | 'markdown' = 'json'): Promise<string> {
     const stats = await this.getStats();

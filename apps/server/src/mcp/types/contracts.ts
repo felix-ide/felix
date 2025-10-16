@@ -252,12 +252,55 @@ export interface RulesDeleteRequest extends ProjectScopedRequest {
   rule_id: string;
 }
 
+export interface RulesGetApplicableRequest extends ProjectScopedRequest {
+  action: 'get_applicable';
+  entity_type: string;
+  entity_id: string;
+  context?: Record<string, unknown>;
+  include_suggestions?: boolean;
+  include_automation?: boolean;
+}
+
+export interface RulesApplyRequest extends ProjectScopedRequest {
+  action: 'apply_rule';
+  apply_rule_id: string;
+  target_entity: Record<string, unknown>;
+  application_context?: Record<string, unknown>;
+}
+
+export interface RulesGetTreeRequest extends ProjectScopedRequest {
+  action: 'get_tree';
+  root_rule_id?: string;
+  include_inactive?: boolean;
+}
+
+export interface RulesGetAnalyticsRequest extends ProjectScopedRequest {
+  action: 'get_analytics';
+  days_since?: number;
+}
+
+export interface RulesTrackApplicationRequest extends ProjectScopedRequest {
+  action: 'track_application';
+  rule_id: string;
+  track_entity_type?: string;
+  track_entity_id?: string;
+  applied_context?: Record<string, unknown>;
+  user_action?: 'accepted' | 'modified' | 'rejected' | 'ignored';
+  generated_code?: string;
+  feedback_score?: number;
+}
+
 export type RulesToolRequest =
   | RulesListRequest
   | RulesAddRequest
   | RulesGetRequest
   | RulesUpdateRequest
-  | RulesDeleteRequest;
+  | RulesDeleteRequest
+  | RulesGetApplicableRequest
+  | RulesApplyRequest
+  | RulesGetTreeRequest
+  | RulesGetAnalyticsRequest
+  | RulesTrackApplicationRequest;
 
 export interface ProjectsHelpRequest {
   action: 'help';
@@ -291,10 +334,6 @@ export type ProjectsToolRequest =
   | ProjectsIndexRequest
   | ProjectsGetStatsRequest;
 
-export interface SearchHelpRequest extends ProjectScopedRequest {
-  action: 'help';
-}
-
 export interface SearchQueryRequest extends ProjectScopedRequest {
   action: 'search';
   query: string;
@@ -313,23 +352,25 @@ export interface SearchQueryRequest extends ProjectScopedRequest {
   kb_ids?: string[];
 }
 
-export interface SearchRelatedRequest extends ProjectScopedRequest {
-  action: 'search_related';
-  query: string;
-  context_window_size?: number;
-  [key: string]: unknown;
-}
-
-export type SearchToolRequest = SearchHelpRequest | SearchQueryRequest | SearchRelatedRequest;
-
-export interface ContextToolRequest {
+export interface SearchContextRequest {
   project: string;
+  action: 'context';
   component_id: string;
   include_source?: boolean;
   include_relationships?: boolean;
   output_format?: 'json' | 'markdown';
   [key: string]: unknown;
 }
+
+export interface SearchIndexRequest extends ProjectScopedRequest {
+  action: 'index';
+}
+
+export interface SearchStatsRequest extends ProjectScopedRequest {
+  action: 'stats';
+}
+
+export type SearchToolRequest = SearchQueryRequest | SearchContextRequest | SearchIndexRequest | SearchStatsRequest;
 
 export const createJsonContent = <T>(payload: T): McpTextContent => ({
   type: 'text',

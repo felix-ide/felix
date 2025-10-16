@@ -4,6 +4,11 @@ export type AppConfig = {
     rerank: { pathDemotePatterns: RegExp[]; pathDemoteAmount: number };
   };
   embeddings: { batchSize: number };
+  degradation: {
+    enabled: boolean;
+    intervalHours: number;
+    runOnStartup: boolean;
+  };
   logLevel: 'debug' | 'info' | 'warn' | 'error' | 'silent';
 };
 
@@ -29,6 +34,11 @@ export const appConfig: AppConfig = {
   },
   embeddings: {
     batchSize: toNumber(process.env.EMBED_BATCH_SIZE, 64)
+  },
+  degradation: {
+    enabled: process.env.DEGRADATION_ENABLED !== 'false', // Default: enabled
+    intervalHours: toNumber(process.env.DEGRADATION_INTERVAL_HOURS, 24),
+    runOnStartup: process.env.DEGRADATION_RUN_ON_STARTUP === 'true' // Default: false
   },
   logLevel: toLevel(process.env.LOG_LEVEL)
 };

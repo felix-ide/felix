@@ -72,6 +72,10 @@ export class MetadataFacade {
     await this.taskManagementService.removeTaskDependency(dependencyId);
   }
 
+  async removeTaskDependencyByTasks(dependentTaskId: string, dependencyTaskId: string, type?: 'blocks' | 'related' | 'follows'): Promise<void> {
+    await this.taskManagementService.removeTaskDependencyByTasks(dependentTaskId, dependencyTaskId, type);
+  }
+
   async listTaskDependencies(): Promise<any[]> {
     const svc: any = this.taskManagementService as any;
     if (svc.listAllDependencies) {
@@ -307,32 +311,4 @@ export class MetadataFacade {
     };
   }
 
-  async getDegradationStatus(): Promise<any> {
-    return {
-      enabled: true,
-      lastRun: new Date(),
-      schedulerRunning: true,
-      config: {
-        intervalHours: 24,
-        runOnStartup: false,
-        maxRetries: 3
-      }
-    };
-  }
-
-  async runDegradationCleanup(): Promise<any> {
-    return { success: true, message: 'Cleanup completed', itemsRemoved: 0 };
-  }
-
-  async configureDegradation(config: any): Promise<any> {
-    return { success: true, config };
-  }
-
-  async startDegradation(): Promise<any> {
-    return { success: true, message: 'Degradation scheduler started' };
-  }
-
-  async stopDegradation(): Promise<any> {
-    return { success: true, message: 'Degradation scheduler stopped' };
-  }
 }

@@ -8,9 +8,7 @@ import {
   createJsonContent,
   createTextContent,
   ensureArray,
-  type SearchHelpRequest,
   type SearchQueryRequest,
-  type SearchRelatedRequest,
   type SearchToolRequest
 } from '../types/contracts.js';
 
@@ -47,19 +45,29 @@ function formatOptimizedResults(
 }
 
 export async function handleSearchTools(request: SearchToolRequest) {
-  const projectInfo = await projectManager.getProject(request.project);
-  if (!projectInfo) {
-    const errorMessage = await getProjectNotFoundError(request.project);
-    throw new Error(errorMessage);
-  }
-
   switch (request.action) {
-    case 'help': {
-      const { HelpService } = await import('../../features/help/services/HelpService.js');
-      const pack = HelpService.get('workflows');
-      return { content: [createJsonContent(pack)] };
+    case 'index': {
+      // Force re-index: drops DB and rebuilds with embeddings
+      const project = await projectManager.indexProject(request.project, true, { withEmbeddings: true });
+      return { content: [createTextContent(`Project "${project.name}" re-indexed successfully at ${project.fullPath}`)] };
+    }
+    case 'stats': {
+      // Get project statistics
+      const stats = await projectManager.getProjectStats(request.project);
+      return { content: [createJsonContent({ project: request.project, stats })] };
+    }
+    case 'context': {
+      // Delegate to context handler
+      const { handleContextTool } = await import('./context.js');
+      return handleContextTool(request);
     }
     case 'search': {
+      // Semantic search - auto-loads project if needed
+      const projectInfo = await projectManager.getProject(request.project);
+      if (!projectInfo) {
+        const errorMessage = await getProjectNotFoundError(request.project);
+        throw new Error(errorMessage);
+      }
       const searchRequest = request as SearchQueryRequest;
       const entityTypes = ensureArray<string>(searchRequest.entity_types) ?? ['component'];
       const codeFirst = searchRequest.code_first !== false;
@@ -244,21 +252,7 @@ export async function handleSearchTools(request: SearchToolRequest) {
         ]
       };
     }
-    case 'search_related': {
-      const relatedRequest = request as SearchRelatedRequest & Record<string, unknown>;
-      const additional: Record<string, unknown> = { ...relatedRequest };
-      delete additional.project;
-      delete additional.action;
-      delete additional.query;
-      delete additional.context_window_size;
-      const relatedResults = await projectInfo.codeIndexer.searchDiscover({
-        query: relatedRequest.query,
-        contextWindowSize: relatedRequest.context_window_size,
-        ...additional
-      });
-      return { content: [createJsonContent(relatedResults)] };
-    }
     default:
-      throw new Error(`Unknown search action: ${(request as SearchHelpRequest).action}`);
+      throw new Error(`Unknown search action: ${(request as any).action}`);
   }
 }

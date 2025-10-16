@@ -6,13 +6,6 @@ export const TASKS_TOOL: McpToolDefinition = {
 
 PURPOSE: Track work with workflow-based spec gates. Tasks auto-validate and return guidance on what's missing.
 
-Required: project, action(add|get|list|update|delete|get_tree|get_dependencies|add_dependency|suggest_next|get_spec_bundle)
-Create: title*, description, parent_id, task_type=task, task_priority(low|medium|high|critical)=medium, estimated_effort, due_date, workflow, checklists[], entity_links[], stable_tags[], include_guidance=T
-Update: task_id*, task_status(todo|in_progress|blocked|done|cancelled), spec_state(draft|spec_in_progress|spec_ready), spec_waivers[], actual_effort, [any create field]
-Query: task_id, include_notes=T, include_children=T, compact=T
-List: task_status, task_type, limit=20, offset=0, view[ids,names,titles,summary,full], fields[], output_format(text|json)=text
-Tree/Deps: root_task_id, max_depth=5, direction(incoming|outgoing|both)=both, dependency_type(blocks|related|follows)
-
 WORKFLOW INTEGRATION:
 - add/update returns {task, validation, guidance} showing what's needed for spec_ready
 - Spec gate: Cannot set status=in_progress until spec_state=spec_ready
@@ -20,29 +13,6 @@ WORKFLOW INTEGRATION:
 - Use guidance response to know what notes/checklists/rules to add
 
 EXAMPLE: Create task → get guidance → add required items → mark spec_ready → start work`,
-  // Payload examples the validator accepts:
-  // - Acceptance Criteria
-  //   checklists: [{
-  //     name: "Acceptance Criteria",
-  //     items: [ {"text":"Given …, When …, Then …"}, {"text":"Given …"}, {"text":"Given …"} ]
-  //   }]
-  // - Implementation Checklist
-  //   checklists: [{
-  //     name: "Implementation Checklist",
-  //     items: [ {"text":"Define data model"}, {"text":"Wire API"}, {"text":"Add UI states"} ]
-  //   }]
-  // - Test Verification (must include 'unit' and 'integration' or 'e2e')
-  //   checklists: [{
-  //     name: "Test Verification",
-  //     items: [ {"text":"Unit tests cover core logic"}, {"text":"Integration/E2E happy path executes"} ]
-  //   }]
-  // - Regression Testing
-  //   checklists: [{
-  //     name: "Regression Testing",
-  //     items: [ {"text":"Smoke: affected screens"} ]
-  //   }]
-  // - Rules Creation link on the task
-  //   entity_links: [ { "entity_type": "rule", "entity_id": "<RULE_ID>" } ]
   inputSchema: {
     type: 'object',
     properties: {
@@ -52,8 +22,8 @@ EXAMPLE: Create task → get guidance → add required items → mark spec_ready
       },
       action: {
         type: 'string',
-        enum: ['add', 'get', 'list', 'update', 'delete', 'get_tree', 'get_dependencies', 'add_dependency', 'suggest_next', 'get_spec_bundle', 'help'],
-        description: 'Action to perform'
+        enum: ['add', 'get', 'list', 'update', 'delete', 'suggest_next', 'help'],
+        description: 'add=create task, get=fetch one task, list=fetch many tasks, update=modify task, delete=remove task, suggest_next=get AI suggestions for next task to work on'
       },
       // For add action
       title: {
@@ -130,11 +100,10 @@ EXAMPLE: Create task → get guidance → add required items → mark spec_ready
         description: 'Include attached notes in response (for get action)',
         default: true
       },
-      // For get_spec_bundle
-      compact: {
+      include_dependencies: {
         type: 'boolean',
-        description: 'Return a compact bundle (truncate large note content)',
-        default: true
+        description: 'Include task dependencies in response (for get action)',
+        default: false
       },
       task_status: {
         type: 'string',
@@ -181,15 +150,10 @@ EXAMPLE: Create task → get guidance → add required items → mark spec_ready
         default: 0
       },
       // Output controls for list (optional)
-      view: {
-        type: 'string',
-        enum: ['ids','names','titles','summary','full'],
-        description: 'Projection preset for list (ids|names/titles|summary|full).'
-      },
       fields: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Explicit field list to return (overrides view)'
+        description: 'Specific fields to return (e.g., ["id", "title", "status"]). Omit for full task objects.'
       },
       output_format: {
         type: 'string',
@@ -202,48 +166,6 @@ EXAMPLE: Create task → get guidance → add required items → mark spec_ready
         description: 'Token budget for results (text mode)',
         default: 25000
       },
-      // For get_tree action
-      root_task_id: {
-        type: 'string',
-        description: 'Root task ID (for get_tree action, omit for all root tasks)'
-      },
-      max_depth: {
-        type: 'number',
-        description: 'Maximum depth to traverse (for get_tree action)',
-        default: 5
-      },
-      include_completed: {
-        type: 'boolean',
-        description: 'Include completed tasks (for get_tree action)',
-        default: true
-      },
-      // For get_dependencies action
-      direction: {
-        type: 'string',
-        enum: ['incoming', 'outgoing', 'both'],
-        description: 'Direction of dependencies to retrieve (for get_dependencies action)',
-        default: 'both'
-      },
-      // For add_dependency action
-      dependent_task_id: {
-        type: 'string',
-        description: 'Task that depends on another (for add_dependency action)'
-      },
-      dependency_task_id: {
-        type: 'string',
-        description: 'Task that must be completed first (for add_dependency action)'
-      },
-      dependency_type: {
-        type: 'string',
-        enum: ['blocks', 'related', 'follows'],
-        description: 'Type of dependency (for add_dependency action)',
-        default: 'blocks'
-      },
-      required: {
-        type: 'boolean',
-        description: 'Is dependency required (for add_dependency action)',
-        default: true
-      },
       // For suggest_next action
       assignee: {
         type: 'string',
@@ -252,6 +174,77 @@ EXAMPLE: Create task → get guidance → add required items → mark spec_ready
       context: {
         type: 'string',
         description: 'Context for smart suggestions (for suggest_next action)'
+      },
+      // Dependency operations (for update action)
+      dependency_updates: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            operation: {
+              type: 'string',
+              enum: ['add', 'remove'],
+              description: 'Operation: add (create dependency) or remove (delete dependency)'
+            },
+            dependency_task_id: {
+              type: 'string',
+              description: 'ID of the task this task depends on (for both add and remove operations)'
+            },
+            type: {
+              type: 'string',
+              enum: ['blocks', 'related', 'follows'],
+              description: 'Type of dependency. For add: specifies dependency type (default: blocks). For remove: optionally filter to specific type',
+              default: 'blocks'
+            },
+            required: {
+              type: 'boolean',
+              description: 'Is dependency required (for add operation)',
+              default: true
+            }
+          },
+          required: ['operation']
+        },
+        description: 'Atomic dependency operations (for update action). Add or remove task dependencies without separate tool calls. Example: [{operation: "add", dependency_task_id: "task_123", type: "blocks"}]'
+      },
+      // Checklist operations (for update action)
+      checklist_updates: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            checklist: {
+              type: 'string',
+              description: 'Name of the checklist to modify'
+            },
+            operation: {
+              type: 'string',
+              enum: ['toggle', 'add', 'remove', 'move', 'update', 'delete'],
+              description: 'Operation to perform: toggle (flip completed), add (new item), remove (delete item), move (reorder), update (change text), delete (remove checklist)'
+            },
+            index: {
+              type: 'number',
+              description: 'Item index for toggle/remove/update operations (0-based)'
+            },
+            text: {
+              type: 'string',
+              description: 'Item text for add/update operations'
+            },
+            position: {
+              type: 'number',
+              description: 'Position to insert new item (for add operation, defaults to end)'
+            },
+            from: {
+              type: 'number',
+              description: 'Source index for move operation'
+            },
+            to: {
+              type: 'number',
+              description: 'Target index for move operation'
+            }
+          },
+          required: ['checklist', 'operation']
+        },
+        description: 'Atomic checklist operations (for update action). Allows toggling items, adding/removing items, reordering, updating text, or deleting entire checklists without sending full checklist arrays. Example: [{checklist: "Acceptance Criteria", operation: "toggle", index: 0}]'
       }
     },
     required: ['project', 'action']

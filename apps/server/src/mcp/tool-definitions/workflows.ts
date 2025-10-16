@@ -6,13 +6,6 @@ export const WORKFLOWS_TOOL: McpToolDefinition = {
 
 PURPOSE: Define what makes a task "spec ready" per task type. System validates tasks against these rules.
 
-Required: project, action
-Validation(for checking): validate(task), scaffold(task_id,sections[],dry_run=T)
-Config(admin only): list|get(workflow_name), create(workflow), update(workflow_name,updates), delete(workflow_name)
-Defaults: get_default, set_default(workflow_name), reseed(force=F)
-Mappings: set_type_mapping(task_type,workflow_name), get_type_mapping, resolve(task_type)
-Status System: list_statuses, upsert_status, delete_status, list_status_flows, upsert_status_flow, get_flow_mapping, set_flow_mapping
-
 HOW IT WORKS:
 - Workflows define requirements: notes (with diagram types), checklists (with min counts), rules, child tasks
 - Tasks tool auto-validates against assigned workflow
@@ -62,7 +55,7 @@ TYPICAL USE: Most users never touch this - just use tasks tool. Advanced users c
           'get_flow_mapping',
           'set_flow_mapping'
         ],
-        description: 'Action to perform'
+        description: 'Workflow CRUD: list, get, create, update, delete. Defaults: get_default, set_default. Mappings: set_type_mapping (task_type→workflow), get_type_mapping, resolve. Validation: validate (check task), scaffold (create required items). Status system: list_statuses, upsert_status, delete_status, list_status_flows, upsert_status_flow, delete_status_flow, get_flow_mapping, set_flow_mapping. Admin: reseed (reset to defaults)'
       },
       // Common
       workflow_name: { type: 'string', description: 'Workflow name (for get/update/delete/resolve)' },
