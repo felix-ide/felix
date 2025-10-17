@@ -76,7 +76,7 @@ export class ProcessorChain implements IProcessorChain {
         
         // Update current data with processor result
         currentData = result.data;
-        console.log(`📊 ProcessorChain: After ${processor.name} - components: ${currentData.components?.length || 0}, relationships: ${currentData.relationships?.length || 0}`);
+        console.error(`📊 ProcessorChain: After ${processor.name} - components: ${currentData.components?.length || 0}, relationships: ${currentData.relationships?.length || 0}`);
         
         // Track processing metadata
         processingSteps.push(`${processor.name} (${Date.now() - processorStartTime}ms)`);

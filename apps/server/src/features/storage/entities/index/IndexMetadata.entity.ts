@@ -18,6 +18,6 @@ export class IndexMetadata {
   @Column({ type: 'text' })
   value!: string;
 
-  @UpdateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updated_at!: Date;
 }

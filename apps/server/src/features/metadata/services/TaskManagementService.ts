@@ -406,14 +406,35 @@ export class TaskManagementService {
   }
 
   /**
-   * Remove a task dependency
+   * Remove a task dependency by ID
    */
   async removeTaskDependency(dependencyId: string): Promise<void> {
     const result = await this.dbManager.getTasksRepository().removeTaskDependency(dependencyId);
-    
+
     if (!result.success) {
       throw new Error(result.error || 'Failed to remove task dependency');
     }
+  }
+
+  /**
+   * Remove a task dependency by task IDs
+   */
+  async removeTaskDependencyByTasks(dependentTaskId: string, dependencyTaskId: string, type?: 'blocks' | 'related' | 'follows'): Promise<void> {
+    // Get all dependencies for the dependent task
+    const dependencies = await this.getTaskDependencies(dependentTaskId, 'outgoing');
+
+    // Find the matching dependency
+    const matching = dependencies.find(dep =>
+      dep.dependency_task_id === dependencyTaskId &&
+      (!type || dep.dependency_type === type)
+    );
+
+    if (!matching) {
+      throw new Error(`No dependency found between ${dependentTaskId} and ${dependencyTaskId}${type ? ` of type ${type}` : ''}`);
+    }
+
+    // Remove using the dependency ID
+    await this.removeTaskDependency(matching.id);
   }
 
   /**

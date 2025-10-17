@@ -196,12 +196,14 @@ export class NotesRepository {
       // Search inside entity_links JSON array for entity_type and entity_id
       if (criteria.entity_type && criteria.entity_id) {
         if (isPostgres) {
-          query.andWhere(`note.entity_links @> :link::jsonb`, {
+          query.andWhere(`note.entity_links::jsonb @> :link::jsonb`, {
             link: JSON.stringify([{ entity_type: criteria.entity_type, entity_id: criteria.entity_id }])
           });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_type') = :entityType
               AND json_extract(value, '$.entity_id') = :entityId
@@ -218,7 +220,9 @@ export class NotesRepository {
           `, { entityType: criteria.entity_type });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_type') = :entityType
             )
@@ -234,7 +238,9 @@ export class NotesRepository {
           `, { entityId: criteria.entity_id });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_id') = :entityId
             )
@@ -293,8 +299,8 @@ export class NotesRepository {
       const query = this.repository.createQueryBuilder('note');
 
       if (isPostgres) {
-        // PostgreSQL JSONB query
-        query.where(`note.entity_links @> :link::jsonb`, {
+        // PostgreSQL JSONB query - cast text column to jsonb
+        query.where(`note.entity_links::jsonb @> :link::jsonb`, {
           link: JSON.stringify([{ entity_type: entityType, entity_id: entityId }])
         });
       } else {
@@ -441,12 +447,14 @@ export class NotesRepository {
       // Search inside entity_links JSON array for entity_type and entity_id
       if (criteria.entity_type && criteria.entity_id) {
         if (isPostgres) {
-          query.andWhere(`note.entity_links @> :link::jsonb`, {
+          query.andWhere(`note.entity_links::jsonb @> :link::jsonb`, {
             link: JSON.stringify([{ entity_type: criteria.entity_type, entity_id: criteria.entity_id }])
           });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_type') = :entityType
               AND json_extract(value, '$.entity_id') = :entityId
@@ -463,7 +471,9 @@ export class NotesRepository {
           `, { entityType: criteria.entity_type });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_type') = :entityType
             )
@@ -479,7 +489,9 @@ export class NotesRepository {
           `, { entityId: criteria.entity_id });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_id') = :entityId
             )

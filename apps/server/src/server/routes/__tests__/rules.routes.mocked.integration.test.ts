@@ -106,7 +106,7 @@ describe.skip('rulesRoutes (mocked project middleware)', () => {
     if (!created?.rule?.id) {
       // aid debugging in CI
       // eslint-disable-next-line no-console
-      console.log('DEBUG created response:', created);
+      console.error('DEBUG created response:', created);
     }
     const id = created?.rule?.id; expect(typeof id).toBe('string');
     // list

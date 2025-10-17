@@ -95,26 +95,26 @@ export class ArchitecturalAnalyzer {
     patterns: IComponent[];
     newRelationships: IRelationship[];
   }> {
-    console.log(`🔍 Starting architectural analysis with ${components.length} components...`);
+    console.error(`🔍 Starting architectural analysis with ${components.length} components...`);
     
     // Detect logical systems
-    console.log(`🔍 Identifying systems...`);
+    console.error(`🔍 Identifying systems...`);
     const detectedSystems = await this.identifySystems(components, relationships);
-    console.log(`✅ Found ${detectedSystems.length} systems`);
+    console.error(`✅ Found ${detectedSystems.length} systems`);
     const systemComponents = this.createSystemComponents(detectedSystems);
     
     // Detect pipeline flows
-    console.log(`🔍 Extracting pipelines...`);
+    console.error(`🔍 Extracting pipelines...`);
     const detectedPipelines = await this.extractPipelines(components, relationships);
-    console.log(`✅ Found ${detectedPipelines.length} pipelines`);
+    console.error(`✅ Found ${detectedPipelines.length} pipelines`);
     const pipelineComponents = this.createPipelineComponents(detectedPipelines);
     
     // Detect architectural patterns
-    console.log(`🔍 Detecting patterns...`);
+    console.error(`🔍 Detecting patterns...`);
     const detectedPatterns = this.config.detectPatterns 
       ? await this.detectPatterns(components, relationships)
       : [];
-    console.log(`✅ Found ${detectedPatterns.length} patterns`);
+    console.error(`✅ Found ${detectedPatterns.length} patterns`);
     const patternComponents = this.createPatternComponents(detectedPatterns);
     
     // Create relationships for all architectural components

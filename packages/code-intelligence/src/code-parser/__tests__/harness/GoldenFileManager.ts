@@ -234,7 +234,7 @@ export class GoldenFileManager {
       if (shouldUpdate) {
         const filePath = await this.saveGoldenFile(newGolden);
         updatedFiles.push(filePath);
-        console.log(`Updated golden file: ${filePath}`);
+        console.error(`Updated golden file: ${filePath}`);
       }
     }
 

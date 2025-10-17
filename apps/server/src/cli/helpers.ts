@@ -142,7 +142,7 @@ export function saveConfig(config: CLIConfig, configPath?: string): void {
   
   try {
     writeFileSync(filePath, JSON.stringify(config, null, 2));
-    console.log(`✅ Configuration saved to ${filePath}`);
+    console.error(`✅ Configuration saved to ${filePath}`);
   } catch (error) {
     console.error(`❌ Failed to save config to ${filePath}: ${error}`);
     process.exit(1);
@@ -167,7 +167,7 @@ export class CLIProgressReporter {
     if (this.verbose) {
       const now = Date.now();
       const elapsed = now - this.lastUpdate;
-      console.log(`📁 ${filePath}: ${componentCount} components, ${relationshipCount} relationships (+${elapsed}ms)`);
+      console.error(`📁 ${filePath}: ${componentCount} components, ${relationshipCount} relationships (+${elapsed}ms)`);
       this.lastUpdate = now;
     } else {
       process.stdout.write('.');
@@ -184,16 +184,16 @@ export class CLIProgressReporter {
   
   onProgress(stage: string, message: string): void {
     if (this.verbose) {
-      console.log(`🔄 ${stage}: ${message}`);
+      console.error(`🔄 ${stage}: ${message}`);
     }
   }
   
   finish(filesProcessed: number): void {
     if (!this.verbose) {
-      console.log(); // New line after dots
+      console.error(); // New line after dots
     }
     const elapsed = Date.now() - this.startTime;
-    console.log(`✅ Processed ${filesProcessed} files in ${elapsed}ms`);
+    console.error(`✅ Processed ${filesProcessed} files in ${elapsed}ms`);
   }
 }
 
@@ -467,13 +467,13 @@ export function outputContent(content: string, outputPath?: string): void {
   if (outputPath) {
     try {
       writeFileSync(outputPath, content);
-      console.log(`📄 Output written to ${outputPath}`);
+      console.error(`📄 Output written to ${outputPath}`);
     } catch (error) {
       console.error(`❌ Failed to write to ${outputPath}: ${error}`);
       process.exit(1);
     }
   } else {
-    console.log(content);
+    console.error(content);
   }
 }
 

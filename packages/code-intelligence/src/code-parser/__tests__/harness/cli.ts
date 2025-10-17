@@ -87,7 +87,7 @@ function parseArgs(): CliOptions {
 }
 
 function showHelp(): void {
-  console.log(`
+  console.error(`
 Parser Test Harness CLI
 
 Usage: npm run test:harness [options]
@@ -122,8 +122,8 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  console.log('🚀 Parser Test Harness CLI');
-  console.log(`Mode: ${options.mode}`);
+  console.error('🚀 Parser Test Harness CLI');
+  console.error(`Mode: ${options.mode}`);
 
   // Convert CLI options to TestHarnessOptions
   const harnessOptions: TestHarnessOptions = {
@@ -151,22 +151,22 @@ async function main(): Promise<void> {
 
       case 'validation':
         results = await harness.runValidationOnly();
-        console.log(`Validation complete. Tested ${results.size} languages.`);
+        console.error(`Validation complete. Tested ${results.size} languages.`);
         break;
 
       case 'benchmarks':
         results = await harness.runBenchmarksOnly();
-        console.log(`Benchmarks complete. Tested ${results.size} languages.`);
+        console.error(`Benchmarks complete. Tested ${results.size} languages.`);
         break;
 
       case 'regression':
         results = await harness.runRegressionsOnly();
-        console.log(`Regression tests complete. Tested ${results.size} languages.`);
+        console.error(`Regression tests complete. Tested ${results.size} languages.`);
         break;
 
       case 'golden':
         await harness.generateGoldenFiles();
-        console.log('Golden file generation complete.');
+        console.error('Golden file generation complete.');
         break;
 
       default:
@@ -174,7 +174,7 @@ async function main(): Promise<void> {
         process.exit(1);
     }
 
-    console.log('\n✅ Test harness completed successfully!');
+    console.error('\n✅ Test harness completed successfully!');
 
   } catch (error) {
     console.error('\n❌ Test harness failed:', error);

@@ -245,12 +245,12 @@ export class RoslynSidecarService extends EventEmitter {
 
     for (const path of bundledPaths) {
       if (existsSync(path)) {
-        console.log(`[roslyn-sidecar] Using bundled executable: ${path}`);
+        console.error(`[roslyn-sidecar] Using bundled executable: ${path}`);
         return path;
       }
     }
 
-    console.log('[roslyn-sidecar] Bundled executable not found, checking development builds');
+    console.error('[roslyn-sidecar] Bundled executable not found, checking development builds');
 
     // Check for development build DLL files in SOURCE directory
     const possibleDllPaths = [
@@ -268,13 +268,13 @@ export class RoslynSidecarService extends EventEmitter {
 
     for (const path of possibleDllPaths) {
       if (existsSync(path)) {
-        console.log(`[roslyn-sidecar] Using development DLL: ${path}`);
+        console.error(`[roslyn-sidecar] Using development DLL: ${path}`);
         return path;
       }
     }
 
     // If no built DLL found, use dotnet run with SOURCE project path
-    console.log('[roslyn-sidecar] No DLL found, falling back to dotnet run');
+    console.error('[roslyn-sidecar] No DLL found, falling back to dotnet run');
     return 'dotnet';
   }
 
@@ -357,7 +357,7 @@ export class RoslynSidecarService extends EventEmitter {
         }
 
         if (this.config.enableLogging) {
-          console.log(`Starting Roslyn sidecar: ${command} ${args.join(' ')}`);
+          console.error(`Starting Roslyn sidecar: ${command} ${args.join(' ')}`);
         }
 
         this.process = spawn(command, args, {
@@ -417,7 +417,7 @@ export class RoslynSidecarService extends EventEmitter {
       });
 
       if (this.config.enableLogging) {
-        console.log('Roslyn sidecar initialized:', result);
+        console.error('Roslyn sidecar initialized:', result);
       }
     } catch (error) {
       throw new Error(`Failed to initialize sidecar: ${error}`);
@@ -523,7 +523,7 @@ export class RoslynSidecarService extends EventEmitter {
    */
   private handleNotification(notification: JsonRpcNotification): void {
     if (this.config.enableLogging) {
-      console.log('Received notification:', notification.method, notification.params);
+      console.error('Received notification:', notification.method, notification.params);
     }
 
     this.emit('notification', notification.method, notification.params);
@@ -560,7 +560,7 @@ export class RoslynSidecarService extends EventEmitter {
     // Auto-restart if enabled and not too many attempts
     if (this.config.autoRestart && this.restartAttempts < this.config.maxRestartAttempts) {
       this.restartAttempts++;
-      console.log(`[Roslyn sidecar] Attempting to restart (attempt ${this.restartAttempts}/${this.config.maxRestartAttempts})`);
+      console.error(`[Roslyn sidecar] Attempting to restart (attempt ${this.restartAttempts}/${this.config.maxRestartAttempts})`);
       setTimeout(() => {
         this.start().catch(error => {
           console.error('[Roslyn sidecar] Restart failed:', error);
@@ -601,7 +601,7 @@ export class RoslynSidecarService extends EventEmitter {
       const header = `Content-Length: ${contentLength}\r\n\r\n`;
 
       if (this.config.enableLogging) {
-        console.log('Sending request:', method, params);
+        console.error('Sending request:', method, params);
       }
 
       try {

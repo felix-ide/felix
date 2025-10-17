@@ -6,7 +6,6 @@ export interface SearchApi {
   searchComponentsBySimilarity: SearchCoordinator['searchComponentsBySimilarity'];
   searchBySimilarity: SearchCoordinator['searchBySimilarity'];
   searchSemanticUniversal: SearchCoordinator['searchSemanticUniversal'];
-  searchDiscover: SearchCoordinator['searchDiscover'];
   findSimilarEntities: SearchCoordinator['findSimilarEntities'];
   executeBatch: SearchCoordinator['executeBatch'];
   exportToJSON: SearchCoordinator['exportToJSON'];
@@ -41,7 +40,6 @@ export function attachSearchApi(target: any, coordinator: SearchCoordinator): vo
   target.searchComponentsBySimilarity = coordinator.searchComponentsBySimilarity.bind(coordinator);
   target.searchBySimilarity = coordinator.searchBySimilarity.bind(coordinator);
   target.searchSemanticUniversal = coordinator.searchSemanticUniversal.bind(coordinator);
-  target.searchDiscover = coordinator.searchDiscover.bind(coordinator);
   target.findSimilarEntities = coordinator.findSimilarEntities.bind(coordinator);
   target.executeBatch = coordinator.executeBatch.bind(coordinator);
   target.exportToJSON = coordinator.exportToJSON.bind(coordinator);

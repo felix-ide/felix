@@ -15,6 +15,7 @@ export interface MetadataApi {
   addTaskDependency: MetadataCoordinator['addTaskDependency'];
   getTaskDependencies: MetadataCoordinator['getTaskDependencies'];
   removeTaskDependency: MetadataCoordinator['removeTaskDependency'];
+  removeTaskDependencyByTasks: MetadataCoordinator['removeTaskDependencyByTasks'];
   listTaskDependencies: MetadataCoordinator['listTaskDependencies'];
   addNote: MetadataCoordinator['addNote'];
   getNote: MetadataCoordinator['getNote'];
@@ -41,11 +42,6 @@ export interface MetadataApi {
   suggestNextTasks: MetadataCoordinator['suggestNextTasks'];
   addChecklist: MetadataCoordinator['addChecklist'];
   toggleChecklistItem: MetadataCoordinator['toggleChecklistItem'];
-  getDegradationStatus: MetadataCoordinator['getDegradationStatus'];
-  runDegradationCleanup: MetadataCoordinator['runDegradationCleanup'];
-  configureDegradation: MetadataCoordinator['configureDegradation'];
-  startDegradation: MetadataCoordinator['startDegradation'];
-  stopDegradation: MetadataCoordinator['stopDegradation'];
   exportIndex: MetadataCoordinator['exportIndex'];
   getServices: MetadataCoordinator['getServices'];
 }
@@ -65,6 +61,7 @@ export function attachMetadataApi(target: any, coordinator: MetadataCoordinator)
   target.addTaskDependency = coordinator.addTaskDependency.bind(coordinator);
   target.getTaskDependencies = coordinator.getTaskDependencies.bind(coordinator);
   target.removeTaskDependency = coordinator.removeTaskDependency.bind(coordinator);
+  target.removeTaskDependencyByTasks = coordinator.removeTaskDependencyByTasks.bind(coordinator);
   target.listTaskDependencies = coordinator.listTaskDependencies.bind(coordinator);
   target.addNote = coordinator.addNote.bind(coordinator);
   target.getNote = coordinator.getNote.bind(coordinator);
@@ -91,11 +88,6 @@ export function attachMetadataApi(target: any, coordinator: MetadataCoordinator)
   target.suggestNextTasks = coordinator.suggestNextTasks.bind(coordinator);
   target.addChecklist = coordinator.addChecklist.bind(coordinator);
   target.toggleChecklistItem = coordinator.toggleChecklistItem.bind(coordinator);
-  target.getDegradationStatus = coordinator.getDegradationStatus.bind(coordinator);
-  target.runDegradationCleanup = coordinator.runDegradationCleanup.bind(coordinator);
-  target.configureDegradation = coordinator.configureDegradation.bind(coordinator);
-  target.startDegradation = coordinator.startDegradation.bind(coordinator);
-  target.stopDegradation = coordinator.stopDegradation.bind(coordinator);
   target.exportIndex = coordinator.exportIndex.bind(coordinator);
   target.getServices = coordinator.getServices.bind(coordinator);
 }

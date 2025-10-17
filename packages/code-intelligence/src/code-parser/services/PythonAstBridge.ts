@@ -164,13 +164,13 @@ export class PythonAstBridge implements PythonAstProvider {
 
     for (const bundledPath of bundledPaths) {
       if (existsSync(bundledPath)) {
-        console.log(`[python-ast-helper] Using bundled executable: ${bundledPath}`);
+        console.error(`[python-ast-helper] Using bundled executable: ${bundledPath}`);
         return { command: bundledPath, args: ['--server'], isBundled: true };
       }
     }
 
     // Fall back to system Python
-    console.log('[python-ast-helper] Bundled executable not found, using system Python');
+    console.error('[python-ast-helper] Bundled executable not found, using system Python');
     const pythonInterpreter = this.resolvePythonInterpreter();
     return { ...pythonInterpreter, isBundled: false };
   }

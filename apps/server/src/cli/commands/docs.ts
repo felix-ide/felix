@@ -44,7 +44,7 @@ export function createDocsCommand(): Command {
         const projectPath = resolveProjectPath(options.project || process.cwd());
         await validateProjectPath(projectPath);
 
-        console.log(formatInfo(`Attaching documentation bundle: ${bundlePath}`));
+        console.error(formatInfo(`Attaching documentation bundle: ${bundlePath}`));
 
         // Initialize database
         const dbManager = DatabaseManager.getInstance();
@@ -65,7 +65,7 @@ export function createDocsCommand(): Command {
         // Attach the bundle
         const bundleId = await docService.attachBundle(bundlePath);
         
-        console.log(formatSuccess(`✅ Successfully attached bundle: ${bundleId}`));
+        console.error(formatSuccess(`✅ Successfully attached bundle: ${bundleId}`));
 
         await codeIndexer.close();
       } catch (error) {
@@ -84,7 +84,7 @@ export function createDocsCommand(): Command {
         const projectPath = resolveProjectPath(options.project || process.cwd());
         await validateProjectPath(projectPath);
 
-        console.log(formatInfo(`Detaching documentation bundle: ${bundleId}`));
+        console.error(formatInfo(`Detaching documentation bundle: ${bundleId}`));
 
         // Initialize database
         const dbManager = DatabaseManager.getInstance();
@@ -105,7 +105,7 @@ export function createDocsCommand(): Command {
         // Detach the bundle
         await docService.detachBundle(bundleId);
         
-        console.log(formatSuccess(`✅ Successfully detached bundle: ${bundleId}`));
+        console.error(formatSuccess(`✅ Successfully detached bundle: ${bundleId}`));
 
         await codeIndexer.close();
       } catch (error) {
@@ -144,19 +144,19 @@ export function createDocsCommand(): Command {
         const bundles = docService.listBundles();
         
         if (bundles.length === 0) {
-          console.log(formatWarning('No documentation bundles attached'));
+          console.error(formatWarning('No documentation bundles attached'));
         } else {
-          console.log(formatInfo(`Found ${bundles.length} documentation bundle(s):\n`));
+          console.error(formatInfo(`Found ${bundles.length} documentation bundle(s):\n`));
           
           for (const bundle of bundles) {
-            console.log(`📚 ${bundle.id}`);
-            console.log(`   Name: ${bundle.name}`);
-            console.log(`   Path: ${bundle.path}`);
-            console.log(`   Documents: ${bundle.metadata.total_documents}`);
+            console.error(`📚 ${bundle.id}`);
+            console.error(`   Name: ${bundle.name}`);
+            console.error(`   Path: ${bundle.path}`);
+            console.error(`   Documents: ${bundle.metadata.total_documents}`);
             if (bundle.metadata.library_version) {
-              console.log(`   Version: ${bundle.metadata.library_version}`);
+              console.error(`   Version: ${bundle.metadata.library_version}`);
             }
-            console.log('');
+            console.error('');
           }
         }
 
@@ -187,7 +187,7 @@ export function createDocsCommand(): Command {
         const projectPath = resolveProjectPath(options.project || process.cwd());
         await validateProjectPath(projectPath);
 
-        console.log(formatInfo(`Searching documentation for: "${query}"`));
+        console.error(formatInfo(`Searching documentation for: "${query}"`));
 
         // Initialize database
         const dbManager = DatabaseManager.getInstance();
@@ -215,27 +215,27 @@ export function createDocsCommand(): Command {
         });
 
         if (results.results.length === 0) {
-          console.log(formatWarning('No results found'));
+          console.error(formatWarning('No results found'));
         } else {
-          console.log(formatSuccess(`\nFound ${results.total} result(s), showing top ${results.results.length}:\n`));
+          console.error(formatSuccess(`\nFound ${results.total} result(s), showing top ${results.results.length}:\n`));
           
           for (const result of results.results) {
-            console.log(`📄 ${result.title}`);
-            console.log(`   Library: ${result.library_name}`);
-            console.log(`   Type: ${result.section_type}`);
-            console.log(`   Similarity: ${(result.similarity * 100).toFixed(1)}%`);
-            console.log(`   URL: ${result.url}`);
+            console.error(`📄 ${result.title}`);
+            console.error(`   Library: ${result.library_name}`);
+            console.error(`   Type: ${result.section_type}`);
+            console.error(`   Similarity: ${(result.similarity * 100).toFixed(1)}%`);
+            console.error(`   URL: ${result.url}`);
             
             if (result.highlights && result.highlights.length > 0) {
-              console.log(`   Highlights:`);
+              console.error(`   Highlights:`);
               for (const highlight of result.highlights) {
-                console.log(`   - ${highlight}`);
+                console.error(`   - ${highlight}`);
               }
             }
-            console.log('');
+            console.error('');
           }
           
-          console.log(formatInfo(`Searched ${results.bundles_searched.length} bundle(s): ${results.bundles_searched.join(', ')}`));
+          console.error(formatInfo(`Searched ${results.bundles_searched.length} bundle(s): ${results.bundles_searched.join(', ')}`));
         }
 
         await codeIndexer.close();
@@ -255,7 +255,7 @@ export function createDocsCommand(): Command {
         const projectPath = resolveProjectPath(options.project || process.cwd());
         await validateProjectPath(projectPath);
 
-        console.log(formatInfo(`Installing documentation bundle: ${bundleFile}`));
+        console.error(formatInfo(`Installing documentation bundle: ${bundleFile}`));
 
         const bundlePath = path.resolve(bundleFile);
         const targetPath = path.join(projectPath, '.felix.docs.db');
@@ -270,8 +270,8 @@ export function createDocsCommand(): Command {
         // Copy bundle to project directory with correct name
         await fs.copyFile(bundlePath, targetPath);
 
-        console.log(formatSuccess(`Documentation installed: ${targetPath}`));
-        console.log(formatInfo('The documentation database will be automatically loaded when you use the project.'));
+        console.error(formatSuccess(`Documentation installed: ${targetPath}`));
+        console.error(formatInfo('The documentation database will be automatically loaded when you use the project.'));
 
       } catch (error) {
         console.error(formatError(`Failed to install documentation: ${error}`));
@@ -299,7 +299,7 @@ export function createDocsCommand(): Command {
           throw new Error(`package.json not found at: ${packageJsonPath}`);
         }
 
-        console.log(formatInfo('Auto-attaching documentation bundles based on package.json...'));
+        console.error(formatInfo('Auto-attaching documentation bundles based on package.json...'));
 
         // Initialize database
         const dbManager = DatabaseManager.getInstance();
@@ -321,11 +321,11 @@ export function createDocsCommand(): Command {
         const attachedBundles = await docService.autoAttachFromPackageJson(packageJsonPath);
         
         if (attachedBundles.length === 0) {
-          console.log(formatWarning('No documentation bundles found for package.json dependencies'));
+          console.error(formatWarning('No documentation bundles found for package.json dependencies'));
         } else {
-          console.log(formatSuccess(`✅ Auto-attached ${attachedBundles.length} bundle(s):`));
+          console.error(formatSuccess(`✅ Auto-attached ${attachedBundles.length} bundle(s):`));
           for (const bundleId of attachedBundles) {
-            console.log(`   - ${bundleId}`);
+            console.error(`   - ${bundleId}`);
           }
         }
 

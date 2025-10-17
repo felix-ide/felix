@@ -174,8 +174,8 @@ namespace ExampleNamespace
  * Run the Roslyn sidecar example
  */
 async function runExample(): Promise<void> {
-    console.log('🔬 Roslyn Sidecar Example');
-    console.log('========================\n');
+    console.error('🔬 Roslyn Sidecar Example');
+    console.error('========================\n');
 
     // Create temporary directory and files
     const tempDir = join(tmpdir(), 'roslyn-example-' + Date.now());
@@ -201,12 +201,12 @@ async function runExample(): Promise<void> {
         await demonstrateEnhancedParser(exampleFile, tempDir);
     } catch (error) {
         console.error('❌ Example failed:', error);
-        console.log('\nNote: This example requires .NET 8.0 SDK to be installed.');
-        console.log('If you see "sidecar not available" messages, the Roslyn sidecar');
-        console.log('may not be built or .NET may not be installed on your system.');
+        console.error('\nNote: This example requires .NET 8.0 SDK to be installed.');
+        console.error('If you see "sidecar not available" messages, the Roslyn sidecar');
+        console.error('may not be built or .NET may not be installed on your system.');
     } finally {
         // Cleanup
-        console.log('\n🧹 Cleaning up temporary files...');
+        console.error('\n🧹 Cleaning up temporary files...');
         const { rmSync } = await import('fs');
         rmSync(tempDir, { recursive: true, force: true });
     }
@@ -216,8 +216,8 @@ async function runExample(): Promise<void> {
  * Demonstrate RoslynSidecarService usage
  */
 async function demonstrateSidecarService(filePath: string, workspaceDir: string): Promise<void> {
-    console.log('📡 RoslynSidecarService Demo');
-    console.log('----------------------------\n');
+    console.error('📡 RoslynSidecarService Demo');
+    console.error('----------------------------\n');
 
     const service = new RoslynSidecarService({
         enableLogging: false,
@@ -226,75 +226,75 @@ async function demonstrateSidecarService(filePath: string, workspaceDir: string)
 
     try {
         // Check if service is available
-        console.log('Checking sidecar availability...');
+        console.error('Checking sidecar availability...');
         const isAvailable = await service.isAvailable();
-        console.log(`Sidecar available: ${isAvailable ? '✅' : '❌'}\n`);
+        console.error(`Sidecar available: ${isAvailable ? '✅' : '❌'}\n`);
 
         if (!isAvailable) {
-            console.log('⚠️  Sidecar not available. Skipping service demo.\n');
+            console.error('⚠️  Sidecar not available. Skipping service demo.\n');
             return;
         }
 
         // Load workspace
-        console.log('Loading workspace...');
+        console.error('Loading workspace...');
         const workspaceInfo = await service.loadWorkspace(workspaceDir);
-        console.log(`Workspace loaded: ${workspaceInfo.isLoaded ? '✅' : '❌'}`);
-        console.log(`Project: ${workspaceInfo.projectName}`);
-        console.log(`Documents: ${workspaceInfo.documentCount}\n`);
+        console.error(`Workspace loaded: ${workspaceInfo.isLoaded ? '✅' : '❌'}`);
+        console.error(`Project: ${workspaceInfo.projectName}`);
+        console.error(`Documents: ${workspaceInfo.documentCount}\n`);
 
         // Analyze file
-        console.log('Analyzing C# file...');
+        console.error('Analyzing C# file...');
         const analysisResult = await service.analyzeFile(filePath);
-        console.log(`Analysis completed in ${analysisResult.processingTimeMs}ms`);
-        console.log(`Symbols found: ${analysisResult.symbols.length}`);
-        console.log(`Diagnostics: ${analysisResult.diagnostics.length}`);
-        console.log(`Type hierarchies: ${analysisResult.typeHierarchies.length}`);
-        console.log(`Control flow nodes: ${analysisResult.controlFlowGraph.length}\n`);
+        console.error(`Analysis completed in ${analysisResult.processingTimeMs}ms`);
+        console.error(`Symbols found: ${analysisResult.symbols.length}`);
+        console.error(`Diagnostics: ${analysisResult.diagnostics.length}`);
+        console.error(`Type hierarchies: ${analysisResult.typeHierarchies.length}`);
+        console.error(`Control flow nodes: ${analysisResult.controlFlowGraph.length}\n`);
 
         // Show some interesting symbols
-        console.log('🔍 Interesting Symbols:');
+        console.error('🔍 Interesting Symbols:');
         const classes = analysisResult.symbols.filter(s => s.kind === 'NamedType' && s.name.includes('Service'));
         const methods = analysisResult.symbols.filter(s => s.kind === 'Method' && s.isAsync);
         const properties = analysisResult.symbols.filter(s => s.kind === 'Property');
 
-        console.log(`  Classes with 'Service': ${classes.length}`);
+        console.error(`  Classes with 'Service': ${classes.length}`);
         classes.slice(0, 3).forEach(c => {
-            console.log(`    - ${c.name} (${c.accessibility}, ${c.isAbstract ? 'abstract' : 'concrete'})`);
+            console.error(`    - ${c.name} (${c.accessibility}, ${c.isAbstract ? 'abstract' : 'concrete'})`);
         });
 
-        console.log(`  Async methods: ${methods.length}`);
+        console.error(`  Async methods: ${methods.length}`);
         methods.slice(0, 3).forEach(m => {
-            console.log(`    - ${m.name}() -> ${m.returnType}`);
+            console.error(`    - ${m.name}() -> ${m.returnType}`);
         });
 
-        console.log(`  Properties: ${properties.length}`);
+        console.error(`  Properties: ${properties.length}`);
         properties.slice(0, 3).forEach(p => {
-            console.log(`    - ${p.name}: ${p.type} (${p.accessibility})`);
+            console.error(`    - ${p.name}: ${p.type} (${p.accessibility})`);
         });
 
         // Get advanced analysis
-        console.log('\n🔬 Advanced Analysis:');
+        console.error('\n🔬 Advanced Analysis:');
 
         const controlFlow = await service.getControlFlow(filePath);
-        console.log(`Control flow blocks: ${controlFlow.length}`);
+        console.error(`Control flow blocks: ${controlFlow.length}`);
 
         const dataFlow = await service.getDataFlow(filePath);
         if (dataFlow) {
-            console.log(`Variables read: ${dataFlow.variablesRead.length}`);
-            console.log(`Variables written: ${dataFlow.variablesWritten.length}`);
+            console.error(`Variables read: ${dataFlow.variablesRead.length}`);
+            console.error(`Variables written: ${dataFlow.variablesWritten.length}`);
         }
 
         const typeHierarchy = await service.getTypeHierarchy(filePath);
-        console.log(`Type hierarchy entries: ${typeHierarchy.length}`);
+        console.error(`Type hierarchy entries: ${typeHierarchy.length}`);
 
         // Show inheritance relationships
         const inheritance = typeHierarchy.filter(t => t.baseType);
         if (inheritance.length > 0) {
-            console.log('\n🏗️  Inheritance Relationships:');
+            console.error('\n🏗️  Inheritance Relationships:');
             inheritance.forEach(t => {
-                console.log(`  ${t.symbolId} extends ${t.baseType}`);
+                console.error(`  ${t.symbolId} extends ${t.baseType}`);
                 if (t.interfaces.length > 0) {
-                    console.log(`    implements ${t.interfaces.join(', ')}`);
+                    console.error(`    implements ${t.interfaces.join(', ')}`);
                 }
             });
         }
@@ -303,7 +303,7 @@ async function demonstrateSidecarService(filePath: string, workspaceDir: string)
         console.error('Service demo error:', error);
     } finally {
         await service.stop();
-        console.log('\n');
+        console.error('\n');
     }
 }
 
@@ -311,8 +311,8 @@ async function demonstrateSidecarService(filePath: string, workspaceDir: string)
  * Demonstrate RoslynEnhancedCSharpParser usage
  */
 async function demonstrateEnhancedParser(filePath: string, workspaceDir: string): Promise<void> {
-    console.log('🚀 RoslynEnhancedCSharpParser Demo');
-    console.log('----------------------------------\n');
+    console.error('🚀 RoslynEnhancedCSharpParser Demo');
+    console.error('----------------------------------\n');
 
     const parser = new RoslynEnhancedCSharpParser({
         enableRoslyn: true,
@@ -323,26 +323,26 @@ async function demonstrateEnhancedParser(filePath: string, workspaceDir: string)
     try {
         // Check parser status
         const status = parser.getStatus();
-        console.log('Parser Status:');
-        console.log(`  Roslyn: ${status.roslyn ? '✅' : '❌'}`);
-        console.log(`  Tree-sitter: ${status.treeSitter ? '✅' : '❌'}`);
-        console.log(`  Fallback enabled: ${status.fallback ? '✅' : '❌'}\n`);
+        console.error('Parser Status:');
+        console.error(`  Roslyn: ${status.roslyn ? '✅' : '❌'}`);
+        console.error(`  Tree-sitter: ${status.treeSitter ? '✅' : '❌'}`);
+        console.error(`  Fallback enabled: ${status.fallback ? '✅' : '❌'}\n`);
 
         // Parse with workspace context
-        console.log('Parsing with workspace context...');
+        console.error('Parsing with workspace context...');
         const parseResult = await parser.parseFile(filePath, {
             workspaceRoot: workspaceDir,
             preferSemanticAnalysis: true
         });
 
-        console.log(`Components found: ${parseResult.components.length}`);
-        console.log(`Relationships found: ${parseResult.relationships.length}`);
-        console.log(`Errors: ${parseResult.errors.length}`);
-        console.log(`Warnings: ${parseResult.warnings.length}`);
-        console.log(`Parser used: ${parseResult.metadata?.parser || 'unknown'}\n`);
+        console.error(`Components found: ${parseResult.components.length}`);
+        console.error(`Relationships found: ${parseResult.relationships.length}`);
+        console.error(`Errors: ${parseResult.errors.length}`);
+        console.error(`Warnings: ${parseResult.warnings.length}`);
+        console.error(`Parser used: ${parseResult.metadata?.parser || 'unknown'}\n`);
 
         // Show component breakdown
-        console.log('📊 Component Breakdown:');
+        console.error('📊 Component Breakdown:');
         const componentCounts = parseResult.components.reduce((acc, comp) => {
             acc[comp.type] = (acc[comp.type] || 0) + 1;
             return acc;
@@ -351,48 +351,48 @@ async function demonstrateEnhancedParser(filePath: string, workspaceDir: string)
         Object.entries(componentCounts)
             .sort(([,a], [,b]) => b - a)
             .forEach(([type, count]) => {
-                console.log(`  ${type}: ${count}`);
+                console.error(`  ${type}: ${count}`);
             });
 
         // Show some relationships
-        console.log('\n🔗 Relationships:');
+        console.error('\n🔗 Relationships:');
         const relationshipCounts = parseResult.relationships.reduce((acc, rel) => {
             acc[rel.type] = (acc[rel.type] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
 
         Object.entries(relationshipCounts).forEach(([type, count]) => {
-            console.log(`  ${type}: ${count}`);
+            console.error(`  ${type}: ${count}`);
         });
 
         // Show rich metadata if available
         if (parseResult.metadata?.parser === 'roslyn-enhanced') {
-            console.log('\n📈 Enhanced Metadata:');
-            console.log(`  Processing time: ${parseResult.metadata.processingTimeMs}ms`);
-            console.log(`  Symbol count: ${parseResult.metadata.symbolCount}`);
-            console.log(`  Has control flow: ${parseResult.metadata.hasControlFlow ? '✅' : '❌'}`);
-            console.log(`  Has data flow: ${parseResult.metadata.hasDataFlow ? '✅' : '❌'}`);
-            console.log(`  Has type hierarchy: ${parseResult.metadata.hasTypeHierarchy ? '✅' : '❌'}`);
+            console.error('\n📈 Enhanced Metadata:');
+            console.error(`  Processing time: ${parseResult.metadata.processingTimeMs}ms`);
+            console.error(`  Symbol count: ${parseResult.metadata.symbolCount}`);
+            console.error(`  Has control flow: ${parseResult.metadata.hasControlFlow ? '✅' : '❌'}`);
+            console.error(`  Has data flow: ${parseResult.metadata.hasDataFlow ? '✅' : '❌'}`);
+            console.error(`  Has type hierarchy: ${parseResult.metadata.hasTypeHierarchy ? '✅' : '❌'}`);
 
             // Get additional analysis if Roslyn is available
             if (parser.isRoslynAvailable()) {
-                console.log('\n🔬 Additional Roslyn Analysis:');
+                console.error('\n🔬 Additional Roslyn Analysis:');
 
                 const semanticAnalysis = await parser.getSemanticAnalysis(filePath);
                 if (semanticAnalysis) {
-                    console.log(`  Full semantic analysis: ${semanticAnalysis.symbols.length} symbols`);
+                    console.error(`  Full semantic analysis: ${semanticAnalysis.symbols.length} symbols`);
                 }
 
                 const controlFlowGraph = await parser.getControlFlowGraph(filePath);
-                console.log(`  Control flow graph: ${controlFlowGraph.length} nodes`);
+                console.error(`  Control flow graph: ${controlFlowGraph.length} nodes`);
 
                 const dataFlowAnalysis = await parser.getDataFlowAnalysis(filePath);
-                console.log(`  Data flow analysis: ${dataFlowAnalysis ? 'Available' : 'N/A'}`);
+                console.error(`  Data flow analysis: ${dataFlowAnalysis ? 'Available' : 'N/A'}`);
             }
         }
 
         // Test error handling with invalid code
-        console.log('\n🚨 Error Handling Demo:');
+        console.error('\n🚨 Error Handling Demo:');
         const invalidCode = `
 using System;
 public class InvalidClass
@@ -404,11 +404,11 @@ public class InvalidClass
 `;
 
         const errorResult = await parser.parseContent(invalidCode, 'Invalid.cs');
-        console.log(`  Errors detected: ${errorResult.errors.length}`);
-        console.log(`  Warnings detected: ${errorResult.warnings.length}`);
+        console.error(`  Errors detected: ${errorResult.errors.length}`);
+        console.error(`  Warnings detected: ${errorResult.warnings.length}`);
 
         if (errorResult.errors.length > 0) {
-            console.log('  Sample error:', errorResult.errors[0].message);
+            console.error('  Sample error:', errorResult.errors[0].message);
         }
 
     } catch (error) {

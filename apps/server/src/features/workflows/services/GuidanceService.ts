@@ -177,7 +177,12 @@ export class GuidanceService {
       return undefined;
     }
 
-    const requiredChildren = workflowDef.child_requirements.filter(cr => (cr.min_count ?? 1) > 0);
+    // Filter to only show child requirements that apply to THIS task type
+    const requiredChildren = workflowDef.child_requirements.filter(cr =>
+      (cr.when_parent_type === taskType || !cr.when_parent_type) && (cr.min_count ?? 1) > 0
+    );
+
+    // If this task type has no child requirements, don't show hierarchy guidance
     if (requiredChildren.length === 0) return undefined;
 
     const childStatuses: ChildRequirementStatus[] = requiredChildren.map(childReq => {
@@ -254,7 +259,7 @@ export class GuidanceService {
       const checklistInfo = this.getChecklistInfo(section);
       return {
         kind: 'ensure_checklist',
-        tool: 'checklists',
+        tool: 'tasks',
         name: checklistInfo.name,
         min_items: checklistInfo.min_items,
         default_items: checklistInfo.examples,
@@ -284,19 +289,28 @@ export class GuidanceService {
     const projectPath = '{{project_path}}';
 
     if (spec.kind === 'ensure_checklist') {
+      // First create the checklist via update with checklists array
       return JSON.stringify({
         project: projectPath,
-        action: 'add',
+        action: 'update',
         task_id: taskId,
-        name: spec.name,
-        items: spec.default_items
+        checklists: [{
+          name: spec.name,
+          items: spec.default_items.map((text: string) => ({
+            text,
+            checked: false,
+            created_at: new Date().toISOString()
+          })),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }]
       }, null, 2);
     }
 
     if (spec.kind === 'create_child_task') {
       return JSON.stringify({
         project: projectPath,
-        action: 'add',
+        action: 'create',
         task_type: spec.child_task_type,
         parent_id: taskId,
         title: `[${spec.child_task_type} title describing user value]`,
@@ -307,7 +321,7 @@ export class GuidanceService {
     if (spec.kind === 'create_note') {
       return JSON.stringify({
         project: projectPath,
-        action: 'add',
+        action: 'create',
         title: spec.title_template.replace('{{title}}', (task as any).title || ''),
         content: spec.content_template,
         note_type: spec.note_type,
@@ -334,7 +348,7 @@ export class GuidanceService {
     }
 
     if (spec.kind === 'ensure_checklist') {
-      return `Add "${spec.name}" checklist with ${spec.min_items}+ items using checklists tool`;
+      return `Add "${spec.name}" checklist with ${spec.min_items}+ items using tasks tool (update action with checklists parameter)`;
     }
 
     if (spec.kind === 'create_note') {
@@ -551,7 +565,8 @@ export class GuidanceService {
 
     if (workflow === 'feature_development') {
       if (missing.some(m => m.section_type === 'children')) {
-        tips.push(`Break down ${taskType}s into smaller, independently deliverable pieces for better execution.`);
+        const pluralType = taskType === 'story' ? 'stories' : `${taskType}s`;
+        tips.push(`Break down ${pluralType} into smaller, independently deliverable pieces for better execution.`);
       }
     }
 

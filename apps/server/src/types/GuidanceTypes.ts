@@ -121,7 +121,7 @@ export type ActionSpec =
     }
   | {
       kind: 'ensure_checklist';
-      tool: 'checklists';
+      tool: 'tasks';
       name: string;
       min_items: number;
       default_items: string[];

@@ -82,8 +82,8 @@ export class TestHarness {
    * Run the complete test harness
    */
   async runComplete(): Promise<TestHarnessResults> {
-    console.log('🚀 Starting comprehensive parser test harness...');
-    console.log(`Options: ${JSON.stringify(this.getOptionsInfo(), null, 2)}`);
+    console.error('🚀 Starting comprehensive parser test harness...');
+    console.error(`Options: ${JSON.stringify(this.getOptionsInfo(), null, 2)}`);
 
     const results: TestHarnessResults = {
       validationResults: new Map(),
@@ -107,29 +107,29 @@ export class TestHarness {
 
     try {
       // 1. Run validation tests
-      console.log('\n📋 Running validation tests...');
+      console.error('\n📋 Running validation tests...');
       results.validationResults = await this.runValidationTests();
 
       // 2. Run performance benchmarks
       if (this.options.enableBenchmarks) {
-        console.log('\n⚡ Running performance benchmarks...');
+        console.error('\n⚡ Running performance benchmarks...');
         results.benchmarkResults = await this.runPerformanceBenchmarks();
       }
 
       // 3. Run regression tests
       if (this.options.enableRegressionTests) {
-        console.log('\n🔍 Running regression tests...');
+        console.error('\n🔍 Running regression tests...');
         results.regressionResults = await this.runRegressionTests();
       }
 
       // 4. Generate summary and reports
-      console.log('\n📊 Generating reports...');
+      console.error('\n📊 Generating reports...');
       results.summary = this.calculateSummary(results);
       results.reports = await this.generateReports(results);
 
       // 5. Update golden files if requested
       if (this.options.updateGoldenFiles) {
-        console.log('\n💾 Updating golden files...');
+        console.error('\n💾 Updating golden files...');
         await this.updateGoldenFiles(results.validationResults);
       }
 
@@ -146,7 +146,7 @@ export class TestHarness {
    * Run only validation tests
    */
   async runValidationOnly(): Promise<Map<string, TestResult[]>> {
-    console.log('📋 Running validation tests only...');
+    console.error('📋 Running validation tests only...');
     return await this.runValidationTests();
   }
 
@@ -154,7 +154,7 @@ export class TestHarness {
    * Run only performance benchmarks
    */
   async runBenchmarksOnly(): Promise<Map<string, BenchmarkResult[]>> {
-    console.log('⚡ Running performance benchmarks only...');
+    console.error('⚡ Running performance benchmarks only...');
     return await this.runPerformanceBenchmarks();
   }
 
@@ -162,7 +162,7 @@ export class TestHarness {
    * Run only regression tests
    */
   async runRegressionsOnly(): Promise<Map<string, RegressionTestResult[]>> {
-    console.log('🔍 Running regression tests only...');
+    console.error('🔍 Running regression tests only...');
     return await this.runRegressionTests();
   }
 
@@ -170,7 +170,7 @@ export class TestHarness {
    * Generate golden files for all test cases
    */
   async generateGoldenFiles(): Promise<void> {
-    console.log('🏆 Generating golden files...');
+    console.error('🏆 Generating golden files...');
 
     const validationResults = await this.runValidationTests();
 
@@ -178,7 +178,7 @@ export class TestHarness {
       const parser = this.parserFactory.getParser(language);
       if (!parser) continue;
 
-      console.log(`Generating golden files for ${language}...`);
+      console.error(`Generating golden files for ${language}...`);
 
       for (const result of results) {
         if (result.parseResult) {
@@ -189,12 +189,12 @@ export class TestHarness {
           );
 
           await this.goldenFileManager.saveGoldenFile(goldenFile);
-          console.log(`  ✅ Generated: ${result.testCase.name}`);
+          console.error(`  ✅ Generated: ${result.testCase.name}`);
         }
       }
     }
 
-    console.log('✨ Golden file generation complete!');
+    console.error('✨ Golden file generation complete!');
   }
 
   // Private methods
@@ -204,7 +204,7 @@ export class TestHarness {
     const languages = this.getTargetLanguages();
 
     for (const language of languages) {
-      console.log(`  Testing ${language} parser...`);
+      console.error(`  Testing ${language} parser...`);
 
       const testSuite = this.createTestSuiteForLanguage(language);
       if (testSuite) {
@@ -212,7 +212,7 @@ export class TestHarness {
         results.set(language, testResults);
 
         const passed = testResults.filter(r => r.success).length;
-        console.log(`    ${passed}/${testResults.length} tests passed`);
+        console.error(`    ${passed}/${testResults.length} tests passed`);
       }
     }
 
@@ -224,7 +224,7 @@ export class TestHarness {
     const languages = this.getTargetLanguages();
 
     for (const language of languages) {
-      console.log(`  Benchmarking ${language} parser...`);
+      console.error(`  Benchmarking ${language} parser...`);
 
       const parser = this.parserFactory.getParser(language);
       if (parser) {
@@ -233,7 +233,7 @@ export class TestHarness {
         results.set(language, benchmarkResults);
 
         const avgTime = benchmarkResults.reduce((sum, r) => sum + r.metrics.avgParseTime, 0) / benchmarkResults.length;
-        console.log(`    Average parse time: ${avgTime.toFixed(2)}ms`);
+        console.error(`    Average parse time: ${avgTime.toFixed(2)}ms`);
       }
     }
 
@@ -429,26 +429,26 @@ export class TestHarness {
   }
 
   private logFinalSummary(results: TestHarnessResults): void {
-    console.log('\n🎉 Test Harness Complete!');
-    console.log('═'.repeat(50));
-    console.log(`📊 Total Tests: ${results.summary.totalTests}`);
-    console.log(`✅ Passed: ${results.summary.passedTests}`);
-    console.log(`❌ Failed: ${results.summary.failedTests}`);
-    console.log(`📈 Success Rate: ${((results.summary.passedTests / results.summary.totalTests) * 100).toFixed(2)}%`);
+    console.error('\n🎉 Test Harness Complete!');
+    console.error('═'.repeat(50));
+    console.error(`📊 Total Tests: ${results.summary.totalTests}`);
+    console.error(`✅ Passed: ${results.summary.passedTests}`);
+    console.error(`❌ Failed: ${results.summary.failedTests}`);
+    console.error(`📈 Success Rate: ${((results.summary.passedTests / results.summary.totalTests) * 100).toFixed(2)}%`);
 
     if (results.summary.regressions > 0) {
-      console.log(`🔴 Regressions: ${results.summary.regressions}`);
+      console.error(`🔴 Regressions: ${results.summary.regressions}`);
     }
 
     if (results.summary.improvements > 0) {
-      console.log(`🟢 Improvements: ${results.summary.improvements}`);
+      console.error(`🟢 Improvements: ${results.summary.improvements}`);
     }
 
     if (results.summary.averagePerformance > 0) {
-      console.log(`⚡ Avg Performance: ${results.summary.averagePerformance.toFixed(2)}ms`);
+      console.error(`⚡ Avg Performance: ${results.summary.averagePerformance.toFixed(2)}ms`);
     }
 
-    console.log('═'.repeat(50));
+    console.error('═'.repeat(50));
   }
 
   private getOptionsInfo(): any {

@@ -56,8 +56,8 @@ export class WorkflowConfiguration {
   @Column({ type: 'text', nullable: true })
   system_version?: string; // Version of the system workflow (e.g., "1.0.0")
 
-  @Column({ type: 'simple-json' })
-  required_sections!: RequiredSection[] | string;
+  @Column({ type: 'simple-json', nullable: true })
+  required_sections?: RequiredSection[] | string;
 
   @Column({ type: 'simple-json', nullable: true })
   conditional_requirements?: ConditionalRequirement[];
@@ -80,9 +80,9 @@ export class WorkflowConfiguration {
   @Column({ type: 'simple-json', nullable: true })
   child_requirements?: ChildTaskRequirement[] | null;
 
-  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updated_at!: Date;
 }

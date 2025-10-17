@@ -31,8 +31,8 @@ function calculateProduct(a, b) {
 const result1 = calculateSum(5, 3);
 const result2 = calculateProduct(4, 6);
 
-console.log('Sum:', result1);
-console.log('Product:', result2);
+console.error('Sum:', result1);
+console.error('Product:', result2);
       `.trim();
 
       const modifiedCode = `
@@ -52,9 +52,9 @@ const result1 = calculateSum(5, 3);
 const result2 = calculateProduct(4, 6);
 const result3 = calculateDifference(10, 3);
 
-console.log('Sum:', result1);
-console.log('Product:', result2);
-console.log('Difference:', result3);
+console.error('Sum:', result1);
+console.error('Product:', result2);
+console.error('Difference:', result3);
       `.trim();
 
       // First parse (cold)
@@ -90,7 +90,7 @@ console.log('Difference:', result3);
 
       // Note: In a real implementation, time2 would typically be faster
       // For testing, we just verify both complete successfully
-      console.log(`Cold parse: ${time1}ms, Incremental parse: ${time2}ms`);
+      console.error(`Cold parse: ${time1}ms, Incremental parse: ${time2}ms`);
     });
 
     it('should handle cache hits for identical content', async () => {
@@ -129,7 +129,7 @@ const calc = new Calculator();
 
       // All parses should complete
       times.forEach(time => expect(time).toBeGreaterThan(0));
-      console.log('Parse times:', times);
+      console.error('Parse times:', times);
     });
   });
 
@@ -209,7 +209,7 @@ const calc = new Calculator();
         expect(func.scopeContext?.languageStack).toEqual(['html', 'javascript']);
       });
 
-      console.log(`HTML cold parse: ${time1}ms, HTML incremental parse: ${time2}ms`);
+      console.error(`HTML cold parse: ${time1}ms, HTML incremental parse: ${time2}ms`);
     });
   });
 

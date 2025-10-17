@@ -61,12 +61,58 @@ export class WorkflowConfigManager {
 
       const needsMigration = await migration.needsMigration();
       if (needsMigration) {
-        console.log('[WorkflowConfigManager] Running system entity migration...');
+        console.error('[WorkflowConfigManager] Running system entity migration...');
         await migration.run();
       }
+
+      // Fix workflow type mappings (epic/story should map to feature_development, not non-existent workflows)
+      await this.fixWorkflowTypeMappings();
     } catch (error) {
       console.warn('[WorkflowConfigManager] Migration failed (non-fatal):', error);
       // Don't throw - migrations are best-effort
+    }
+  }
+
+  /**
+   * Fix incorrect workflow type mappings from initial seed
+   * Epic and Story were incorrectly mapped to non-existent "epic" and "story" workflows
+   * ONLY fixes the exact bad values - preserves user customizations
+   */
+  private async fixWorkflowTypeMappings(): Promise<void> {
+    const settingsRepo = this.dataSource.getRepository(GlobalWorkflowSetting);
+    const row = await settingsRepo.findOne({ where: { setting_key: 'defaults_by_task_type' } });
+
+    if (!row?.setting_value) {
+      return; // No mappings to fix
+    }
+
+    try {
+      const map = JSON.parse(row.setting_value);
+      let needsUpdate = false;
+
+      // Only fix if it's the exact bad value from the buggy seed
+      // If user changed it to something else, leave it alone
+      if (map.epic === 'epic') {
+        console.error('[WorkflowConfigManager] Fixing buggy workflow mapping: epic "epic" → "feature_development"');
+        map.epic = 'feature_development';
+        needsUpdate = true;
+      }
+
+      if (map.story === 'story') {
+        console.error('[WorkflowConfigManager] Fixing buggy workflow mapping: story "story" → "feature_development"');
+        map.story = 'feature_development';
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        await settingsRepo.update(
+          { setting_key: 'defaults_by_task_type' },
+          { setting_value: JSON.stringify(map) }
+        );
+        console.error('[WorkflowConfigManager] ✅ Workflow type mappings fixed');
+      }
+    } catch (error) {
+      console.warn('[WorkflowConfigManager] Failed to fix workflow type mappings:', error);
     }
   }
 
@@ -102,7 +148,7 @@ export class WorkflowConfigManager {
       } else if (existing.is_system) {
         // Auto-update system workflows only if version changed
         if (existing.system_version !== SYSTEM_WORKFLOW_VERSION) {
-          console.log(`[WorkflowConfigManager] Updating system workflow: ${workflow.name} (${existing.system_version} → ${SYSTEM_WORKFLOW_VERSION})`);
+          console.error(`[WorkflowConfigManager] Updating system workflow: ${workflow.name} (${existing.system_version} → ${SYSTEM_WORKFLOW_VERSION})`);
           await workflowRepo.update({ name: workflow.name }, {
             display_name: workflow.display_name,
             description: workflow.description,
@@ -124,8 +170,8 @@ export class WorkflowConfigManager {
 
   private async ensureDefaultTaskTypeMapping(): Promise<void> {
     const DEFAULTS_BY_TASK_TYPE: Record<string, string> = {
-      epic: 'epic',
-      story: 'story',
+      epic: 'feature_development',
+      story: 'feature_development',
       feature: 'feature_development',
       task: 'simple',
       subtask: 'simple',

@@ -73,7 +73,7 @@ export function cleanupOldSessions(): void {
         const stats = fs.statSync(filePath);
         if (now - stats.mtimeMs > maxAge) {
           fs.unlinkSync(filePath);
-          console.log(`Cleaned up old session: ${file}`);
+          console.error(`Cleaned up old session: ${file}`);
         }
       }
     }

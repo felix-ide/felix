@@ -31,10 +31,6 @@ export class SearchCoordinator {
     return this.searchFacade.searchSemanticUniversal(query, options);
   }
 
-  async searchDiscover(options: any): Promise<any> {
-    return this.searchFacade.searchDiscover(options);
-  }
-
   async findSimilarEntities(queryEmbedding: number[], limit?: number, entityTypes?: ('component' | 'task' | 'note' | 'rule')[]): Promise<Array<{ entity: any; entityType: string; similarity: number }>> {
     return this.searchFacade.findSimilarEntities(queryEmbedding, limit, entityTypes);
   }

@@ -32,6 +32,6 @@ export class Embedding {
   @Column({ type: 'text', nullable: true })
   content_hash?: string;
 
-  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   created_at!: Date;
 }

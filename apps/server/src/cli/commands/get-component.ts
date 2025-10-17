@@ -33,7 +33,7 @@ export async function getComponentCommand(id: string, options: GetComponentOptio
   const config = loadConfig(options.config);
   
   if (!options.quiet) {
-    console.log(`🔍 Getting component: ${id}`);
+    console.error(`🔍 Getting component: ${id}`);
   }
   
   // Initialize database

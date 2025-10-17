@@ -49,7 +49,7 @@ export function createFileBrowserHandler(resolveFn: typeof resolvePath = resolve
             };
           } catch (error) {
             // Skip files that are locked or inaccessible (common on Windows system drives)
-            console.log(`[DEBUG] Skipping inaccessible file: ${entryPath}`);
+            console.error(`[DEBUG] Skipping inaccessible file: ${entryPath}`);
             return null;
           }
         })

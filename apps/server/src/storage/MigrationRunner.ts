@@ -36,7 +36,7 @@ export class MigrationRunner {
       const migrationId = file.replace('.sql', '');
       
       if (!appliedMigrations.has(migrationId)) {
-        console.log(`Running migration: ${migrationId}`);
+        console.error(`Running migration: ${migrationId}`);
         
         try {
           const sql = readFileSync(join(migrationsPath, file), 'utf-8');
@@ -50,7 +50,7 @@ export class MigrationRunner {
             this.db.prepare('INSERT INTO migrations (id) VALUES (?)').run(migrationId);
           })();
           
-          console.log(`Migration ${migrationId} completed successfully`);
+          console.error(`Migration ${migrationId} completed successfully`);
         } catch (error) {
           console.error(`Migration ${migrationId} failed:`, error);
           throw error;

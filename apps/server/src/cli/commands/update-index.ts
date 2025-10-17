@@ -36,8 +36,8 @@ export async function updateIndexCommand(path: string, options: UpdateIndexOptio
   const targetPath = resolve(path);
   
   if (!options.quiet) {
-    console.log('🔄 Updating code index...');
-    console.log(`📁 Target directory: ${targetPath}`);
+    console.error('🔄 Updating code index...');
+    console.error(`📁 Target directory: ${targetPath}`);
   }
   
   // Set up progress reporting
@@ -53,7 +53,7 @@ export async function updateIndexCommand(path: string, options: UpdateIndexOptio
   try {
     // Initialize indexer
     if (!options.quiet) {
-      console.log('💾 Connecting to existing index...');
+      console.error('💾 Connecting to existing index...');
     }
     await indexer.initialize();
     
@@ -61,14 +61,14 @@ export async function updateIndexCommand(path: string, options: UpdateIndexOptio
     const beforeStats = await indexer.getStats();
     
     if (!options.quiet) {
-      console.log(`📊 Current index: ${beforeStats.components} components, ${beforeStats.relationships} relationships`);
+      console.error(`📊 Current index: ${beforeStats.components} components, ${beforeStats.relationships} relationships`);
     }
     
     // Determine update strategy
     if (options.force || !options.incremental) {
       // Full rebuild
       if (!options.quiet) {
-        console.log('🔄 Performing full rebuild...');
+        console.error('🔄 Performing full rebuild...');
       }
       
       // Clear existing index
@@ -81,20 +81,20 @@ export async function updateIndexCommand(path: string, options: UpdateIndexOptio
       progressReporter.finish(result.filesProcessed);
       
       if (!options.quiet) {
-        console.log('\n📊 Update Results:');
-        console.log(`📁 Files processed: ${result.filesProcessed}`);
-        console.log(`🧩 Components found: ${result.componentCount}`);
-        console.log(`🔗 Relationships found: ${result.relationshipCount}`);
+        console.error('\n📊 Update Results:');
+        console.error(`📁 Files processed: ${result.filesProcessed}`);
+        console.error(`🧩 Components found: ${result.componentCount}`);
+        console.error(`🔗 Relationships found: ${result.relationshipCount}`);
         
         if (result.errors.length > 0) {
-          console.log(`❌ Errors: ${result.errors.length}`);
+          console.error(`❌ Errors: ${result.errors.length}`);
         }
         
       }
     } else {
       // Restore original behavior: non-force update performs a full rebuild (clear + index)
       if (!options.quiet) {
-        console.log('🔄 Performing full rebuild...');
+        console.error('🔄 Performing full rebuild...');
       }
 
       await indexer.clearIndex();
@@ -108,9 +108,9 @@ export async function updateIndexCommand(path: string, options: UpdateIndexOptio
     const afterStats = await indexer.getStats();
     
     if (!options.quiet) {
-      console.log('\n📈 Changes:');
-      console.log(`🧩 Components: ${beforeStats.components} → ${afterStats.components} (${afterStats.components - beforeStats.components >= 0 ? '+' : ''}${afterStats.components - beforeStats.components})`);
-      console.log(`🔗 Relationships: ${beforeStats.relationships} → ${afterStats.relationships} (${afterStats.relationships - beforeStats.relationships >= 0 ? '+' : ''}${afterStats.relationships - beforeStats.relationships})`);
+      console.error('\n📈 Changes:');
+      console.error(`🧩 Components: ${beforeStats.components} → ${afterStats.components} (${afterStats.components - beforeStats.components >= 0 ? '+' : ''}${afterStats.components - beforeStats.components})`);
+      console.error(`🔗 Relationships: ${beforeStats.relationships} → ${afterStats.relationships} (${afterStats.relationships - beforeStats.relationships >= 0 ? '+' : ''}${afterStats.relationships - beforeStats.relationships})`);
     }
     
     // Output final statistics if requested
@@ -118,13 +118,13 @@ export async function updateIndexCommand(path: string, options: UpdateIndexOptio
       const statsContent = formatStats(afterStats, options.format, true);
       const fs = await import('fs');
       fs.writeFileSync(options.output, statsContent);
-      console.log(`📄 Statistics written to ${options.output}`);
+      console.error(`📄 Statistics written to ${options.output}`);
     }
     
     await indexer.close();
     
     if (!options.quiet) {
-      console.log('\n✅ Index update completed successfully');
+      console.error('\n✅ Index update completed successfully');
     }
     
   } catch (error) {

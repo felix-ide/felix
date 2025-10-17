@@ -37,8 +37,8 @@ export async function createIndexCommand(path: string, options: CreateIndexOptio
   const targetPath = resolve(path);
   
   if (!options.quiet) {
-    console.log('🏗️  Creating code index...');
-    console.log(`📁 Target directory: ${targetPath}`);
+    console.error('🏗️  Creating code index...');
+    console.error(`📁 Target directory: ${targetPath}`);
   }
   
   // Initialize database
@@ -53,13 +53,13 @@ export async function createIndexCommand(path: string, options: CreateIndexOptio
   
   // Initialize indexer
   if (!options.quiet) {
-    console.log(`💾 Initializing storage...`);
+    console.error(`💾 Initializing storage...`);
   }
   await indexer.initialize();
   
   // Index the directory
   if (!options.quiet) {
-    console.log('🔍 Scanning and parsing files...');
+    console.error('🔍 Scanning and parsing files...');
   }
   
   const startTime = Date.now();
@@ -74,29 +74,29 @@ export async function createIndexCommand(path: string, options: CreateIndexOptio
   
   // Display results
   if (!options.quiet) {
-    console.log('\n📊 Indexing Results:');
-    console.log(`📁 Files processed: ${result.filesProcessed}`);
-    console.log(`🧩 Components found: ${result.componentCount}`);
-    console.log(`🔗 Relationships found: ${result.relationshipCount}`);
-    console.log(`⏱️  Processing time: ${endTime - startTime}ms`);
+    console.error('\n📊 Indexing Results:');
+    console.error(`📁 Files processed: ${result.filesProcessed}`);
+    console.error(`🧩 Components found: ${result.componentCount}`);
+    console.error(`🔗 Relationships found: ${result.relationshipCount}`);
+    console.error(`⏱️  Processing time: ${endTime - startTime}ms`);
     
     if (result.errors.length > 0) {
-      console.log(`\n❌ Errors (${result.errors.length}):`);
+      console.error(`\n❌ Errors (${result.errors.length}):`);
       result.errors.slice(0, 5).forEach((error: any) => {
-        console.log(`  ${error.filePath}: ${error.error}`);
+        console.error(`  ${error.filePath}: ${error.error}`);
       });
       if (result.errors.length > 5) {
-        console.log(`  ... and ${result.errors.length - 5} more`);
+        console.error(`  ... and ${result.errors.length - 5} more`);
       }
     }
     
     if (result.warnings.length > 0) {
-      console.log(`\n⚠️  Warnings (${result.warnings.length}):`);
+      console.error(`\n⚠️  Warnings (${result.warnings.length}):`);
       result.warnings.slice(0, 5).forEach((warning: any) => {
-        console.log(`  ${warning.filePath}: ${warning.message}`);
+        console.error(`  ${warning.filePath}: ${warning.message}`);
       });
       if (result.warnings.length > 5) {
-        console.log(`  ... and ${result.warnings.length - 5} more`);
+        console.error(`  ... and ${result.warnings.length - 5} more`);
       }
     }
   }
@@ -108,7 +108,7 @@ export async function createIndexCommand(path: string, options: CreateIndexOptio
     const statsContent = formatStats(stats, options.format, true);
     const fs = await import('fs');
     fs.writeFileSync(options.output, statsContent);
-    console.log(`📄 Statistics written to ${options.output}`);
+    console.error(`📄 Statistics written to ${options.output}`);
   }
   
   // Clean up
@@ -120,9 +120,9 @@ export async function createIndexCommand(path: string, options: CreateIndexOptio
   }
   
   if (!options.quiet) {
-    console.log('\n🎯 Next steps:');
-    console.log('  • Use "felix search" to explore components');
-    console.log('  • Use "felix stats" to view detailed statistics');
-    console.log('  • Use "felix get-component <id>" to inspect specific components');
+    console.error('\n🎯 Next steps:');
+    console.error('  • Use "felix search" to explore components');
+    console.error('  • Use "felix stats" to view detailed statistics');
+    console.error('  • Use "felix get-component <id>" to inspect specific components');
   }
 }

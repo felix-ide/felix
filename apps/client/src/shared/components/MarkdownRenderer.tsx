@@ -230,9 +230,9 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
         // Paragraph
         p: ({ children }) => <p className="mb-2">{children}</p>,
 
-        // Lists
-        ul: ({ children }) => <ul className="list-disc list-inside mb-2 ml-2">{children}</ul>,
-        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 ml-2">{children}</ol>,
+        // Lists - use list-outside so numbers/bullets stay with text
+        ul: ({ children }) => <ul className="list-disc list-outside mb-2 ml-4 pl-2">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal list-outside mb-2 ml-4 pl-2">{children}</ol>,
         li: ({ children }) => <li className="mb-0.5">{children}</li>,
 
         // Blockquote - use theme border color

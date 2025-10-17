@@ -7,21 +7,35 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 import { logger } from '../../shared/logger.js';
 import path from 'path';
 import { access, readFile } from 'fs/promises';
+import { readFileSync as readFileSyncFs } from 'fs';
 import { constants as fsConstants } from 'fs';
 import { WriteQueue } from '../../shared/WriteQueue.js';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-// Import entities
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// CRITICAL: Set database type flag BEFORE importing entities
+// Entity decorators run at import time and need this flag to determine column types
+try {
+  const configPath = path.join(process.cwd(), '.felix', 'config.json');
+  const content = readFileSyncFs(configPath, 'utf-8');
+  const config = JSON.parse(content);
+  if (config.databases?.metadata?.type) {
+    (global as any).__TYPEORM_METADATA_DB_TYPE = config.databases.metadata.type;
+    console.error(`[DatabaseManager] Set __TYPEORM_METADATA_DB_TYPE=${(global as any).__TYPEORM_METADATA_DB_TYPE} from ${configPath}`);
+  }
+} catch (err) {
+  // No config file or error reading it, will use defaults (sqlite)
+  console.error(`[DatabaseManager] Could not load config from ${process.cwd()}/.felix/config.json:`, err);
+}
+
+// Import index entities (always SQLite)
 import { Component, Relationship, Embedding, IndexMetadata } from './entities/index/index.js';
-import {
-  Task, Note, Rule,
-  TaskDependency, TaskCodeLink, TaskMetric,
-  RuleRelationship, RuleApplication,
-  WorkflowConfiguration, GlobalWorkflowSetting,
-  TransitionGate,
-  TaskStatus,
-  TaskStatusFlow,
-  KnowledgeBase
-} from './entities/metadata/index.js';
+
+// DON'T import metadata entities here - they will be loaded from paths by TypeORM
+// This allows the BinaryColumn decorator to run with the correct global flag per-project
 
 // Import repositories
 import { ComponentRepository } from './repositories/ComponentRepository.js';
@@ -99,6 +113,7 @@ export class DatabaseManager {
       const content = await readFile(configPath, 'utf-8');
       const config = JSON.parse(content);
       logger.info('📝 Loaded configuration from .felix/config.json');
+
       return config;
     } catch (error) {
       // No config file, use defaults
@@ -140,6 +155,9 @@ export class DatabaseManager {
         const pgConfig = this.config.databases.metadata;
         logger.info(`🌐 Using remote Postgres: ${pgConfig.host}:${pgConfig.port}/${pgConfig.database}`);
 
+        // Set global flag so BinaryColumn decorator uses bytea
+        (global as any).__TYPEORM_METADATA_DB_TYPE = 'postgres';
+
         metadataConfig = {
           type: 'postgres',
           host: pgConfig.host,
@@ -149,29 +167,7 @@ export class DatabaseManager {
           password: pgConfig.password,
           ssl: pgConfig.ssl ? { rejectUnauthorized: false } : false,
           entities: [
-            Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
-            RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate,
-            TaskStatus, TaskStatusFlow, KnowledgeBase
-          ],
-          synchronize: true,
-          logging: false
-        };
-      } else if (process.env.METADATA_DB_TYPE === 'postgres') {
-        // Use Postgres from environment variables (existing behavior)
-        logger.info(`🌐 Using remote Postgres from env vars`);
-
-        metadataConfig = {
-          type: 'postgres',
-          host: process.env.DB_HOST || 'localhost',
-          port: parseInt(process.env.DB_PORT || '5432'),
-          database: process.env.DB_NAME || 'code_indexer_metadata',
-          username: process.env.DB_USER || 'postgres',
-          password: process.env.DB_PASSWORD || '',
-          ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-          entities: [
-            Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
-            RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate,
-            TaskStatus, TaskStatusFlow, KnowledgeBase
+            path.join(__dirname, 'entities/metadata/*.entity.js')
           ],
           synchronize: true,
           logging: false
@@ -181,13 +177,14 @@ export class DatabaseManager {
         const metadataDbPath = await this.resolveDbPath('.felix.metadata.db', '.code-indexer.metadata.db');
         logger.debug(`Metadata DB: ${metadataDbPath}`);
 
+        // Set global flag so BinaryColumn decorator uses blob
+        (global as any).__TYPEORM_METADATA_DB_TYPE = 'sqlite';
+
         metadataConfig = {
           type: 'sqlite',
           database: metadataDbPath,
           entities: [
-            Task, Note, Rule, TaskDependency, TaskCodeLink, TaskMetric,
-            RuleRelationship, RuleApplication, WorkflowConfiguration, GlobalWorkflowSetting, TransitionGate,
-            TaskStatus, TaskStatusFlow, KnowledgeBase
+            path.join(__dirname, 'entities/metadata/*.entity.js')
           ],
           synchronize: true,
           logging: false

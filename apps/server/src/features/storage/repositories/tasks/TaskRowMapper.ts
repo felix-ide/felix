@@ -24,16 +24,16 @@ export function toDbRowWithChecklists(task: ITask & { checklists?: any }): TaskD
 
   return {
     ...task,
-    entity_links: task.entity_links ? parseIfString(task.entity_links) : undefined,
-    stable_links: (task as any).stable_links ? parseIfString((task as any).stable_links) : undefined,
-    fragile_links: (task as any).fragile_links ? parseIfString((task as any).fragile_links) : undefined,
-    stable_tags: (task as any).stable_tags ? parseIfString((task as any).stable_tags) : undefined,
-    auto_tags: (task as any).auto_tags ? parseIfString((task as any).auto_tags) : undefined,
-    contextual_tags: (task as any).contextual_tags ? parseIfString((task as any).contextual_tags) : undefined,
-    checklists: task.checklists ? parseIfString(task.checklists) : null,
+    entity_links: task.entity_links ? parseIfString(task.entity_links) : [],
+    stable_links: (task as any).stable_links ? parseIfString((task as any).stable_links) : [],
+    fragile_links: (task as any).fragile_links ? parseIfString((task as any).fragile_links) : [],
+    stable_tags: (task as any).stable_tags ? parseIfString((task as any).stable_tags) : [],
+    auto_tags: (task as any).auto_tags ? parseIfString((task as any).auto_tags) : [],
+    contextual_tags: (task as any).contextual_tags ? parseIfString((task as any).contextual_tags) : [],
+    checklists: task.checklists ? parseIfString(task.checklists) : [],
     workflow: (task as any).workflow || null,
     spec_state: (task as any).spec_state || 'draft',
-    spec_waivers: (task as any).spec_waivers ? parseIfString((task as any).spec_waivers) : null,
+    spec_waivers: (task as any).spec_waivers ? parseIfString((task as any).spec_waivers) : [],
     last_validated_at: (task as any).last_validated_at || null,
     validated_by: (task as any).validated_by || null
   } as TaskDbRecord;

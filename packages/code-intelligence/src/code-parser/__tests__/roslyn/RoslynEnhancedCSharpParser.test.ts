@@ -647,7 +647,7 @@ public class InvalidClass
         expect(result).toBeDefined();
         expect(processingTime).toBeLessThan(30000); // Should complete within 30 seconds
 
-        console.log(`Parsing took ${processingTime}ms`);
+        console.error(`Parsing took ${processingTime}ms`);
 
       } catch (error) {
         console.warn('Performance test failed:', error);

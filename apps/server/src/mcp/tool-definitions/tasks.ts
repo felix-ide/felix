@@ -2,47 +2,29 @@ import type { McpToolDefinition } from './common.js';
 
 export const TASKS_TOOL: McpToolDefinition = {
   name: 'tasks',
-  description: `Task management with automatic validation and guidance. Creates epics, stories, tasks, bugs, spikes with hierarchy and dependencies.
+  description: `Task management with workflows, spec gating, and AI validation.
 
-PURPOSE: Track work with workflow-based spec gates. Tasks auto-validate and return guidance on what's missing.
+TASK_TYPE → WORKFLOW MAPPING:
+- epic, story, feature → feature_development workflow (requires Architecture + ERD + API Contract notes, 4 checklists, rule links)
+- task, chore → simple workflow (requires description + basic checklist)
+- bug, bugfix → bugfix workflow (requires root cause + test verification)
+- spike, research → research workflow (requires research goals + findings)
 
-Required: project, action(add|get|list|update|delete|get_tree|get_dependencies|add_dependency|suggest_next|get_spec_bundle)
-Create: title*, description, parent_id, task_type=task, task_priority(low|medium|high|critical)=medium, estimated_effort, due_date, workflow, checklists[], entity_links[], stable_tags[], include_guidance=T
-Update: task_id*, task_status(todo|in_progress|blocked|done|cancelled), spec_state(draft|spec_in_progress|spec_ready), spec_waivers[], actual_effort, [any create field]
-Query: task_id, include_notes=T, include_children=T, compact=T
-List: task_status, task_type, limit=20, offset=0, view[ids,names,titles,summary,full], fields[], output_format(text|json)=text
-Tree/Deps: root_task_id, max_depth=5, direction(incoming|outgoing|both)=both, dependency_type(blocks|related|follows)
+HOW IT WORKS:
+1. Create task with title + description + task_type → System auto-assigns workflow based on mapping above
+2. System validates and returns guidance showing EXACTLY what's required for spec_ready
+3. Follow guidance to create requirements:
+   - Use notes tool to create Architecture/ERD/API Contract notes (for feature_development)
+   - Use update action with checklist_updates to add required checklists
+   - Use update action with entity_links to link coding rules
+4. Once all requirements met → update spec_state=spec_ready
+5. ONLY THEN can task_status move to in_progress (spec gate blocks otherwise)
 
-WORKFLOW INTEGRATION:
-- add/update returns {task, validation, guidance} showing what's needed for spec_ready
-- Spec gate: Cannot set status=in_progress until spec_state=spec_ready
-- Requirements vary by workflow type (see workflows tool)
-- Use guidance response to know what notes/checklists/rules to add
+IMPORTANT: Always read the guidance response after creating/updating a task - it tells you exactly what's missing!
 
-EXAMPLE: Create task → get guidance → add required items → mark spec_ready → start work`,
-  // Payload examples the validator accepts:
-  // - Acceptance Criteria
-  //   checklists: [{
-  //     name: "Acceptance Criteria",
-  //     items: [ {"text":"Given …, When …, Then …"}, {"text":"Given …"}, {"text":"Given …"} ]
-  //   }]
-  // - Implementation Checklist
-  //   checklists: [{
-  //     name: "Implementation Checklist",
-  //     items: [ {"text":"Define data model"}, {"text":"Wire API"}, {"text":"Add UI states"} ]
-  //   }]
-  // - Test Verification (must include 'unit' and 'integration' or 'e2e')
-  //   checklists: [{
-  //     name: "Test Verification",
-  //     items: [ {"text":"Unit tests cover core logic"}, {"text":"Integration/E2E happy path executes"} ]
-  //   }]
-  // - Regression Testing
-  //   checklists: [{
-  //     name: "Regression Testing",
-  //     items: [ {"text":"Smoke: affected screens"} ]
-  //   }]
-  // - Rules Creation link on the task
-  //   entity_links: [ { "entity_type": "rule", "entity_id": "<RULE_ID>" } ]
+ACTIONS: create, get, update, delete, list, suggest_next
+CHECKLISTS: Add via checklist_updates array in update action
+DEPENDENCIES: Add via dependency_updates array in update action`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -52,40 +34,86 @@ EXAMPLE: Create task → get guidance → add required items → mark spec_ready
       },
       action: {
         type: 'string',
-        enum: ['add', 'get', 'list', 'update', 'delete', 'get_tree', 'get_dependencies', 'add_dependency', 'suggest_next', 'get_spec_bundle', 'help'],
-        description: 'Action to perform'
+        enum: ['create', 'get', 'update', 'delete', 'list', 'suggest_next'],
+        description: 'create=new task, get=fetch one, update=modify, delete=remove, list=fetch many, suggest_next=AI task suggestions'
       },
-      // For add action
+
+      // For create/update
+      task_id: {
+        type: 'string',
+        description: '[get/update/delete] Task ID'
+      },
       title: {
         type: 'string',
-        description: 'Task title (for add action)'
+        description: '[create/update] Task title'
       },
       description: {
         type: 'string',
-        description: 'Task description (for add/update actions)'
+        description: '[create/update] Task description'
       },
       parent_id: {
         type: 'string',
-        description: 'Parent task ID for hierarchical structure (for add action)'
+        description: '[create/update/list] Parent task ID for hierarchical structure'
       },
       task_type: {
         type: 'string',
-        description: 'Type of task (for add action). Custom types allowed via mapping.',
+        description: '[create/update/list] Type of task (epic, story, task, bug, etc). Custom types allowed via mapping.',
         default: 'task'
+      },
+      task_status: {
+        type: 'string',
+        enum: ['todo', 'in_progress', 'blocked', 'done', 'cancelled'],
+        description: '[create/update/list] Task status'
       },
       task_priority: {
         type: 'string',
         enum: ['low', 'medium', 'high', 'critical'],
-        description: 'Task priority (for add/update actions)',
+        description: '[create/update] Task priority',
         default: 'medium'
+      },
+      spec_state: {
+        type: 'string',
+        enum: ['draft', 'spec_in_progress', 'spec_ready'],
+        description: '[create/update] Spec gating state. Gate: status cannot move to in_progress unless spec_state=spec_ready.'
+      },
+      spec_waivers: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            code: { type: 'string' },
+            reason: { type: 'string' },
+            added_by: { type: 'string' },
+            added_at: { type: 'string' }
+          },
+          required: ['code', 'reason']
+        },
+        description: '[create/update] Structured waivers for conditional requirements (advanced)'
       },
       estimated_effort: {
         type: 'string',
-        description: 'Estimated effort (for add action)'
+        description: '[create/update] Estimated effort'
+      },
+      actual_effort: {
+        type: 'string',
+        description: '[create/update] Actual effort spent'
       },
       due_date: {
         type: 'string',
-        description: 'Due date (for add/update actions)'
+        description: '[create/update] Due date'
+      },
+      assigned_to: {
+        type: 'string',
+        description: '[create/update] User assigned to this task'
+      },
+      workflow: {
+        type: 'string',
+        description: '[create/update] Workflow type for the task. When changed, task status resets to new workflow\'s initial state.'
+      },
+      checklists: {
+        type: 'array',
+        items: { type: 'object' },
+        description: '[create] Initial checklists'
       },
       entity_links: {
         type: 'array',
@@ -98,169 +126,126 @@ EXAMPLE: Create task → get guidance → add required items → mark spec_ready
             link_strength: { type: 'string' }
           }
         },
-        description: 'Links to CODE entities (components, files, etc.). To attach notes to tasks, use the notes tool instead! (for add/update actions)'
+        description: '[create/update] Links to CODE entities (components, files, etc.). To attach notes to tasks, use notes tool.'
       },
       stable_tags: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Task tags (for add/update actions)'
+        description: '[create/update] Task tags'
       },
-      workflow: {
+      sort_order: {
+        type: 'number',
+        description: '[create/update] Manual sort order for tasks'
+      },
+      transition_gate_token: {
         type: 'string',
-        description: 'Workflow type for the task (for add/update actions). When changed, task status resets to new workflow\'s initial state.'
+        description: '[update] Token for workflow transition gates (internal)'
       },
-      checklists: {
-        type: 'array',
-        items: { type: 'object' },
-        description: 'Initial checklists (for add action)'
+      transition_gate_response: {
+        type: 'string',
+        description: '[update] Response for workflow transition gates (internal)'
+      },
+      skip_validation: {
+        type: 'boolean',
+        description: '[create/update] Skip validation and guidance generation',
+        default: false
       },
       include_guidance: {
         type: 'boolean',
-        description: 'Return AI guidance pack with task (for add action)',
+        description: '[create/update] Return AI guidance pack with task',
         default: true
       },
-      // For get/update/delete actions
-      task_id: {
-        type: 'string',
-        description: 'ID of task to get/update/delete'
-      },
-      // For get action
-      include_notes: {
-        type: 'boolean',
-        description: 'Include attached notes in response (for get action)',
-        default: true
-      },
-      // For get_spec_bundle
-      compact: {
-        type: 'boolean',
-        description: 'Return a compact bundle (truncate large note content)',
-        default: true
-      },
-      task_status: {
-        type: 'string',
-        enum: ['todo', 'in_progress', 'blocked', 'done', 'cancelled'],
-        description: 'Task status (for update action or list filter)'
-      },
-      spec_state: {
-        type: 'string',
-        enum: ['draft','spec_in_progress','spec_ready'],
-        description: 'Spec gating state (for update action). Gate: status cannot move to in_progress unless spec_state=spec_ready.'
-      },
-      spec_waivers: {
+
+      // Checklist management (via update action)
+      checklist_updates: {
         type: 'array',
         items: {
           type: 'object',
           properties: {
-            code: { type: 'string' },
-            reason: { type: 'string' },
-            added_by: { type: 'string' },
-            added_at: { type: 'string' }
+            checklist: { type: 'string', description: 'Checklist name' },
+            operation: { type: 'string', enum: ['add', 'update', 'toggle', 'move', 'remove', 'delete'], description: 'Operation to perform' },
+            index: { type: 'number', description: 'Item index for update/toggle/remove' },
+            text: { type: 'string', description: 'Item text for add/update' },
+            position: { type: 'number', description: 'Insert position for add' },
+            from: { type: 'number', description: 'Source index for move' },
+            to: { type: 'number', description: 'Target index for move' }
           },
-          required: ['code','reason']
+          required: ['checklist', 'operation']
         },
-        description: 'Structured waivers for conditional requirements (advanced)'
+        description: '[update] Array of checklist operations to perform. Operations: add (new item), update (change text), toggle (check/uncheck), move (reorder), remove (delete item), delete (remove checklist)'
       },
-      actual_effort: {
-        type: 'string',
-        description: 'Actual effort spent (for update action)'
+
+      // Dependency management (via update action)
+      dependency_updates: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            operation: { type: 'string', enum: ['add', 'remove'], description: 'add=create dependency, remove=delete dependency' },
+            dependency_task_id: { type: 'string', description: 'Task ID that this task depends on' },
+            type: { type: 'string', enum: ['blocks', 'related', 'follows'], description: 'Type of dependency', default: 'blocks' },
+            required: { type: 'boolean', description: 'Is this dependency required', default: true }
+          },
+          required: ['operation', 'dependency_task_id']
+        },
+        description: '[update] Array of dependency operations to perform. Operations: add (create dependency), remove (delete dependency)'
       },
-      // For list and get actions
-      include_children: {
+
+      // For get
+      include_notes: {
         type: 'boolean',
-        description: 'Include child tasks in results (for list and get actions)',
+        description: '[get] Include attached notes in response',
         default: true
       },
+      include_children: {
+        type: 'boolean',
+        description: '[get/list] Include child tasks in response',
+        default: true
+      },
+      include_dependencies: {
+        type: 'boolean',
+        description: '[get] Include task dependencies in response',
+        default: false
+      },
+
+      // For list
       limit: {
         type: 'number',
-        description: 'Maximum number of tasks to return (for list/suggest_next actions)',
+        description: '[list/suggest_next] Maximum number of tasks to return',
         default: 20
       },
       offset: {
         type: 'number',
-        description: 'Number of tasks to skip for pagination (for list action)',
+        description: '[list] Number of tasks to skip for pagination',
         default: 0
-      },
-      // Output controls for list (optional)
-      view: {
-        type: 'string',
-        enum: ['ids','names','titles','summary','full'],
-        description: 'Projection preset for list (ids|names/titles|summary|full).'
       },
       fields: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Explicit field list to return (overrides view)'
+        description: '[list] Specific fields to return (e.g., ["id", "title", "status"]). Omit for full task objects.'
       },
       output_format: {
         type: 'string',
-        enum: ['text','json'],
-        description: 'Return optimized text (default) or JSON rows',
+        enum: ['text', 'json'],
+        description: '[list] Return optimized text or JSON rows',
         default: 'text'
       },
       context_window_size: {
         type: 'number',
-        description: 'Token budget for results (text mode)',
+        description: '[list] Token budget for results (text mode)',
         default: 25000
       },
-      // For get_tree action
-      root_task_id: {
-        type: 'string',
-        description: 'Root task ID (for get_tree action, omit for all root tasks)'
-      },
-      max_depth: {
-        type: 'number',
-        description: 'Maximum depth to traverse (for get_tree action)',
-        default: 5
-      },
-      include_completed: {
-        type: 'boolean',
-        description: 'Include completed tasks (for get_tree action)',
-        default: true
-      },
-      // For get_dependencies action
-      direction: {
-        type: 'string',
-        enum: ['incoming', 'outgoing', 'both'],
-        description: 'Direction of dependencies to retrieve (for get_dependencies action)',
-        default: 'both'
-      },
-      // For add_dependency action
-      dependent_task_id: {
-        type: 'string',
-        description: 'Task that depends on another (for add_dependency action)'
-      },
-      dependency_task_id: {
-        type: 'string',
-        description: 'Task that must be completed first (for add_dependency action)'
-      },
-      dependency_type: {
-        type: 'string',
-        enum: ['blocks', 'related', 'follows'],
-        description: 'Type of dependency (for add_dependency action)',
-        default: 'blocks'
-      },
-      required: {
-        type: 'boolean',
-        description: 'Is dependency required (for add_dependency action)',
-        default: true
-      },
-      // For suggest_next action
+
+      // For suggest_next
       assignee: {
         type: 'string',
-        description: 'Filter by assignee (for suggest_next action)'
+        description: '[suggest_next] Filter by assignee'
       },
       context: {
         type: 'string',
-        description: 'Context for smart suggestions (for suggest_next action)'
+        description: '[suggest_next] Context for smart suggestions'
       }
     },
     required: ['project', 'action']
   }
 };
-
-/**
- * Rules tool - consolidated rules management
- */
-/**
- * Checklists tool - manage checklists within tasks
- */

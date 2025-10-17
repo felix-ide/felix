@@ -29,9 +29,9 @@ describe('ComponentRepository REAL Integration Tests', () => {
       console.error('Failed to initialize DataSource:', error);
       throw error;
     }
-    console.log('DataSource initialized:', dataSource.isInitialized);
+    console.error('DataSource initialized:', dataSource.isInitialized);
     if (dataSource.isInitialized) {
-      console.log('Entities:', dataSource.entityMetadatas.map(e => e.name));
+      console.error('Entities:', dataSource.entityMetadatas.map(e => e.name));
     } else {
       console.error('DataSource failed to initialize!');
     }
@@ -67,15 +67,15 @@ describe('ComponentRepository REAL Integration Tests', () => {
       };
 
       const result = await repository.storeComponent(component);
-      console.log('Store result:', result);
+      console.error('Store result:', result);
       expect(result.success).toBe(true);
 
       // Check if component is actually stored
       const allComponents = await repository.getAllComponents();
-      console.log('All components after store:', allComponents);
+      console.error('All components after store:', allComponents);
 
       const retrieved = await repository.getComponent('test-component-1');
-      console.log('Retrieved component:', retrieved);
+      console.error('Retrieved component:', retrieved);
       expect(retrieved).toBeDefined();
       expect(retrieved?.name).toBe('TestClass');
       expect(retrieved?.type).toBe(ComponentType.CLASS);

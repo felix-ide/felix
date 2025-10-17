@@ -20,7 +20,7 @@ export class LanguageProcessor implements ILanguageProcessor {
     
     // Skip language analysis if metadata is disabled
     if (!options.includeMetadata) {
-      console.log(`🚫 LanguageProcessor: Skipping language analysis (includeMetadata=false)`);
+      console.error(`🚫 LanguageProcessor: Skipping language analysis (includeMetadata=false)`);
       return {
         data,
         metadata: {
@@ -33,7 +33,7 @@ export class LanguageProcessor implements ILanguageProcessor {
       };
     }
     
-    console.log(`🔤 LanguageProcessor: Processing language analysis (includeMetadata=true)`);
+    console.error(`🔤 LanguageProcessor: Processing language analysis (includeMetadata=true)`);
     
     // Group components by language
     const languageGroups = this.groupByLanguage(data);

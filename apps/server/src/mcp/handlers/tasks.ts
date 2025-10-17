@@ -4,21 +4,23 @@ import fs from 'fs/promises';
 import { DEFAULT_WORKFLOW_CONFIG } from '../../validation/WorkflowDefinitions.js';
 import type { CreateTaskParams } from '../../types/WorkflowTypes.js';
 import { handleTasksList } from './tasks.list.js';
-import { createJsonContent, createTextContent, type TasksAddDependencyRequest, type TasksAddRequest, type TasksDeleteRequest, type TasksGetDependenciesRequest, type TasksGetRequest, type TasksGetTreeRequest, type TasksListRequest, type TasksSuggestNextRequest, type TasksToolRequest, type TasksUpdateRequest } from '../types/contracts.js';
+import { createJsonContent, createTextContent, type TasksAddRequest, type TasksDeleteRequest, type TasksGetRequest, type TasksListRequest, type TasksSuggestNextRequest, type TasksToolRequest, type TasksUpdateRequest } from '../types/contracts.js';
 import { TransitionGateError } from '../../features/workflows/errors/TransitionGateError.js';
 
-export async function handleTasksTools(request: TasksToolRequest) {
+export async function handleTasksTools(request: any) {
   const projectInfo = await projectManager.getProject(request.project);
   if (!projectInfo) {
     throw new Error(`Project not found: ${request.project}`);
   }
 
+  const action = request.action;
+
   // Delegated compact list
-  if (request.action === 'list') {
+  if (action === 'list') {
     return await handleTasksList(request as TasksListRequest);
   }
 
-  switch (request.action) {
+  switch (action) {
     case 'help': {
       const { HelpService } = await import('../../features/help/services/HelpService.js');
       const out = {
@@ -29,7 +31,7 @@ export async function handleTasksTools(request: TasksToolRequest) {
       };
       return { content: [createJsonContent(out)] };
     }
-    case 'add': {
+    case 'create': {
       const params = request as TasksAddRequest & { checklists?: unknown; skip_validation?: boolean };
       const { 
         title, description, parent_id, task_type, task_status, task_priority,
@@ -151,7 +153,7 @@ export async function handleTasksTools(request: TasksToolRequest) {
     }
 
     case 'get': {
-      const { task_id, include_notes = true, include_children = true } = request as TasksGetRequest;
+      const { task_id, include_notes = true, include_children = true, include_dependencies = false } = request as TasksGetRequest & { include_dependencies?: boolean };
       if (!task_id) throw new Error('Task ID is required for get action');
       const task = await projectInfo.codeIndexer.getTask(task_id);
       if (!task) throw new Error(`Task not found: ${task_id}`);
@@ -165,12 +167,123 @@ export async function handleTasksTools(request: TasksToolRequest) {
         const children = await projectInfo.codeIndexer.listTasks({ parent_id: task_id });
         if (children.length > 0) enhancedTask.child_tasks = children;
       }
+      if (include_dependencies) {
+        const dependencies = await projectInfo.codeIndexer.getTaskDependencies(task_id, 'both');
+        if (dependencies) enhancedTask.dependencies = dependencies;
+      }
       return { content: [createJsonContent(enhancedTask)] };
     }
 
     case 'update': {
-      const { task_id, skip_validation, ...updateFields } = request as TasksUpdateRequest & Record<string, unknown>;
+      const { task_id, skip_validation, checklist_updates, dependency_updates, ...updateFields } = request as TasksUpdateRequest & Record<string, unknown>;
       if (!task_id) throw new Error('Task ID is required for update action');
+
+      let hasUpdates = false;
+
+      // Process dependency updates if provided
+      if (dependency_updates && Array.isArray(dependency_updates)) {
+        for (const update of dependency_updates) {
+          const { operation, dependency_task_id, type, required } = update;
+
+          if (operation === 'add') {
+            if (!dependency_task_id) throw new Error('dependency_task_id is required for add operation');
+            await projectInfo.codeIndexer.addTaskDependency({
+              dependent_task_id: task_id,
+              dependency_task_id,
+              dependency_type: type || 'blocks',
+              required: required !== false
+            });
+            hasUpdates = true;
+          } else if (operation === 'remove') {
+            if (!dependency_task_id) throw new Error('dependency_task_id is required for remove operation');
+            // Remove using task IDs for intuitive usage
+            await projectInfo.codeIndexer.removeTaskDependencyByTasks(task_id, dependency_task_id, type);
+            hasUpdates = true;
+          }
+        }
+      }
+
+      // Process checklist updates if provided
+      if (checklist_updates && Array.isArray(checklist_updates)) {
+        const task = await projectInfo.codeIndexer.getTask(task_id);
+        if (!task) throw new Error(`Task not found: ${task_id}`);
+
+        const checklists = (task as any).checklists || [];
+
+        for (const update of checklist_updates) {
+          const { checklist: checklistName, operation, index, text, position, from, to } = update;
+          const checklistIndex = checklists.findIndex((c: any) => c.name === checklistName);
+
+          switch (operation) {
+            case 'delete': {
+              if (checklistIndex === -1) throw new Error(`Checklist "${checklistName}" not found`);
+              checklists.splice(checklistIndex, 1);
+              break;
+            }
+            case 'toggle': {
+              if (checklistIndex === -1) throw new Error(`Checklist "${checklistName}" not found`);
+              if (index === undefined || index < 0 || index >= checklists[checklistIndex].items.length) {
+                throw new Error(`Invalid item index: ${index}`);
+              }
+              const item = checklists[checklistIndex].items[index];
+              item.checked = !item.checked;
+              item.completed_at = item.checked ? new Date().toISOString() : undefined;
+              checklists[checklistIndex].updated_at = new Date().toISOString();
+              break;
+            }
+            case 'add': {
+              if (checklistIndex === -1) throw new Error(`Checklist "${checklistName}" not found`);
+              if (!text) throw new Error('text is required for add operation');
+              const newItem = {
+                text,
+                checked: false,
+                created_at: new Date().toISOString()
+              };
+              const insertPos = position !== undefined && position >= 0 && position <= checklists[checklistIndex].items.length
+                ? position
+                : checklists[checklistIndex].items.length;
+              checklists[checklistIndex].items.splice(insertPos, 0, newItem);
+              checklists[checklistIndex].updated_at = new Date().toISOString();
+              break;
+            }
+            case 'remove': {
+              if (checklistIndex === -1) throw new Error(`Checklist "${checklistName}" not found`);
+              if (index === undefined || index < 0 || index >= checklists[checklistIndex].items.length) {
+                throw new Error(`Invalid item index: ${index}`);
+              }
+              checklists[checklistIndex].items.splice(index, 1);
+              checklists[checklistIndex].updated_at = new Date().toISOString();
+              break;
+            }
+            case 'move': {
+              if (checklistIndex === -1) throw new Error(`Checklist "${checklistName}" not found`);
+              if (from === undefined || to === undefined) throw new Error('from and to are required for move operation');
+              const items = checklists[checklistIndex].items;
+              if (from < 0 || from >= items.length || to < 0 || to >= items.length) {
+                throw new Error(`Invalid move indices: from=${from}, to=${to}`);
+              }
+              const [movedItem] = items.splice(from, 1);
+              items.splice(to, 0, movedItem);
+              checklists[checklistIndex].updated_at = new Date().toISOString();
+              break;
+            }
+            case 'update': {
+              if (checklistIndex === -1) throw new Error(`Checklist "${checklistName}" not found`);
+              if (index === undefined || index < 0 || index >= checklists[checklistIndex].items.length) {
+                throw new Error(`Invalid item index: ${index}`);
+              }
+              if (!text) throw new Error('text is required for update operation');
+              checklists[checklistIndex].items[index].text = text;
+              checklists[checklistIndex].updated_at = new Date().toISOString();
+              break;
+            }
+          }
+        }
+
+        // Apply the checklist changes
+        await projectInfo.codeIndexer.updateTask(task_id, { checklists } as any);
+        hasUpdates = true;
+      }
 
       const updates: any = {};
       ['title','description','task_status','task_priority','task_type','assigned_to','estimated_effort','actual_effort','due_date','stable_tags','entity_links','parent_id','sort_order','transition_gate_token','transition_gate_response'].forEach(k => {
@@ -180,8 +293,21 @@ export async function handleTasksTools(request: TasksToolRequest) {
         if (updateFields[k] !== undefined) updates[k] = updateFields[k];
       });
 
+      // Apply other field updates if any exist
+      let updatedTask: any = null;
+      if (Object.keys(updates).length > 0) {
+        hasUpdates = true;
+      }
+
+      // If no updates at all, error out
+      if (!hasUpdates) {
+        throw new Error('No updates provided');
+      }
+
       try {
-        const updatedTask = await projectInfo.codeIndexer.updateTask(task_id, updates);
+        if (Object.keys(updates).length > 0) {
+          updatedTask = await projectInfo.codeIndexer.updateTask(task_id, updates);
+        }
         let responseText = `Task ${task_id} updated successfully`;
 
         if (!skip_validation) {
@@ -252,31 +378,6 @@ export async function handleTasksTools(request: TasksToolRequest) {
       if (!task_id) throw new Error('Task ID is required for delete action');
       await projectInfo.codeIndexer.deleteTask(task_id);
       return { content: [createTextContent(`Task ${task_id} deleted successfully`)] };
-    }
-
-    case 'get_tree': {
-      const { root_task_id, include_completed } = request as TasksGetTreeRequest;
-      const taskTree = await projectInfo.codeIndexer.getTaskTreeSummary(root_task_id, include_completed !== false);
-      return { content: [createJsonContent(taskTree)] };
-    }
-
-    case 'get_dependencies': {
-      const { task_id, direction } = request as TasksGetDependenciesRequest;
-      if (!task_id) throw new Error('Task ID is required for get_dependencies action');
-      const dependencies = await projectInfo.codeIndexer.getTaskDependencies(task_id, direction || 'both');
-      return { content: [createJsonContent(dependencies)] };
-    }
-
-    case 'add_dependency': {
-      const { dependent_task_id, dependency_task_id, dependency_type, required } = request as TasksAddDependencyRequest;
-      if (!dependent_task_id || !dependency_task_id) throw new Error('Both dependent_task_id and dependency_task_id are required');
-      const created = await projectInfo.codeIndexer.addTaskDependency({
-        dependent_task_id,
-        dependency_task_id,
-        dependency_type: dependency_type || 'blocks',
-        required: required !== false
-      });
-      return { content: [createJsonContent({ message: 'Task dependency added', dependency: created })] };
     }
 
     case 'suggest_next': {

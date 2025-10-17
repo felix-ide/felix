@@ -31,7 +31,7 @@ export async function statsCommand(options: StatsOptions): Promise<void> {
   const config = loadConfig(options.config);
   
   if (!options.quiet) {
-    console.log('📊 Gathering statistics...');
+    console.error('📊 Gathering statistics...');
   }
   
   // Initialize database
@@ -59,7 +59,7 @@ export async function statsCommand(options: StatsOptions): Promise<void> {
     
     // Show additional details if requested
     if ((options.breakdown || options.detailed) && !options.quiet && options.format === 'text') {
-      console.log('\n🔍 Additional Details:');
+      console.error('\n🔍 Additional Details:');
       
       if (stats.componentCount > 0) {
         // Get some sample components for type breakdown
@@ -70,10 +70,10 @@ export async function statsCommand(options: StatsOptions): Promise<void> {
           typeBreakdown.set(component.type, (typeBreakdown.get(component.type) || 0) + 1);
         }
         
-        console.log('\n📋 Component Types:');
+        console.error('\n📋 Component Types:');
         for (const [type, count] of Array.from(typeBreakdown.entries()).sort((a, b) => b[1] - a[1])) {
           const percentage = ((count / stats.componentCount) * 100).toFixed(1);
-          console.log(`   ${type}: ${count} (${percentage}%)`);
+          console.error(`   ${type}: ${count} (${percentage}%)`);
         }
       }
       
@@ -81,9 +81,9 @@ export async function statsCommand(options: StatsOptions): Promise<void> {
       const supportedLanguages = indexer.getSupportedLanguages();
       const supportedExtensions = indexer.getSupportedExtensions();
       
-      console.log('\n🌍 Language Support:');
-      console.log(`   Supported languages: ${supportedLanguages.join(', ')}`);
-      console.log(`   Supported extensions: ${supportedExtensions.join(', ')}`);
+      console.error('\n🌍 Language Support:');
+      console.error(`   Supported languages: ${supportedLanguages.join(', ')}`);
+      console.error(`   Supported extensions: ${supportedExtensions.join(', ')}`);
     }
     
     await indexer.close();
