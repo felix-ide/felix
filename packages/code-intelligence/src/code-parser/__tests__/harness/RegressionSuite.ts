@@ -104,13 +104,13 @@ export class RegressionSuite {
    * Run full regression test suite for all parsers
    */
   async runFullRegressionSuite(): Promise<Map<string, RegressionTestResult[]>> {
-    console.log('Starting comprehensive regression test suite...');
+    console.error('Starting comprehensive regression test suite...');
 
     const results = new Map<string, RegressionTestResult[]>();
     const supportedLanguages = this.getSupportedLanguages();
 
     for (const language of supportedLanguages) {
-      console.log(`\nRunning regression tests for ${language}...`);
+      console.error(`\nRunning regression tests for ${language}...`);
 
       const languageResults = await this.runLanguageRegressionTests(language);
       results.set(language, languageResults);
@@ -136,7 +136,7 @@ export class RegressionSuite {
 
     // Generate test cases for all categories
     const testCases = await this.generateTestCases(language);
-    console.log(`Generated ${testCases.length} test cases for ${language}`);
+    console.error(`Generated ${testCases.length} test cases for ${language}`);
 
     const results: RegressionTestResult[] = [];
 
@@ -429,7 +429,7 @@ export class RegressionSuite {
         return [
           'function hello() { return "world"; }',
           'class MyClass { constructor() {} method() {} }',
-          'const arrow = () => console.log("arrow");',
+          'const arrow = () => console.error("arrow");',
           'import { foo } from "./bar"; export default foo;'
         ];
       case 'python':
@@ -459,7 +459,7 @@ export class RegressionSuite {
     switch (language) {
       case 'javascript':
         return Array(50).fill(0).map((_, i) => '  '.repeat(i) + `if (condition${i}) {`).join('\n') +
-               '\n' + '    console.log("deeply nested");' +
+               '\n' + '    console.error("deeply nested");' +
                '\n' + Array(50).fill(0).map((_, i) => '  '.repeat(49 - i) + '}').join('\n');
       case 'python':
         return Array(30).fill(0).map((_, i) => '    '.repeat(i) + `if condition${i}:`).join('\n') +
@@ -550,7 +550,7 @@ export class RegressionSuite {
         function greet(name) {
             return "Hello, " + name;
         }
-        console.log(greet("World"));
+        console.error(greet("World"));
     </script>
 </body>
 </html>`;
@@ -677,12 +677,12 @@ $name = "World";
     const improvements = results.filter(r => r.status === 'improvement').length;
     const newTests = results.filter(r => r.status === 'new').length;
 
-    console.log(`${language} Summary:`);
-    console.log(`  Total: ${total}`);
-    console.log(`  Passed: ${passed}`);
-    console.log(`  Regressions: ${regressions}`);
-    console.log(`  Improvements: ${improvements}`);
-    console.log(`  New: ${newTests}`);
+    console.error(`${language} Summary:`);
+    console.error(`  Total: ${total}`);
+    console.error(`  Passed: ${passed}`);
+    console.error(`  Regressions: ${regressions}`);
+    console.error(`  Improvements: ${improvements}`);
+    console.error(`  New: ${newTests}`);
   }
 
   private async generateRegressionReport(results: Map<string, RegressionTestResult[]>): Promise<void> {
@@ -724,6 +724,6 @@ $name = "World";
     report.push(`- Total Improvements: ${totalImprovements}`);
 
     writeFileSync(reportPath, report.join('\n'));
-    console.log(`Regression report generated: ${reportPath}`);
+    console.error(`Regression report generated: ${reportPath}`);
   }
 }

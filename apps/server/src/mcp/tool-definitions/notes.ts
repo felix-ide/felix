@@ -4,14 +4,10 @@ export const NOTES_TOOL: McpToolDefinition = {
   name: 'notes',
   description: `Documentation and diagram management with markdown, mermaid, excalidraw. Creates hierarchical docs and Knowledge Bases.
 
-PURPOSE: Capture architecture docs, diagrams, mockups, warnings. Create structured Knowledge Bases from templates.
-
 FORMATS: Markdown, \`\`\`mermaid diagrams (flowchart, sequence, ERD, etc.), \`\`\`excalidraw drawings
 LINKING: Attach to tasks, components, files, rules via entity_links - notes appear in their context automatically
 WORKFLOWS: Tasks require specific note types (Architecture, ERD, API Contract) for spec_ready gate
-KNOWLEDGE BASES: Use kb_template to create structured KB from template. Filter list by kb_ids to scope to specific KBs.
-
-EXAMPLE: Create project KB with kb_template='project', or filter notes with kb_ids=['kb_project'] to see only project KB notes`,
+KNOWLEDGE BASES: Use kb_template to create structured KB from template. Filter list by kb_ids to scope to specific KBs.`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -21,22 +17,27 @@ EXAMPLE: Create project KB with kb_template='project', or filter notes with kb_i
       },
       action: {
         type: 'string',
-        enum: ['add', 'get', 'list', 'update', 'delete', 'get_tree', 'help'],
-        description: 'add=create note, get=fetch one, list=fetch many, update=modify, delete=remove, get_tree=get hierarchical structure'
+        enum: ['create', 'get', 'update', 'delete', 'list', 'search'],
+        description: 'create=new note, get=fetch one, update=modify, delete=remove, list=fetch many, search=semantic search'
       },
-      // For add action
+
+      // For create/update
+      note_id: {
+        type: 'string',
+        description: '[get/update/delete] Note ID'
+      },
       title: {
         type: 'string',
-        description: 'Note title (for add/update actions)'
+        description: '[create/update] Note title'
       },
       content: {
         type: 'string',
-        description: 'Note content (for add/update actions)'
+        description: '[create/update] Note content (markdown, mermaid diagrams, excalidraw)'
       },
       note_type: {
         type: 'string',
         enum: ['note', 'warning', 'documentation', 'excalidraw'],
-        description: 'Type of note (for add action)',
+        description: '[create/update] Type of note',
         default: 'note'
       },
       entity_links: {
@@ -44,11 +45,11 @@ EXAMPLE: Create project KB with kb_template='project', or filter notes with kb_i
         items: {
           type: 'object',
           properties: {
-            entity_type: { 
+            entity_type: {
               type: 'string',
               description: 'Type: component, file, project, relationship, directory, task'
             },
-            entity_id: { 
+            entity_id: {
               type: 'string',
               description: 'ID of the entity'
             },
@@ -60,64 +61,51 @@ EXAMPLE: Create project KB with kb_template='project', or filter notes with kb_i
           },
           required: ['entity_type', 'entity_id']
         },
-        description: 'Entities to link this note to (for add/update actions). Example: [{ entity_type: "task", entity_id: "task_123" }]'
+        description: '[create/update] Entities to link this note to. Example: [{ entity_type: "task", entity_id: "task_123" }]'
       },
       stable_tags: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Note tags (for add/update actions)'
+        description: '[create/update] Note tags'
       },
-      // Knowledge Base creation
+      parent_id: {
+        type: 'string',
+        description: '[create/update] Parent note ID for hierarchical notes'
+      },
       kb_template: {
         type: 'string',
         enum: ['project', 'feature_planning', 'refactor', 'initial_planning'],
-        description: 'Create a Knowledge Base from template (for add action). Creates structured note hierarchy.'
+        description: '[create] Create a Knowledge Base from template. Creates structured note hierarchy.'
       },
-      // For list/search actions
-      query: {
-        type: 'string',
-        description: 'Search query (for search action)'
-      },
+
+      // For list/search
       kb_ids: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Filter notes to specific Knowledge Base(s) (for list action). Use KB IDs like "kb_project".'
-      },
-      semantic: {
-        type: 'boolean',
-        description: 'Use semantic search (for search action)',
-        default: true
+        description: '[list/search] Filter notes to specific Knowledge Base(s). Use KB IDs like "kb_project".'
       },
       tags: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Filter by tags (for list/search actions)'
+        description: '[list/search] Filter by tags'
       },
       limit: {
         type: 'number',
-        description: 'Maximum number of notes to return (for list/search actions)',
+        description: '[list/search] Maximum number of notes to return',
         default: 20
       },
-      // For get/update/delete actions
-      note_id: {
+
+      // For search
+      query: {
         type: 'string',
-        description: 'ID of note to get/update/delete'
+        description: '[search] Search query'
       },
-      // For get_tree action
-      root_note_id: {
-        type: 'string',
-        description: 'Root note ID for tree (for get_tree action, omit for all root notes)'
-      },
-      include_all: {
+      semantic: {
         type: 'boolean',
-        description: 'Include all notes vs only active (for get_tree action)',
+        description: '[search] Use semantic search',
         default: true
       }
     },
     required: ['project', 'action']
   }
 };
-
-/**
- * Workflows tool - parity with HTTP for AI/user flows
- */

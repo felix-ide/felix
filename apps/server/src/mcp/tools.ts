@@ -1,68 +1,16 @@
 import type { McpToolDefinition } from './tool-definitions/common.js';
 import { SEARCH_TOOL } from './tool-definitions/search.js';
 import { WORKFLOWS_TOOL } from './tool-definitions/workflows.js';
-import {
-  NOTES_WRITE_TOOL,
-  NOTES_GET_TOOL,
-  NOTES_LIST_TOOL,
-  NOTES_SEARCH_TOOL,
-  NOTES_DELETE_TOOL
-} from './tool-definitions/notes/index.js';
-import {
-  TASKS_WRITE_TOOL,
-  TASKS_GET_TOOL,
-  TASKS_LIST_TOOL,
-  TASKS_DELETE_TOOL,
-  TASKS_SUGGEST_NEXT_TOOL,
-  TASKS_CHECKLISTS_WRITE_TOOL,
-  TASKS_CHECKLISTS_TOGGLE_TOOL,
-  TASKS_CHECKLISTS_MOVE_TOOL,
-  TASKS_CHECKLISTS_ITEM_DELETE_TOOL,
-  TASKS_CHECKLISTS_DELETE_TOOL,
-  TASKS_DEPENDENCIES_WRITE_TOOL,
-  TASKS_DEPENDENCIES_DELETE_TOOL
-} from './tool-definitions/tasks/index.js';
-import {
-  RULES_WRITE_TOOL,
-  RULES_GET_TOOL,
-  RULES_LIST_TOOL,
-  RULES_DELETE_TOOL,
-  RULES_GET_APPLICABLE_TOOL,
-  RULES_APPLY_TOOL,
-  RULES_TREE_TOOL,
-  RULES_ANALYTICS_TOOL,
-  RULES_TRACK_TOOL
-} from './tool-definitions/rules/index.js';
+import { NOTES_TOOL } from './tool-definitions/notes.js';
+import { TASKS_TOOL } from './tool-definitions/tasks.js';
+import { RULES_TOOL } from './tool-definitions/rules.js';
 
 const ORDERED_TOOLS: ReadonlyArray<McpToolDefinition> = [
   SEARCH_TOOL,
-  NOTES_WRITE_TOOL,
-  NOTES_GET_TOOL,
-  NOTES_LIST_TOOL,
-  NOTES_SEARCH_TOOL,
-  NOTES_DELETE_TOOL,
-  WORKFLOWS_TOOL,
-  TASKS_WRITE_TOOL,
-  TASKS_GET_TOOL,
-  TASKS_LIST_TOOL,
-  TASKS_DELETE_TOOL,
-  TASKS_SUGGEST_NEXT_TOOL,
-  TASKS_CHECKLISTS_WRITE_TOOL,
-  TASKS_CHECKLISTS_TOGGLE_TOOL,
-  TASKS_CHECKLISTS_MOVE_TOOL,
-  TASKS_CHECKLISTS_ITEM_DELETE_TOOL,
-  TASKS_CHECKLISTS_DELETE_TOOL,
-  TASKS_DEPENDENCIES_WRITE_TOOL,
-  TASKS_DEPENDENCIES_DELETE_TOOL,
-  RULES_WRITE_TOOL,
-  RULES_GET_TOOL,
-  RULES_LIST_TOOL,
-  RULES_DELETE_TOOL,
-  RULES_GET_APPLICABLE_TOOL,
-  RULES_APPLY_TOOL,
-  RULES_TREE_TOOL,
-  RULES_ANALYTICS_TOOL,
-  RULES_TRACK_TOOL
+  NOTES_TOOL,
+  TASKS_TOOL,
+  RULES_TOOL,
+  WORKFLOWS_TOOL
 ];
 
 export const TOOLS = ORDERED_TOOLS;
@@ -74,65 +22,19 @@ export function getAllTools(): McpToolDefinition[] {
 export function getToolsByName() {
   return {
     search: SEARCH_TOOL,
-    'notes_write': NOTES_WRITE_TOOL,
-    'notes_get': NOTES_GET_TOOL,
-    'notes_list': NOTES_LIST_TOOL,
-    'notes_search': NOTES_SEARCH_TOOL,
-    'notes_delete': NOTES_DELETE_TOOL,
-    'tasks_write': TASKS_WRITE_TOOL,
-    'tasks_get': TASKS_GET_TOOL,
-    'tasks_list': TASKS_LIST_TOOL,
-    'tasks_delete': TASKS_DELETE_TOOL,
-    'tasks_suggest_next': TASKS_SUGGEST_NEXT_TOOL,
-    'tasks_checklists_write': TASKS_CHECKLISTS_WRITE_TOOL,
-    'tasks_checklists_toggle': TASKS_CHECKLISTS_TOGGLE_TOOL,
-    'tasks_checklists_move': TASKS_CHECKLISTS_MOVE_TOOL,
-    'tasks_checklists_item_delete': TASKS_CHECKLISTS_ITEM_DELETE_TOOL,
-    'tasks_checklists_delete': TASKS_CHECKLISTS_DELETE_TOOL,
-    'tasks_dependencies_write': TASKS_DEPENDENCIES_WRITE_TOOL,
-    'tasks_dependencies_delete': TASKS_DEPENDENCIES_DELETE_TOOL,
-    'rules_write': RULES_WRITE_TOOL,
-    'rules_get': RULES_GET_TOOL,
-    'rules_list': RULES_LIST_TOOL,
-    'rules_delete': RULES_DELETE_TOOL,
-    'rules_get_applicable': RULES_GET_APPLICABLE_TOOL,
-    'rules_apply': RULES_APPLY_TOOL,
-    'rules_tree': RULES_TREE_TOOL,
-    'rules_analytics': RULES_ANALYTICS_TOOL,
-    'rules_track': RULES_TRACK_TOOL,
+    notes: NOTES_TOOL,
+    tasks: TASKS_TOOL,
+    rules: RULES_TOOL,
     workflows: WORKFLOWS_TOOL
   } as const;
 }
 
 export {
   SEARCH_TOOL,
-  NOTES_WRITE_TOOL,
-  NOTES_GET_TOOL,
-  NOTES_LIST_TOOL,
-  NOTES_SEARCH_TOOL,
-  NOTES_DELETE_TOOL,
-  WORKFLOWS_TOOL,
-  TASKS_WRITE_TOOL,
-  TASKS_GET_TOOL,
-  TASKS_LIST_TOOL,
-  TASKS_DELETE_TOOL,
-  TASKS_SUGGEST_NEXT_TOOL,
-  TASKS_CHECKLISTS_WRITE_TOOL,
-  TASKS_CHECKLISTS_TOGGLE_TOOL,
-  TASKS_CHECKLISTS_MOVE_TOOL,
-  TASKS_CHECKLISTS_ITEM_DELETE_TOOL,
-  TASKS_CHECKLISTS_DELETE_TOOL,
-  TASKS_DEPENDENCIES_WRITE_TOOL,
-  TASKS_DEPENDENCIES_DELETE_TOOL,
-  RULES_WRITE_TOOL,
-  RULES_GET_TOOL,
-  RULES_LIST_TOOL,
-  RULES_DELETE_TOOL,
-  RULES_GET_APPLICABLE_TOOL,
-  RULES_APPLY_TOOL,
-  RULES_TREE_TOOL,
-  RULES_ANALYTICS_TOOL,
-  RULES_TRACK_TOOL
+  NOTES_TOOL,
+  TASKS_TOOL,
+  RULES_TOOL,
+  WORKFLOWS_TOOL
 };
 
 export type { McpToolDefinition };

@@ -164,7 +164,7 @@ Some text before code.
 
 \`\`\`javascript
 function test() {
-  console.log("Hello");
+  console.error("Hello");
   return 42;
 }
 \`\`\`

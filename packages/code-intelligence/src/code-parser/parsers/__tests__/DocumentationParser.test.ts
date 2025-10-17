@@ -36,7 +36,7 @@ Here's a code example:
 
 \`\`\`javascript
 function hello() {
-  console.log("Hello, world!");
+  console.error("Hello, world!");
 }
 \`\`\`
 
@@ -137,7 +137,7 @@ This is the document body.
   <h2>Sub Heading</h2>
   <pre><code class="language-javascript">
 function hello() {
-  console.log("Hello!");
+  console.error("Hello!");
 }
   </code></pre>
   

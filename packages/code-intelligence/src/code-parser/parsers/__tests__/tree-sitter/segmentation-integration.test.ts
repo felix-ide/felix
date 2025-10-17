@@ -51,7 +51,7 @@ describe('Tree-sitter Segmentation Integration', () => {
             }
 
             handleClick(event) {
-                console.log('Element clicked:', event.target);
+                console.error('Element clicked:', event.target);
                 this.toggleClass('active');
             }
 
@@ -329,7 +329,7 @@ class EventEmitter {
 const emitter = new EventEmitter();
 
 emitter.on('data', function(data) {
-    console.log('Received:', data);
+    console.error('Received:', data);
 });
 
 emitter.on('error', (error) => {
@@ -338,9 +338,9 @@ emitter.on('error', (error) => {
 
 // Method chaining
 emitter
-    .on('start', () => console.log('Starting...'))
-    .on('progress', (percent) => console.log(\`Progress: \${percent}%\`))
-    .on('complete', () => console.log('Complete!'));
+    .on('start', () => console.error('Starting...'))
+    .on('progress', (percent) => console.error(\`Progress: \${percent}%\`))
+    .on('complete', () => console.error('Complete!'));
       `.trim();
 
       const result = await parserFactory.parseDocument('emitter.js', jsContent);
@@ -472,7 +472,7 @@ const result${i} = instance${i}.process${i}();
       // Should use Tree-sitter for better performance
       expect(result.metadata.backend).toMatch(/tree-sitter|hybrid/);
 
-      console.log(`Large file parse time: ${parseTime}ms, Components: ${result.components.length}`);
+      console.error(`Large file parse time: ${parseTime}ms, Components: ${result.components.length}`);
     });
   });
 });

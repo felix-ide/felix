@@ -8,55 +8,55 @@ import { WorkflowRegistry } from './WorkflowRegistry';
 import { initializeWorkflowRegistry, BUILT_IN_WORKFLOWS } from './DefaultWorkflows';
 
 function testWorkflowDefinitions() {
-  console.log('🧪 Testing workflow definitions...\n');
+  console.error('🧪 Testing workflow definitions...\n');
 
   try {
     // Test workflow registry initialization
     const registry = initializeWorkflowRegistry();
-    console.log('✅ Workflow registry initialized successfully');
+    console.error('✅ Workflow registry initialized successfully');
 
     // Test all built-in workflows
     for (const workflow of BUILT_IN_WORKFLOWS) {
-      console.log(`\n📋 Testing workflow: ${workflow.display_name}`);
+      console.error(`\n📋 Testing workflow: ${workflow.display_name}`);
       
       // Test workflow retrieval
       const retrieved = registry.getWorkflow(workflow.name);
       if (!retrieved) {
         throw new Error(`Failed to retrieve workflow: ${workflow.name}`);
       }
-      console.log(`  ✅ Successfully retrieved from registry`);
+      console.error(`  ✅ Successfully retrieved from registry`);
 
       // Test required sections
       const requiredSections = workflow.required_sections.filter(s => s.required);
-      console.log(`  📝 Required sections: ${requiredSections.length}`);
+      console.error(`  📝 Required sections: ${requiredSections.length}`);
       requiredSections.forEach(section => {
-        console.log(`    - ${section.section_type} ${section.help_text ? '(with help)' : ''}`);
+        console.error(`    - ${section.section_type} ${section.help_text ? '(with help)' : ''}`);
       });
 
       // Test conditional requirements
       if (workflow.conditional_requirements.length > 0) {
-        console.log(`  🔀 Conditional requirements: ${workflow.conditional_requirements.length}`);
+        console.error(`  🔀 Conditional requirements: ${workflow.conditional_requirements.length}`);
         workflow.conditional_requirements.forEach(cond => {
-          console.log(`    - ${cond.section_type}: ${cond.condition}`);
+          console.error(`    - ${cond.section_type}: ${cond.condition}`);
         });
       }
 
       // Test validation rules
       if (workflow.validation_rules.length > 0) {
-        console.log(`  ✓ Validation rules: ${workflow.validation_rules.length}`);
+        console.error(`  ✓ Validation rules: ${workflow.validation_rules.length}`);
         workflow.validation_rules.forEach(rule => {
-          console.log(`    - ${rule.name}`);
+          console.error(`    - ${rule.name}`);
         });
       }
 
       // Test use cases
       if (workflow.use_cases && workflow.use_cases.length > 0) {
-        console.log(`  🎯 Use cases: ${workflow.use_cases.join(', ')}`);
+        console.error(`  🎯 Use cases: ${workflow.use_cases.join(', ')}`);
       }
     }
 
     // Test workflow suggestions
-    console.log('\n🔍 Testing workflow suggestions...');
+    console.error('\n🔍 Testing workflow suggestions...');
     const testCases = [
       { taskType: 'bug', expected: 'bugfix' },
       { taskType: 'spike', expected: 'research' },
@@ -69,24 +69,24 @@ function testWorkflowDefinitions() {
       const primarySuggestion = suggestions[0]?.name;
       
       if (primarySuggestion === testCase.expected) {
-        console.log(`  ✅ ${testCase.taskType} -> ${primarySuggestion}`);
+        console.error(`  ✅ ${testCase.taskType} -> ${primarySuggestion}`);
       } else {
-        console.log(`  ⚠️  ${testCase.taskType} -> ${primarySuggestion} (expected ${testCase.expected})`);
+        console.error(`  ⚠️  ${testCase.taskType} -> ${primarySuggestion} (expected ${testCase.expected})`);
       }
     }
 
     // Test default workflow
-    console.log('\n🎯 Testing default workflow...');
+    console.error('\n🎯 Testing default workflow...');
     const defaultWorkflow = registry.getDefaultWorkflow();
-    console.log(`  Default workflow: ${defaultWorkflow.display_name} (${defaultWorkflow.name})`);
+    console.error(`  Default workflow: ${defaultWorkflow.display_name} (${defaultWorkflow.name})`);
 
     // Test export/import
-    console.log('\n📦 Testing export/import...');
+    console.error('\n📦 Testing export/import...');
     const exported = registry.exportWorkflows();
     const exportedCount = Object.keys(exported).length;
-    console.log(`  Exported ${exportedCount} workflows`);
+    console.error(`  Exported ${exportedCount} workflows`);
 
-    console.log('\n🎉 All workflow tests passed!');
+    console.error('\n🎉 All workflow tests passed!');
     return true;
 
   } catch (error) {
@@ -96,7 +96,7 @@ function testWorkflowDefinitions() {
 }
 
 function testWorkflowValidation() {
-  console.log('\n🔍 Testing workflow validation scenarios...\n');
+  console.error('\n🔍 Testing workflow validation scenarios...\n');
 
   const registry = WorkflowRegistry.getInstance();
 
@@ -128,30 +128,30 @@ function testWorkflowValidation() {
   ];
 
   testScenarios.forEach(scenario => {
-    console.log(`Testing ${scenario.workflow} workflow:`);
-    console.log(`  Task: "${scenario.task.title}"`);
-    console.log(`  Expected: ${scenario.shouldPass ? 'PASS' : 'FAIL'}`);
+    console.error(`Testing ${scenario.workflow} workflow:`);
+    console.error(`  Task: "${scenario.task.title}"`);
+    console.error(`  Expected: ${scenario.shouldPass ? 'PASS' : 'FAIL'}`);
     if (scenario.reason) {
-      console.log(`  Reason: ${scenario.reason}`);
+      console.error(`  Reason: ${scenario.reason}`);
     }
-    console.log(`  ✅ Test scenario defined\n`);
+    console.error(`  ✅ Test scenario defined\n`);
   });
 
-  console.log('💡 Validation testing would require actual validator implementation');
+  console.error('💡 Validation testing would require actual validator implementation');
 }
 
 // Run tests
 if (require.main === module) {
-  console.log('🚀 Starting workflow definition tests...\n');
+  console.error('🚀 Starting workflow definition tests...\n');
   
   const success = testWorkflowDefinitions();
   
   if (success) {
     testWorkflowValidation();
-    console.log('\n🎉 All tests completed successfully!');
+    console.error('\n🎉 All tests completed successfully!');
     process.exit(0);
   } else {
-    console.log('\n💥 Tests failed!');
+    console.error('\n💥 Tests failed!');
     process.exit(1);
   }
 }

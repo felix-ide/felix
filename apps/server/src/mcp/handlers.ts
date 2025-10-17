@@ -18,25 +18,15 @@ export async function handleToolCall(name: string, args: any): Promise<any> {
   try {
     logger.info(`[HANDLER] Tool: ${name}`);
 
-    // Check if it's a tasks.* tool
-    if (name.startsWith('tasks_')) {
-      return await tasksHandler({ ...args, _toolName: name });
-    }
-
-    // Check if it's a notes.* tool
-    if (name.startsWith('notes_')) {
-      return await notesHandler({ ...args, _toolName: name });
-    }
-
-    // Check if it's a rules.* tool
-    if (name.startsWith('rules_')) {
-      return await rulesHandler({ ...args, _toolName: name });
-    }
-
     switch (name) {
       case 'search':
-        // Handles search, context, index, and stats actions
         return await searchHandler(args);
+      case 'notes':
+        return await notesHandler(args);
+      case 'tasks':
+        return await tasksHandler(args);
+      case 'rules':
+        return await rulesHandler(args);
       case 'workflows': {
         const { project } = args;
         if (!project) {

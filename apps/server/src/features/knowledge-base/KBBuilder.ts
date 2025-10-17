@@ -53,7 +53,7 @@ export class KBBuilder {
       });
 
       if (existingProjectKB) {
-        console.log(`[KBBuilder] Project KB already exists for ${projectPath}, returning existing`);
+        console.error(`[KBBuilder] Project KB already exists for ${projectPath}, returning existing`);
         return {
           kbId: existingProjectKB.id,
           rootId: existingProjectKB.root_note_id,
@@ -181,9 +181,9 @@ export class KBBuilder {
 
     // Create attached rules if defined
     if (nodeDefinition.rules && nodeDefinition.rules.length > 0) {
-      console.log(`[KBBuilder] Creating ${nodeDefinition.rules.length} rules for node: ${note.title}`);
+      console.error(`[KBBuilder] Creating ${nodeDefinition.rules.length} rules for node: ${note.title}`);
       for (const ruleDef of nodeDefinition.rules) {
-        console.log(`[KBBuilder]   - Rule: ${ruleDef.name}`);
+        console.error(`[KBBuilder]   - Rule: ${ruleDef.name}`);
         await this.createRuleForNode(note.id, ruleDef, kbConfig);
       }
     }
@@ -245,14 +245,14 @@ export class KBBuilder {
    * Create a rule attached to a KB node
    */
   private async createRuleForNode(noteId: string, ruleDef: any, kbConfig?: Record<string, any>): Promise<void> {
-    console.log(`[KBBuilder] createRuleForNode called for: ${ruleDef.name}`);
+    console.error(`[KBBuilder] createRuleForNode called for: ${ruleDef.name}`);
 
     // Process guidance template if provided and config exists
     let guidanceText = ruleDef.guidance_text;
     if (ruleDef.guidance_template && kbConfig) {
       try {
         guidanceText = processTemplate(ruleDef.guidance_template, kbConfig);
-        console.log(`[KBBuilder]   Processed template, result: ${guidanceText.substring(0, 50)}...`);
+        console.error(`[KBBuilder]   Processed template, result: ${guidanceText.substring(0, 50)}...`);
       } catch (error) {
         console.warn(`Failed to process guidance template for rule ${ruleDef.name}:`, error);
       }
@@ -282,19 +282,19 @@ export class KBBuilder {
       stable_tags: tags
     };
 
-    console.log(`[KBBuilder]   Rule params:`, JSON.stringify(ruleParams, null, 2));
+    console.error(`[KBBuilder]   Rule params:`, JSON.stringify(ruleParams, null, 2));
 
     // Create full IRule object using RuleUtils
     const rule = RuleUtils.createFromParams(ruleParams);
-    console.log(`[KBBuilder]   Created IRule with id: ${rule.id}`);
+    console.error(`[KBBuilder]   Created IRule with id: ${rule.id}`);
 
     // Store the rule
     const result = await this.rulesRepo.storeRule(rule);
-    console.log(`[KBBuilder]   Store result:`, result);
+    console.error(`[KBBuilder]   Store result:`, result);
     if (!result.success) {
       console.error(`[KBBuilder] ❌ FAILED to create rule for KB node ${noteId}: ${result.error}`);
     } else {
-      console.log(`[KBBuilder] ✅ Successfully created rule: ${ruleDef.name}`);
+      console.error(`[KBBuilder] ✅ Successfully created rule: ${ruleDef.name}`);
     }
   }
 

@@ -343,7 +343,7 @@ async function main() {
       console.warn('Baseline file updated, but metrics differ from EXPECTED_METRICS. Update the constant before committing.');
       console.warn(diff);
     } else {
-      console.log(`Baseline metrics updated at ${baselinePath}`);
+      console.error(`Baseline metrics updated at ${baselinePath}`);
     }
     process.exit(0);
   }
@@ -367,7 +367,7 @@ async function main() {
     console.warn('baseline-metrics.json not found. Run "npm -w @felix/code-intelligence run baseline:update" to generate it.');
   }
 
-  console.log('Fixture metrics match EXPECTED_METRICS.');
+  console.error('Fixture metrics match EXPECTED_METRICS.');
   process.exit(0);
 }
 

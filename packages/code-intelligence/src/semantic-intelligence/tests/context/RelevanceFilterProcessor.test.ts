@@ -69,7 +69,7 @@ describe('RelevanceFilterProcessor', () => {
           name: 'LoggerUtil',
           type: ComponentType.FUNCTION,
           filePath: '/src/logger.ts',
-          code: 'function log(message: string) { console.log(message); }',
+          code: 'function log(message: string) { console.error(message); }',
           metadata: {
             relevanceScore: 0.05,
             description: 'Utility function for logging messages'

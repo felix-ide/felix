@@ -26,7 +26,7 @@ export class WorkflowInstaller {
       // Set the default workflow
       await this.setDefaultWorkflow(DEFAULT_WORKFLOW_NAME);
 
-      console.log('✅ Default workflows installed successfully');
+      console.error('✅ Default workflows installed successfully');
     } catch (error) {
       console.error('❌ Failed to install default workflows:', error);
       throw error;
@@ -55,7 +55,7 @@ export class WorkflowInstaller {
       use_cases: workflow.use_cases || []
     }, ['name']); // conflict target: name column
 
-    console.log(`📋 Installed workflow: ${workflow.display_name}`);
+    console.error(`📋 Installed workflow: ${workflow.display_name}`);
   }
 
   /**
@@ -75,7 +75,7 @@ export class WorkflowInstaller {
     await workflowRepo.update({}, { is_default: false });
     await workflowRepo.update({ name: workflowName }, { is_default: true });
 
-    console.log(`🎯 Set default workflow: ${workflowName}`);
+    console.error(`🎯 Set default workflow: ${workflowName}`);
   }
 
   /**
@@ -135,6 +135,6 @@ export class WorkflowInstaller {
     // Reinstall all workflows
     await this.installDefaultWorkflows();
 
-    console.log('🔄 Workflows reinstalled successfully');
+    console.error('🔄 Workflows reinstalled successfully');
   }
 }

@@ -169,7 +169,7 @@ export class RoslynEnhancedCSharpParser extends TreeSitterCSharpParser {
 
       // Fallback to Tree-sitter
       if (this.config.enableFallback) {
-        console.log(`Using Tree-sitter fallback for ${filePath}`);
+        console.error(`Using Tree-sitter fallback for ${filePath}`);
         return await super.parseFile(filePath, options);
       }
 

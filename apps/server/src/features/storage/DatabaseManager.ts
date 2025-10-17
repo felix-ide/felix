@@ -24,11 +24,11 @@ try {
   const config = JSON.parse(content);
   if (config.databases?.metadata?.type) {
     (global as any).__TYPEORM_METADATA_DB_TYPE = config.databases.metadata.type;
-    console.log(`[DatabaseManager] Set __TYPEORM_METADATA_DB_TYPE=${(global as any).__TYPEORM_METADATA_DB_TYPE} from ${configPath}`);
+    console.error(`[DatabaseManager] Set __TYPEORM_METADATA_DB_TYPE=${(global as any).__TYPEORM_METADATA_DB_TYPE} from ${configPath}`);
   }
 } catch (err) {
   // No config file or error reading it, will use defaults (sqlite)
-  console.log(`[DatabaseManager] Could not load config from ${process.cwd()}/.felix/config.json:`, err);
+  console.error(`[DatabaseManager] Could not load config from ${process.cwd()}/.felix/config.json:`, err);
 }
 
 // Import index entities (always SQLite)

@@ -13,49 +13,7 @@ export async function handleTasksTools(request: any) {
     throw new Error(`Project not found: ${request.project}`);
   }
 
-  // Extract tool name from new format or fallback to action
-  const toolName = request._toolName || 'tasks';
-  const isLegacyAction = !request._toolName && request.action;
-
-  // Map new tool names to actions for compatibility
-  let action = request.action;
-  if (toolName === 'tasks_write') {
-    action = request.mode === 'create' ? 'add' : 'update';
-  } else if (toolName === 'tasks_get') {
-    action = 'get';
-  } else if (toolName === 'tasks_list') {
-    action = 'list';
-  } else if (toolName === 'tasks_delete') {
-    action = 'delete';
-  } else if (toolName === 'tasks_suggest_next') {
-    action = 'suggest_next';
-  } else if (toolName.startsWith('tasks_checklists_')) {
-    action = 'update';
-    // Convert checklist tool calls to checklist_updates format
-    const parts = toolName.split('_');
-    const op = parts[parts.length - 1]; // last part: write, toggle, move, delete
-    const isItemDelete = toolName === 'tasks_checklists_item_delete';
-
-    request.checklist_updates = [{
-      checklist: request.checklist,
-      operation: op === 'write' ? (request.mode === 'create' ? 'add' : 'update') : (isItemDelete ? 'remove' : op),
-      index: request.index,
-      text: request.text,
-      position: request.position,
-      from: request.from,
-      to: request.to
-    }];
-  } else if (toolName.startsWith('tasks_dependencies_')) {
-    action = 'update';
-    // Convert dependency tool calls to dependency_updates format
-    const op = toolName.split('_')[2]; // write, delete
-    request.dependency_updates = [{
-      operation: op === 'write' ? 'add' : 'remove',
-      dependency_task_id: request.dependency_task_id,
-      type: request.type,
-      required: request.required
-    }];
-  }
+  const action = request.action;
 
   // Delegated compact list
   if (action === 'list') {
@@ -73,7 +31,7 @@ export async function handleTasksTools(request: any) {
       };
       return { content: [createJsonContent(out)] };
     }
-    case 'add': {
+    case 'create': {
       const params = request as TasksAddRequest & { checklists?: unknown; skip_validation?: boolean };
       const { 
         title, description, parent_id, task_type, task_status, task_priority,
@@ -220,6 +178,8 @@ export async function handleTasksTools(request: any) {
       const { task_id, skip_validation, checklist_updates, dependency_updates, ...updateFields } = request as TasksUpdateRequest & Record<string, unknown>;
       if (!task_id) throw new Error('Task ID is required for update action');
 
+      let hasUpdates = false;
+
       // Process dependency updates if provided
       if (dependency_updates && Array.isArray(dependency_updates)) {
         for (const update of dependency_updates) {
@@ -233,10 +193,12 @@ export async function handleTasksTools(request: any) {
               dependency_type: type || 'blocks',
               required: required !== false
             });
+            hasUpdates = true;
           } else if (operation === 'remove') {
             if (!dependency_task_id) throw new Error('dependency_task_id is required for remove operation');
             // Remove using task IDs for intuitive usage
             await projectInfo.codeIndexer.removeTaskDependencyByTasks(task_id, dependency_task_id, type);
+            hasUpdates = true;
           }
         }
       }
@@ -320,6 +282,7 @@ export async function handleTasksTools(request: any) {
 
         // Apply the checklist changes
         await projectInfo.codeIndexer.updateTask(task_id, { checklists } as any);
+        hasUpdates = true;
       }
 
       const updates: any = {};
@@ -330,8 +293,21 @@ export async function handleTasksTools(request: any) {
         if (updateFields[k] !== undefined) updates[k] = updateFields[k];
       });
 
+      // Apply other field updates if any exist
+      let updatedTask: any = null;
+      if (Object.keys(updates).length > 0) {
+        hasUpdates = true;
+      }
+
+      // If no updates at all, error out
+      if (!hasUpdates) {
+        throw new Error('No updates provided');
+      }
+
       try {
-        const updatedTask = await projectInfo.codeIndexer.updateTask(task_id, updates);
+        if (Object.keys(updates).length > 0) {
+          updatedTask = await projectInfo.codeIndexer.updateTask(task_id, updates);
+        }
         let responseText = `Task ${task_id} updated successfully`;
 
         if (!skip_validation) {

@@ -128,7 +128,7 @@ export class TopicContextManager {
   async initialize(): Promise<void> {
     await this.loadPersistedState();
     this.startNewSession();
-    console.log('🔒 Topic context manager initialized');
+    console.error('🔒 Topic context manager initialized');
   }
 
   /**
@@ -234,7 +234,7 @@ export class TopicContextManager {
     };
 
     this.topics.set(topic.id, topic);
-    console.log(`🔒 Auto-created topic: ${topic.name}`);
+    console.error(`🔒 Auto-created topic: ${topic.name}`);
     
     return topic;
   }
@@ -281,7 +281,7 @@ export class TopicContextManager {
     }
     
     const topic = this.topics.get(topicId);
-    console.log(`🔒 Topic locked: ${topic?.name || topicId} (strength: ${strength})`);
+    console.error(`🔒 Topic locked: ${topic?.name || topicId} (strength: ${strength})`);
     
     await this.persistState();
   }
@@ -297,7 +297,7 @@ export class TopicContextManager {
     );
 
     const topic = this.topics.get(topicId);
-    console.log(`🔓 Topic unlocked: ${topic?.name || topicId}`);
+    console.error(`🔓 Topic unlocked: ${topic?.name || topicId}`);
     
     await this.persistState();
   }
@@ -397,7 +397,7 @@ export class TopicContextManager {
     if (!this.currentSession) return;
 
     this.currentSession.activeLocks = [];
-    console.log('🔓 All topic locks cleared');
+    console.error('🔓 All topic locks cleared');
     
     await this.persistState();
   }
@@ -477,7 +477,7 @@ export class TopicContextManager {
         }
       }
 
-      console.log(`🔒 Loaded ${this.topics.size} topics from persistent storage`);
+      console.error(`🔒 Loaded ${this.topics.size} topics from persistent storage`);
     } catch (error) {
       console.warn('Failed to load persisted topic context state:', error);
     }

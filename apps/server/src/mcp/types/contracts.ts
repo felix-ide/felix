@@ -97,7 +97,7 @@ export interface TasksGetRequest extends ProjectScopedRequest {
 }
 
 export interface TasksAddRequest extends ProjectScopedRequest {
-  action: 'add';
+  action: 'create';
   title: string;
   description?: string;
   parent_id?: string;
@@ -169,7 +169,7 @@ export interface NotesHelpRequest extends ProjectScopedRequest {
 }
 
 export interface NotesAddRequest extends ProjectScopedRequest {
-  action: 'add';
+  action: 'create';
   title?: string;
   content: string;
   note_type?: string;
@@ -217,7 +217,7 @@ export type NotesToolRequest =
   | NotesDeleteRequest;
 
 export interface RulesAddRequest extends ProjectScopedRequest {
-  action: 'add';
+  action: 'create';
   title: string;
   description?: string;
   rule_type: string;
@@ -262,25 +262,25 @@ export interface RulesGetApplicableRequest extends ProjectScopedRequest {
 }
 
 export interface RulesApplyRequest extends ProjectScopedRequest {
-  action: 'apply_rule';
+  action: 'apply';
   apply_rule_id: string;
   target_entity: Record<string, unknown>;
   application_context?: Record<string, unknown>;
 }
 
 export interface RulesGetTreeRequest extends ProjectScopedRequest {
-  action: 'get_tree';
+  action: 'tree';
   root_rule_id?: string;
   include_inactive?: boolean;
 }
 
 export interface RulesGetAnalyticsRequest extends ProjectScopedRequest {
-  action: 'get_analytics';
+  action: 'analytics';
   days_since?: number;
 }
 
 export interface RulesTrackApplicationRequest extends ProjectScopedRequest {
-  action: 'track_application';
+  action: 'track';
   rule_id: string;
   track_entity_type?: string;
   track_entity_id?: string;

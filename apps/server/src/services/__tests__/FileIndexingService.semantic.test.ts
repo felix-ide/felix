@@ -265,7 +265,7 @@ export class StringProcessor {
       const loggerContent = `
 export class Logger {
   public log(message: string): void {
-    console.log(message);
+    console.error(message);
   }
 }
 
@@ -439,11 +439,11 @@ export function useModule${importTarget}(): number {
 
       const resolutionRate = resolvedImports.length / importRelationships.length;
 
-      console.log(`Performance test results:`);
-      console.log(`- Indexed ${files.length} files in ${duration}ms`);
-      console.log(`- Found ${totalComponents} components`);
-      console.log(`- Found ${totalRelationships} relationships`);
-      console.log(`- Import resolution rate: ${(resolutionRate * 100).toFixed(1)}%`);
+      console.error(`Performance test results:`);
+      console.error(`- Indexed ${files.length} files in ${duration}ms`);
+      console.error(`- Found ${totalComponents} components`);
+      console.error(`- Found ${totalRelationships} relationships`);
+      console.error(`- Import resolution rate: ${(resolutionRate * 100).toFixed(1)}%`);
 
       // Should have a reasonable resolution rate (at least 50% for internal modules)
       expect(resolutionRate).toBeGreaterThan(0.5);

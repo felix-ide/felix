@@ -201,7 +201,9 @@ export class NotesRepository {
           });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_type') = :entityType
               AND json_extract(value, '$.entity_id') = :entityId
@@ -218,7 +220,9 @@ export class NotesRepository {
           `, { entityType: criteria.entity_type });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_type') = :entityType
             )
@@ -234,7 +238,9 @@ export class NotesRepository {
           `, { entityId: criteria.entity_id });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_id') = :entityId
             )
@@ -446,7 +452,9 @@ export class NotesRepository {
           });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_type') = :entityType
               AND json_extract(value, '$.entity_id') = :entityId
@@ -463,7 +471,9 @@ export class NotesRepository {
           `, { entityType: criteria.entity_type });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_type') = :entityType
             )
@@ -479,7 +489,9 @@ export class NotesRepository {
           `, { entityId: criteria.entity_id });
         } else {
           query.andWhere(`
-            EXISTS (
+            note.entity_links IS NOT NULL
+            AND note.entity_links != 'null'
+            AND EXISTS (
               SELECT 1 FROM json_each(note.entity_links)
               WHERE json_extract(value, '$.entity_id') = :entityId
             )

@@ -61,7 +61,7 @@ export class WorkflowConfigManager {
 
       const needsMigration = await migration.needsMigration();
       if (needsMigration) {
-        console.log('[WorkflowConfigManager] Running system entity migration...');
+        console.error('[WorkflowConfigManager] Running system entity migration...');
         await migration.run();
       }
 
@@ -93,13 +93,13 @@ export class WorkflowConfigManager {
       // Only fix if it's the exact bad value from the buggy seed
       // If user changed it to something else, leave it alone
       if (map.epic === 'epic') {
-        console.log('[WorkflowConfigManager] Fixing buggy workflow mapping: epic "epic" → "feature_development"');
+        console.error('[WorkflowConfigManager] Fixing buggy workflow mapping: epic "epic" → "feature_development"');
         map.epic = 'feature_development';
         needsUpdate = true;
       }
 
       if (map.story === 'story') {
-        console.log('[WorkflowConfigManager] Fixing buggy workflow mapping: story "story" → "feature_development"');
+        console.error('[WorkflowConfigManager] Fixing buggy workflow mapping: story "story" → "feature_development"');
         map.story = 'feature_development';
         needsUpdate = true;
       }
@@ -109,7 +109,7 @@ export class WorkflowConfigManager {
           { setting_key: 'defaults_by_task_type' },
           { setting_value: JSON.stringify(map) }
         );
-        console.log('[WorkflowConfigManager] ✅ Workflow type mappings fixed');
+        console.error('[WorkflowConfigManager] ✅ Workflow type mappings fixed');
       }
     } catch (error) {
       console.warn('[WorkflowConfigManager] Failed to fix workflow type mappings:', error);
@@ -148,7 +148,7 @@ export class WorkflowConfigManager {
       } else if (existing.is_system) {
         // Auto-update system workflows only if version changed
         if (existing.system_version !== SYSTEM_WORKFLOW_VERSION) {
-          console.log(`[WorkflowConfigManager] Updating system workflow: ${workflow.name} (${existing.system_version} → ${SYSTEM_WORKFLOW_VERSION})`);
+          console.error(`[WorkflowConfigManager] Updating system workflow: ${workflow.name} (${existing.system_version} → ${SYSTEM_WORKFLOW_VERSION})`);
           await workflowRepo.update({ name: workflow.name }, {
             display_name: workflow.display_name,
             description: workflow.description,

@@ -100,9 +100,9 @@ export class ProjectManager {
       }
 
       if (hasDatabase) {
-        console.log(`📦 Auto-loading indexed project: ${nameOrPath}`);
+        console.error(`📦 Auto-loading indexed project: ${nameOrPath}`);
       } else {
-        console.log(`🔧 Auto-connecting to unindexed project: ${nameOrPath}`);
+        console.error(`🔧 Auto-connecting to unindexed project: ${nameOrPath}`);
       }
 
       // Auto-load/create project connection
@@ -123,7 +123,7 @@ export class ProjectManager {
     // Check if already loaded by exact path
     for (const [name, proj] of this.projects.entries()) {
       if (proj.fullPath === absolutePath) {
-        console.log(`♻️  Reusing existing project: ${name} (matched by path)`);
+        console.error(`♻️  Reusing existing project: ${name} (matched by path)`);
         proj.lastAccessed = new Date();
         return proj;
       }
@@ -132,7 +132,7 @@ export class ProjectManager {
     // Check if already being created (prevent race condition)
     const creatingPromise = this.creatingProjects.get(absolutePath);
     if (creatingPromise) {
-      console.log(`⏳ Project ${projectName} is already being created, waiting...`);
+      console.error(`⏳ Project ${projectName} is already being created, waiting...`);
       return creatingPromise;
     }
     
@@ -150,13 +150,13 @@ export class ProjectManager {
         projectName = `${path.basename(absolutePath)} (${parentDir}-${counter})`;
         counter++;
       }
-      console.log(`⚠️  Name collision detected, using unique name: ${projectName}`);
+      console.error(`⚠️  Name collision detected, using unique name: ${projectName}`);
     }
 
     // Create the project with race protection
     const createPromise = (async () => {
-      console.log(`🔗 Setting project: ${projectName}`);
-      console.log(`📁 Path: ${absolutePath}`);
+      console.error(`🔗 Setting project: ${projectName}`);
+      console.error(`📁 Path: ${absolutePath}`);
 
       // Get language-specific ignore patterns from code-parser
       const parserPatterns = (await import('@felix/code-intelligence')).defaultParserFactory.getAllIgnorePatterns();
@@ -175,7 +175,7 @@ export class ProjectManager {
     const watcher = disableWatcher ? null : this.setupFileWatcher(absolutePath, codeIndexer);
 
     if (disableWatcher) {
-      console.log('⚠️ File watcher disabled by DISABLE_FILE_WATCHER environment variable');
+      console.error('⚠️ File watcher disabled by DISABLE_FILE_WATCHER environment variable');
     }
 
     // Setup degradation scheduler
@@ -193,7 +193,7 @@ export class ProjectManager {
     };
 
       this.projects.set(projectName, projectInfo);
-      console.log(`✅ Project ${projectName} connected and ready`);
+      console.error(`✅ Project ${projectName} connected and ready`);
 
       // Post-connect tasks (non-blocking): ensure metadata embeddings exist, attach docs
       (async () => {
@@ -205,9 +205,9 @@ export class ProjectManager {
           if ((stats.ruleCount > 0 && !hasRuleEmbeddings) ||
               (stats.taskCount > 0 && !hasTaskEmbeddings) ||
               (stats.noteCount > 0 && !hasNoteEmbeddings)) {
-            console.log('🧠 Generating missing embeddings for metadata entities (post-connect)...');
+            console.error('🧠 Generating missing embeddings for metadata entities (post-connect)...');
             await codeIndexer.indexAllMetadataEntities();
-            console.log('✅ Metadata embeddings ready (post-connect)');
+            console.error('✅ Metadata embeddings ready (post-connect)');
           }
         } catch (err) {
           console.warn('Failed to generate metadata embeddings (post-connect):', err);
@@ -224,7 +224,7 @@ export class ProjectManager {
           (codeIndexer as any).documentationService = docService;
           const attachedBundles = await docService.autoAttachFromPackageJson(packageJsonPath);
           if (attachedBundles.length > 0) {
-            console.log(`📚 Auto-attached ${attachedBundles.length} documentation bundle(s)`);
+            console.error(`📚 Auto-attached ${attachedBundles.length} documentation bundle(s)`);
           }
         } catch (error) {
           // Optional
@@ -281,7 +281,7 @@ export class ProjectManager {
           projectName = `${path.basename(absolutePath)} (${parentDir}-${counter})`;
           counter++;
         }
-        console.log(`⚠️  Name collision detected, using unique name: ${projectName}`);
+        console.error(`⚠️  Name collision detected, using unique name: ${projectName}`);
       }
     }
 
@@ -290,8 +290,8 @@ export class ProjectManager {
       await this.cleanupProject(projectName);
     }
 
-    console.log(`🔄 Indexing project: ${projectName}`);
-    console.log(`📁 Path: ${absolutePath}`);
+    console.error(`🔄 Indexing project: ${projectName}`);
+    console.error(`📁 Path: ${absolutePath}`);
 
     // Get language-specific ignore patterns from code-parser
     const parserPatterns = (await import('@felix/code-intelligence')).defaultParserFactory.getAllIgnorePatterns();
@@ -313,7 +313,7 @@ export class ProjectManager {
     const watcher = disableWatcher ? null : this.setupFileWatcher(absolutePath, codeIndexer);
 
     if (disableWatcher) {
-      console.log('⚠️ File watcher disabled by DISABLE_FILE_WATCHER environment variable');
+      console.error('⚠️ File watcher disabled by DISABLE_FILE_WATCHER environment variable');
     }
 
     // Setup degradation scheduler
@@ -331,7 +331,7 @@ export class ProjectManager {
     };
 
     this.projects.set(projectName, projectInfo);
-    console.log(`✅ Project ${projectName} indexed and ready`);
+    console.error(`✅ Project ${projectName} indexed and ready`);
 
     // Run post-index tasks asynchronously so MCP call returns immediately.
     (async () => {
@@ -344,9 +344,9 @@ export class ProjectManager {
         if ((stats.ruleCount > 0 && !hasRuleEmbeddings) ||
             (stats.taskCount > 0 && !hasTaskEmbeddings) ||
             (stats.noteCount > 0 && !hasNoteEmbeddings)) {
-          console.log(`🧠 Generating missing embeddings for metadata entities (background)...`);
+          console.error(`🧠 Generating missing embeddings for metadata entities (background)...`);
           await codeIndexer.indexAllMetadataEntities();
-          console.log(`✅ Generated embeddings for metadata entities (background)`);
+          console.error(`✅ Generated embeddings for metadata entities (background)`);
         }
       } catch (error) {
         console.warn('Failed to auto-index metadata embeddings (background):', error);
@@ -355,7 +355,7 @@ export class ProjectManager {
       // Resolve documentation links after code is indexed (non-blocking)
       try {
         await codeIndexer.resolveDocumentationLinks({ limitPerKind: 10000 });
-        console.log('📎 Documentation links resolved');
+        console.error('📎 Documentation links resolved');
       } catch (error) {
         console.warn('Failed to resolve documentation links:', error);
       }
@@ -371,7 +371,7 @@ export class ProjectManager {
         (codeIndexer as any).documentationService = docService;
         const attachedBundles = await docService.autoAttachFromPackageJson(packageJsonPath);
         if (attachedBundles.length > 0) {
-          console.log(`📚 Auto-attached ${attachedBundles.length} documentation bundle(s) (background)`);
+          console.error(`📚 Auto-attached ${attachedBundles.length} documentation bundle(s) (background)`);
         }
       } catch (error) {
         // Ignore errors - auto-attach is optional
@@ -572,7 +572,7 @@ export class ProjectManager {
       await project.dbManager.disconnect();
 
       this.projects.delete(projectName);
-      console.log(`🗑️ Cleaned up project: ${projectName}`);
+      console.error(`🗑️ Cleaned up project: ${projectName}`);
     } catch (error) {
       console.error(`Error cleaning up project ${projectName}:`, error);
     }

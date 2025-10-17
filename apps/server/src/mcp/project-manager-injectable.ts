@@ -106,18 +106,18 @@ export class InjectableProjectManager {
   private async createProjectDatabase(projectPath: string): Promise<DatabaseManager> {
     // If a single database manager is configured, use it for all projects
     if (this.options.databaseManager) {
-      console.log(`🔗 Using shared database manager for project`);
+      console.error(`🔗 Using shared database manager for project`);
       return this.options.databaseManager;
     }
     
     // If a custom factory is provided, use it
     if (this.options.databaseFactory) {
-      console.log(`🏭 Using custom database factory for project`);
+      console.error(`🏭 Using custom database factory for project`);
       return await this.options.databaseFactory(projectPath);
     }
     
     // Otherwise create default, per-project database (matches pre-refactor behavior)
-    console.log(`📦 Creating default database for project`);
+    console.error(`📦 Creating default database for project`);
     const dbManager = DatabaseManager.getInstance(projectPath);
     await dbManager.initialize();
     return dbManager;
@@ -133,7 +133,7 @@ export class InjectableProjectManager {
     // Check if already loaded by name or path
     const existingByName = this.projects.get(projectName);
     if (existingByName && existingByName.fullPath === absolutePath) {
-      console.log(`♻️  Reusing existing project: ${projectName}`);
+      console.error(`♻️  Reusing existing project: ${projectName}`);
       existingByName.lastAccessed = new Date();
       if (options.forceReindex) {
         await existingByName.codeIndexer.clearIndex();
@@ -145,7 +145,7 @@ export class InjectableProjectManager {
     // Check if already loaded by exact path
     for (const [name, proj] of this.projects.entries()) {
       if (proj.fullPath === absolutePath) {
-        console.log(`♻️  Reusing existing project: ${name} (matched by path)`);
+        console.error(`♻️  Reusing existing project: ${name} (matched by path)`);
         proj.lastAccessed = new Date();
         if (options.forceReindex) {
           await proj.codeIndexer.clearIndex();
@@ -155,8 +155,8 @@ export class InjectableProjectManager {
       }
     }
 
-    console.log(`🔗 Setting project: ${projectName}`);
-    console.log(`📁 Path: ${absolutePath}`);
+    console.error(`🔗 Setting project: ${projectName}`);
+    console.error(`📁 Path: ${absolutePath}`);
 
     // Get language-specific ignore patterns from code-parser
     const parserPatterns = (await import('@felix/code-intelligence')).defaultParserFactory.getAllIgnorePatterns();
@@ -180,7 +180,7 @@ export class InjectableProjectManager {
     const watcher = this.options.disableFileWatcher ? null : this.setupFileWatcher(absolutePath, codeIndexer);
     
     if (this.options.disableFileWatcher) {
-      console.log('⚠️ File watcher disabled');
+      console.error('⚠️ File watcher disabled');
     }
 
     const projectInfo: ProjectInfo = {
@@ -194,7 +194,7 @@ export class InjectableProjectManager {
     };
 
     this.projects.set(projectName, projectInfo);
-    console.log(`✅ Project ${projectName} ready`);
+    console.error(`✅ Project ${projectName} ready`);
 
     // Auto-attach documentation bundles if not disabled
     if (!this.options.disableAutoDocumentation) {
@@ -220,7 +220,7 @@ export class InjectableProjectManager {
       // Try auto-attach
       const attachedBundles = await docService.autoAttachFromPackageJson(packageJsonPath);
       if (attachedBundles.length > 0) {
-        console.log(`📚 Auto-attached ${attachedBundles.length} documentation bundle(s)`);
+        console.error(`📚 Auto-attached ${attachedBundles.length} documentation bundle(s)`);
       }
     } catch (error) {
       // Ignore errors - auto-attach is optional
@@ -268,8 +268,8 @@ export class InjectableProjectManager {
   private setupFileWatcher(projectPath: string, codeIndexer: CodeIndexer): any {
     const ignorePatterns = getChokidarIgnorePatterns();
 
-    console.log(`Creating watcher for: ${projectPath}`);
-    console.log(`Ignore patterns: ${ignorePatterns.length} patterns`);
+    console.error(`Creating watcher for: ${projectPath}`);
+    console.error(`Ignore patterns: ${ignorePatterns.length} patterns`);
     
     const isIgnored = (p: string) => {
       const lower = p.toLowerCase();
@@ -304,7 +304,7 @@ export class InjectableProjectManager {
     };
 
     watcher.on('ready', () => {
-      console.log('🔍 File watcher initialized');
+      console.error('🔍 File watcher initialized');
       stats.ready = true;
       stats.lastEvent = { type: 'ready', at: new Date().toISOString() };
     });
@@ -318,12 +318,12 @@ export class InjectableProjectManager {
     watcher.on('change', async (filePath: string) => {
       try {
         if (isIgnored(filePath)) return;
-        console.log(`📝 File changed: ${path.relative(projectPath, filePath)}`);
+        console.error(`📝 File changed: ${path.relative(projectPath, filePath)}`);
         await codeIndexer.indexFile(filePath);
         stats.change++;
         stats.lastEvent = { type: 'change', filePath, at: new Date().toISOString() };
         await codeIndexer.regenerateEmbeddingsForFile(filePath);
-        console.log(`✅ Incremental index + embeddings update completed`);
+        console.error(`✅ Incremental index + embeddings update completed`);
       } catch (error) {
         console.error(`⚠️ Warning: Auto-update failed:`, error);
       }
@@ -332,12 +332,12 @@ export class InjectableProjectManager {
     watcher.on('add', async (filePath: string) => {
       try {
         if (isIgnored(filePath)) return;
-        console.log(`➕ File added: ${path.relative(projectPath, filePath)}`);
+        console.error(`➕ File added: ${path.relative(projectPath, filePath)}`);
         await codeIndexer.indexFile(filePath);
         stats.add++;
         stats.lastEvent = { type: 'add', filePath, at: new Date().toISOString() };
         await codeIndexer.regenerateEmbeddingsForFile(filePath);
-        console.log(`✅ File indexed + embeddings generated`);
+        console.error(`✅ File indexed + embeddings generated`);
       } catch (error) {
         console.error(`⚠️ Warning: Failed to index new file:`, error);
       }
@@ -346,11 +346,11 @@ export class InjectableProjectManager {
     watcher.on('unlink', async (filePath: string) => {
       try {
         if (isIgnored(filePath)) return;
-        console.log(`➖ File deleted: ${path.relative(projectPath, filePath)}`);
+        console.error(`➖ File deleted: ${path.relative(projectPath, filePath)}`);
         await codeIndexer.removeFile(filePath);
         stats.unlink++;
         stats.lastEvent = { type: 'unlink', filePath, at: new Date().toISOString() };
-        console.log(`✅ File removed from index`);
+        console.error(`✅ File removed from index`);
       } catch (error) {
         console.error(`⚠️ Warning: Failed to remove file from index:`, error);
       }

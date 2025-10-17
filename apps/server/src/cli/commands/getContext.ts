@@ -102,7 +102,7 @@ export async function getContextCommand(options: GetContextOptions): Promise<voi
     if (!targetComponent) {
       throw new Error(`No component found matching: ${componentName}`);
     }
-    console.log(`🎯 Found component: ${targetComponent.name} (${targetComponent.type})`);
+    console.error(`🎯 Found component: ${targetComponent.name} (${targetComponent.type})`);
 
     // Get the knowledge graph from indexer
     const knowledgeGraph = await indexer.getKnowledgeGraph();
@@ -130,20 +130,20 @@ export async function getContextCommand(options: GetContextOptions): Promise<voi
     if (options.output) {
       const fs = await import('fs');
       fs.writeFileSync(options.output, output);
-      console.log(`📄 Context written to ${options.output}`);
+      console.error(`📄 Context written to ${options.output}`);
     } else {
-      console.log(output);
+      console.error(output);
     }
 
     // Show statistics
     if (options.verbose && result.metadata) {
-      console.log('\n📊 Context Statistics:');
-      console.log(`  Components: ${result.metadata.totalComponents}`);
-      console.log(`  Relationships: ${result.metadata.totalRelationships}`);
-      console.log(`  Token count: ${result.metadata.tokenCount}`);
-      console.log(`  Relevance score: ${result.metadata.relevanceScore}`);
+      console.error('\n📊 Context Statistics:');
+      console.error(`  Components: ${result.metadata.totalComponents}`);
+      console.error(`  Relationships: ${result.metadata.totalRelationships}`);
+      console.error(`  Token count: ${result.metadata.tokenCount}`);
+      console.error(`  Relevance score: ${result.metadata.relevanceScore}`);
       if (result.metadata.truncated) {
-        console.log('  ⚠️  Output was truncated to fit token limit');
+        console.error('  ⚠️  Output was truncated to fit token limit');
       }
     }
 

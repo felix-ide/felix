@@ -35,7 +35,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
   const config = loadConfig(options.config);
   
   if (!options.quiet) {
-    console.log('🔍 Searching components...');
+    console.error('🔍 Searching components...');
   }
   
   // Initialize database
@@ -70,9 +70,9 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
     const result = await indexer.searchComponents(searchOptions);
     
     if (!options.quiet) {
-      console.log(`📋 Found ${result.total} components`);
+      console.error(`📋 Found ${result.total} components`);
       if (result.total > result.items.length) {
-        console.log(`📄 Showing first ${result.items.length} results`);
+        console.error(`📄 Showing first ${result.items.length} results`);
       }
     }
     
@@ -90,9 +90,9 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
         languageBreakdown.set(component.language, (languageBreakdown.get(component.language) || 0) + 1);
       }
       
-      console.log('\n📊 Search Summary:');
-      console.log('Types:', Array.from(typeBreakdown.entries()).map(([type, count]) => `${type}(${count})`).join(', '));
-      console.log('Languages:', Array.from(languageBreakdown.entries()).map(([lang, count]) => `${lang}(${count})`).join(', '));
+      console.error('\n📊 Search Summary:');
+      console.error('Types:', Array.from(typeBreakdown.entries()).map(([type, count]) => `${type}(${count})`).join(', '));
+      console.error('Languages:', Array.from(languageBreakdown.entries()).map(([lang, count]) => `${lang}(${count})`).join(', '));
     }
     
     await indexer.close();

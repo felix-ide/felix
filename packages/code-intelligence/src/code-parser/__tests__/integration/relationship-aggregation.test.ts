@@ -378,7 +378,7 @@ const config = require('./config.js');
 const utils = require('./utils/helpers.js');
 
 function main() {
-  console.log('Starting', config.APP_NAME);
+  console.error('Starting', config.APP_NAME);
   utils.initialize();
 }
 
@@ -394,7 +394,7 @@ module.exports = {
 
       const helpersJs = createTestFile('src/utils/helpers.js', `
 function initialize() {
-  console.log('Initializing...');
+  console.error('Initializing...');
 }
 
 module.exports = { initialize };

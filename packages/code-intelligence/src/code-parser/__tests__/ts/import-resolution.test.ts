@@ -170,7 +170,7 @@ describe('TypeScript Import Resolution', () => {
       writeFileSync(modPath, 'export function fn() {}\nexport const value = 42;\n');
 
       // src/use.ts: import * as ns from './mod'
-      writeFileSync(usePath, "import * as ns from './mod';\nns.fn(); console.log(ns.value);\n");
+      writeFileSync(usePath, "import * as ns from './mod';\nns.fn(); console.error(ns.value);\n");
 
       // Parse both files
       const modComponents = await parser.detectComponents(
@@ -178,14 +178,14 @@ describe('TypeScript Import Resolution', () => {
         modPath
       );
       const useComponents = await parser.detectComponents(
-        "import * as ns from './mod';\nns.fn(); console.log(ns.value);",
+        "import * as ns from './mod';\nns.fn(); console.error(ns.value);",
         usePath
       );
 
       // Get relationships for use.ts
       const useRelationships = await parser.detectRelationships(
         useComponents,
-        "import * as ns from './mod';\nns.fn(); console.log(ns.value);"
+        "import * as ns from './mod';\nns.fn(); console.error(ns.value);"
       );
 
       // Find the namespace import relationship
@@ -289,7 +289,7 @@ describe('TypeScript Import Resolution', () => {
       writeFileSync(mathPath, 'export function sum(a: number, b: number) { return a + b; }\n');
 
       // src/use.ts: import { sum } from '@utils/math'
-      writeFileSync(usePath, "import { sum } from '@utils/math';\nconsole.log(sum(1, 2));\n");
+      writeFileSync(usePath, "import { sum } from '@utils/math';\nconsole.error(sum(1, 2));\n");
 
       // Test module resolution with tsconfig paths
       const resolved = await moduleResolver.resolveModule('@utils/math', usePath, testDir);
@@ -305,7 +305,7 @@ describe('TypeScript Import Resolution', () => {
         mathPath
       );
       const useComponents = await parser.detectComponents(
-        "import { sum } from '@utils/math';\nconsole.log(sum(1, 2));",
+        "import { sum } from '@utils/math';\nconsole.error(sum(1, 2));",
         usePath
       );
 
@@ -456,8 +456,8 @@ describe('TypeScript Import Resolution', () => {
       // Should have some resolved imports (at least 10 from the 19 files that import)
       expect(resolvedImports.length).toBeGreaterThan(10);
 
-      console.log(`Performance test: Parsed ${files.length} files in ${duration}ms`);
-      console.log(`Found ${resolvedImports.length} resolved imports out of ${allRelationships.filter(r => r.type === RelationshipType.IMPORTS_FROM).length} total imports`);
+      console.error(`Performance test: Parsed ${files.length} files in ${duration}ms`);
+      console.error(`Found ${resolvedImports.length} resolved imports out of ${allRelationships.filter(r => r.type === RelationshipType.IMPORTS_FROM).length} total imports`);
     });
   });
 });

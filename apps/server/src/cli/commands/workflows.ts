@@ -29,7 +29,7 @@ export function createWorkflowsCommand(): Command {
     .action(async (options: SnapshotOptions) => {
       const { service, projectPath } = await resolveSnapshotService(options.project);
       const result = await service.exportSnapshot(projectPath, { filePath: options.file });
-      console.log(`✅ Exported ${result.workflowCount} workflow(s) to ${result.filePath}`);
+      console.error(`✅ Exported ${result.workflowCount} workflow(s) to ${result.filePath}`);
     });
 
   command
@@ -45,8 +45,8 @@ export function createWorkflowsCommand(): Command {
         filePath: options.file,
         overwrite: options.overwrite !== false
       });
-      console.log(`✅ Imported ${result.workflowCount} workflow(s) from ${result.filePath}`);
-      console.log(`   Created: ${result.created}, Updated: ${result.updated}`);
+      console.error(`✅ Imported ${result.workflowCount} workflow(s) from ${result.filePath}`);
+      console.error(`   Created: ${result.created}, Updated: ${result.updated}`);
     });
 
   return command;

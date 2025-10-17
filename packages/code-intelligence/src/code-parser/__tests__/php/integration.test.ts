@@ -290,8 +290,8 @@ class UserService implements LoggableInterface {
       expect(userExtends?.metadata?.targetFqn).toBe('App\\Models\\BaseModel');
       expect(baseModelUsesTrait?.metadata?.targetFqn).toBe('App\\Traits\\TimestampTrait');
 
-      console.log(`Integration test: Found ${allComponents.length} components and ${allRelationships.length} relationships`);
-      console.log(`All ${implementsRelationships.length + extendsRelationships.length + usesRelationships.length} key relationships were resolved successfully`);
+      console.error(`Integration test: Found ${allComponents.length} components and ${allRelationships.length} relationships`);
+      console.error(`All ${implementsRelationships.length + extendsRelationships.length + usesRelationships.length} key relationships were resolved successfully`);
     });
 
     it('should handle circular references gracefully', async () => {
@@ -422,8 +422,8 @@ class Class${files.indexOf(filePath)} {
       // For 10 files, should complete in reasonable time (< 3 seconds)
       expect(duration).toBeLessThan(3000);
 
-      console.log(`Performance test: Parsed ${files.length} files in ${duration}ms`);
-      console.log(`Found ${totalComponents} components and ${totalRelationships} relationships`);
+      console.error(`Performance test: Parsed ${files.length} files in ${duration}ms`);
+      console.error(`Found ${totalComponents} components and ${totalRelationships} relationships`);
 
       // Should have found components in all files
       expect(totalComponents).toBeGreaterThan(numFiles); // At least one component per file

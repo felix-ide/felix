@@ -45,10 +45,10 @@ export class ParserTestRunner {
    * Run a complete test suite
    */
   async runTestSuite(testSuite: TestSuite): Promise<TestResult[]> {
-    console.log(`Running test suite: ${testSuite.name}`);
-    console.log(`Description: ${testSuite.description}`);
-    console.log(`Language: ${testSuite.language}`);
-    console.log(`Test cases: ${testSuite.testCases.length}`);
+    console.error(`Running test suite: ${testSuite.name}`);
+    console.error(`Description: ${testSuite.description}`);
+    console.error(`Language: ${testSuite.language}`);
+    console.error(`Test cases: ${testSuite.testCases.length}`);
 
     // Setup
     if (testSuite.setup) {
@@ -90,7 +90,7 @@ export class ParserTestRunner {
         const suiteResults = await this.runTestSuite(testSuite);
         results.set(testSuite.name, suiteResults);
       } else {
-        console.log(`Skipping test suite ${testSuite.name} (language: ${testSuite.language})`);
+        console.error(`Skipping test suite ${testSuite.name} (language: ${testSuite.language})`);
       }
     }
 
@@ -112,7 +112,7 @@ export class ParserTestRunner {
       // Update progress
       this.state.currentTest = testCase.name;
       if (this.options.verbose) {
-        console.log(`Running test: ${testCase.name}`);
+        console.error(`Running test: ${testCase.name}`);
       }
 
       // Parse the content
@@ -363,7 +363,7 @@ export class ParserTestRunner {
       results.push(result);
 
       if (this.options.verbose) {
-        console.log(`Completed ${this.state.completedTests}/${this.state.totalTests} tests`);
+        console.error(`Completed ${this.state.completedTests}/${this.state.totalTests} tests`);
       }
     }
 
@@ -622,16 +622,16 @@ export class ParserTestRunner {
     const failed = results.filter(r => !r.success).length;
     const total = results.length;
 
-    console.log('\n--- Test Summary ---');
-    console.log(`Total: ${total}`);
-    console.log(`Passed: ${passed}`);
-    console.log(`Failed: ${failed}`);
-    console.log(`Success Rate: ${((passed / total) * 100).toFixed(2)}%`);
+    console.error('\n--- Test Summary ---');
+    console.error(`Total: ${total}`);
+    console.error(`Passed: ${passed}`);
+    console.error(`Failed: ${failed}`);
+    console.error(`Success Rate: ${((passed / total) * 100).toFixed(2)}%`);
 
     if (failed > 0) {
-      console.log('\nFailed Tests:');
+      console.error('\nFailed Tests:');
       results.filter(r => !r.success).forEach(result => {
-        console.log(`  - ${result.testCase.name}: ${result.error?.message || 'Validation failed'}`);
+        console.error(`  - ${result.testCase.name}: ${result.error?.message || 'Validation failed'}`);
       });
     }
   }

@@ -75,7 +75,7 @@ export function BinaryColumn(options: Omit<ColumnOptions, 'type'> = {}) {
   const dbType = getDbType();
   const columnType = (TYPE_MAPPING['binary'] as Record<string, ColumnType>)[dbType];
 
-  console.log(`[BinaryColumn] dbType=${dbType}, columnType=${columnType}, METADATA_DB_TYPE=${process.env.METADATA_DB_TYPE}`);
+  console.error(`[BinaryColumn] dbType=${dbType}, columnType=${columnType}, METADATA_DB_TYPE=${process.env.METADATA_DB_TYPE}`);
 
   return Column({
     ...options,
@@ -88,7 +88,7 @@ export function BinaryColumn(options: Omit<ColumnOptions, 'type'> = {}) {
  *
  * Maps to the appropriate JSON type based on the current database driver:
  * - In PostgreSQL: Uses "jsonb" column (allows @> operator)
- * - In SQLite: Uses "text" column (same as simple-json)
+ * - In SQLite: Uses "text" column with JSON transformer
  *
  * TypeORM will automatically serialize/deserialize the JSON data.
  * For PostgreSQL, this enables JSONB operators like @> (contains)
@@ -103,6 +103,16 @@ export function JsonColumn(options: Omit<ColumnOptions, 'type'> = {}) {
 
   return Column({
     ...options,
-    type: columnType
+    type: columnType,
+    transformer: {
+      to: (value: any) => {
+        if (value === null || value === undefined) return null;
+        return typeof value === 'string' ? value : JSON.stringify(value);
+      },
+      from: (value: any) => {
+        if (!value || value === 'null') return null;
+        return typeof value === 'string' ? JSON.parse(value) : value;
+      }
+    }
   });
 }

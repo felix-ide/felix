@@ -33,7 +33,7 @@ describe('HTML Injections with Tree-sitter', () => {
   <title>Test Page</title>
   <script type="text/javascript">
     function greet(name) {
-      console.log('Hello, ' + name);
+      console.error('Hello, ' + name);
       return 'Hello, ' + name;
     }
 

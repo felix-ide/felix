@@ -6,14 +6,20 @@ import { COMMON_FILTER_PROPERTIES, withProjectProperty } from './common.js';
  */
 export const SEARCH_TOOL: McpToolDefinition = {
   name: 'search',
-  description: `Code intelligence tool with 4 actions:
+  description: `Code intelligence tool for understanding codebases through semantic search and relationship graphs.
 
-• search: Find components/tasks/notes/rules by semantic meaning. Returns skeleton views with line numbers.
-• context: Get full source + relationships for a component. Replaces Read tool for exploring code.
-• index: Force full re-index (drops DB, rebuilds with embeddings). Use after major refactoring or file moves.
-• stats: Get project statistics (component count, languages, file count).
+WHEN TO USE:
+• Use 'search' instead of Grep when looking for concepts/behavior (e.g., "error handling logic", "database pooling") rather than exact strings
+• Use 'context' instead of Read when you need to understand what calls a function, what it calls, dependencies, or impact of changes
+• Use 'context' to get call graphs, inheritance hierarchies, import relationships - things Read cannot provide
 
-Typical workflow: search → get component_id → context → get full source + call graphs`,
+ACTIONS:
+• search: Find code/tasks/notes/rules by semantic meaning (not keywords). Returns file paths + line numbers
+• context: Get full source + relationship graphs (callers, callees, imports, inheritance). Use for impact analysis and understanding dependencies
+• index: Force full re-index (drops DB, rebuilds with embeddings). Use after major refactoring
+• stats: Get project statistics (component count, languages, file count)
+
+Typical workflow: search "authentication logic" → get component_id → context with lens=callers to see impact`,
   inputSchema: {
     type: 'object',
     properties: withProjectProperty({

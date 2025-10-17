@@ -110,7 +110,7 @@ export class WindowSizeProcessor implements IWindowSizeProcessor {
     const itemCount = data.items.length;
     const relationshipCount = data.relationships.length;
     
-    // console.log(`🔧 WindowSizeProcessor: target=${targetTokens}, current=${currentTokens}, items=${itemCount}, relationships=${relationshipCount}`);
+    // console.error(`🔧 WindowSizeProcessor: target=${targetTokens}, current=${currentTokens}, items=${itemCount}, relationships=${relationshipCount}`);
     
     if (currentTokens <= targetTokens) {
       console.error(`✅ WindowSizeProcessor: Current tokens (${currentTokens}) <= target (${targetTokens}), no reduction needed`);
@@ -134,7 +134,7 @@ export class WindowSizeProcessor implements IWindowSizeProcessor {
     const itemsFiltered = (data.items.length - reducedData.items.length) +
                          (data.relationships.length - reducedData.relationships.length);
     
-    // console.log(`🎯 WindowSizeProcessor: Reduced to ${finalTokens} tokens, filtered ${itemsFiltered} items`);
+    // console.error(`🎯 WindowSizeProcessor: Reduced to ${finalTokens} tokens, filtered ${itemsFiltered} items`);
 
     return {
       data: reducedData,
@@ -598,7 +598,7 @@ export class WindowSizeProcessor implements IWindowSizeProcessor {
       .filter((_, i) => keptIndices.has(i) && allItems[i]?.type === 'relationship')
       .map(i => i.item as ContextRelationship);
     
-    console.log(`🔧 WindowSizeProcessor: Protected ${protectedIndices.size} items, kept ${keptItems.length} items and ${keptRelationships.length} relationships (${currentTokens} tokens)`);
+    console.error(`🔧 WindowSizeProcessor: Protected ${protectedIndices.size} items, kept ${keptItems.length} items and ${keptRelationships.length} relationships (${currentTokens} tokens)`);
     
     return {
       ...data,

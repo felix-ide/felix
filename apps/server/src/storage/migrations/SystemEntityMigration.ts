@@ -19,12 +19,12 @@ export class SystemEntityMigration {
    * Run all migrations
    */
   async run(): Promise<void> {
-    console.log('[Migration] Starting system entity migration...');
+    console.error('[Migration] Starting system entity migration...');
 
     await this.migrateWorkflows();
     await this.migrateKnowledgeBases();
 
-    console.log('[Migration] ✅ System entity migration complete');
+    console.error('[Migration] ✅ System entity migration complete');
   }
 
   /**
@@ -34,7 +34,7 @@ export class SystemEntityMigration {
     const workflowRepo = this.dataSource.getRepository(WorkflowConfiguration);
     const builtInNames = BUILT_IN_WORKFLOWS.map(w => w.name);
 
-    console.log('[Migration] Migrating workflows...');
+    console.error('[Migration] Migrating workflows...');
 
     // Get all workflows
     const allWorkflows = await workflowRepo.find();
@@ -61,11 +61,11 @@ export class SystemEntityMigration {
 
         if (existingWithNewId) {
           // New ID exists, delete the old one
-          console.log(`  - Removing duplicate workflow: ${workflow.id}`);
+          console.error(`  - Removing duplicate workflow: ${workflow.id}`);
           await workflowRepo.delete({ id: workflow.id });
         } else {
           // Update to stable ID
-          console.log(`  - Migrating built-in workflow: ${workflow.name} (${workflow.id} → ${newId})`);
+          console.error(`  - Migrating built-in workflow: ${workflow.name} (${workflow.id} → ${newId})`);
 
           // Delete old record and insert new one with correct ID
           await workflowRepo.delete({ id: workflow.id });
@@ -78,7 +78,7 @@ export class SystemEntityMigration {
         }
       } else {
         // User workflow: just set is_system=false
-        console.log(`  - Marking custom workflow: ${workflow.name}`);
+        console.error(`  - Marking custom workflow: ${workflow.name}`);
         await workflowRepo.update(
           { id: workflow.id },
           {
@@ -89,7 +89,7 @@ export class SystemEntityMigration {
       }
     }
 
-    console.log('[Migration] ✅ Workflows migrated');
+    console.error('[Migration] ✅ Workflows migrated');
   }
 
   /**
@@ -99,7 +99,7 @@ export class SystemEntityMigration {
     const noteRepo = this.dataSource.getRepository(Note);
     const kbRepo = this.dataSource.getRepository(KnowledgeBase);
 
-    console.log('[Migration] Migrating knowledge bases...');
+    console.error('[Migration] Migrating knowledge bases...');
 
     // Find all notes that are KB roots
     const kbRootNotes = await noteRepo
@@ -118,12 +118,12 @@ export class SystemEntityMigration {
       const existingKB = await kbRepo.findOne({ where: { id: kbId } });
 
       if (existingKB) {
-        console.log(`  - KB already exists: ${kbId}`);
+        console.error(`  - KB already exists: ${kbId}`);
         continue;
       }
 
       // Create KB entity
-      console.log(`  - Creating KB entity: ${kbId} (project: ${projectPath}, template: ${templateName})`);
+      console.error(`  - Creating KB entity: ${kbId} (project: ${projectPath}, template: ${templateName})`);
 
       await kbRepo.save({
         id: kbId,
@@ -140,7 +140,7 @@ export class SystemEntityMigration {
       if (templateName === 'project') {
         const newNoteId = 'note_kb_project'; // Portable ID (no project path)
         if (rootNote.id !== newNoteId) {
-          console.log(`  - Updating project KB root note ID: ${rootNote.id} → ${newNoteId}`);
+          console.error(`  - Updating project KB root note ID: ${rootNote.id} → ${newNoteId}`);
 
           // Check if new ID already exists
           const existingNote = await noteRepo.findOne({ where: { id: newNoteId } });
@@ -165,7 +165,7 @@ export class SystemEntityMigration {
       // Other KB types keep their existing note IDs (they're already unique)
     }
 
-    console.log('[Migration] ✅ Knowledge bases migrated');
+    console.error('[Migration] ✅ Knowledge bases migrated');
   }
 
   /**

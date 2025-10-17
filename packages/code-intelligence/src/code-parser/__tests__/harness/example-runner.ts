@@ -12,7 +12,7 @@ import { RegressionSuite } from './RegressionSuite.js';
  * Example 1: Run complete test suite
  */
 async function runCompleteTestSuite() {
-  console.log('🚀 Running complete test suite...');
+  console.error('🚀 Running complete test suite...');
 
   const harness = new TestHarness({
     parallel: true,
@@ -25,11 +25,11 @@ async function runCompleteTestSuite() {
 
   const results = await harness.runComplete();
 
-  console.log('📊 Results Summary:');
-  console.log(`Total Tests: ${results.summary.totalTests}`);
-  console.log(`Passed: ${results.summary.passedTests}`);
-  console.log(`Failed: ${results.summary.failedTests}`);
-  console.log(`Success Rate: ${((results.summary.passedTests / results.summary.totalTests) * 100).toFixed(2)}%`);
+  console.error('📊 Results Summary:');
+  console.error(`Total Tests: ${results.summary.totalTests}`);
+  console.error(`Passed: ${results.summary.passedTests}`);
+  console.error(`Failed: ${results.summary.failedTests}`);
+  console.error(`Success Rate: ${((results.summary.passedTests / results.summary.totalTests) * 100).toFixed(2)}%`);
 
   return results;
 }
@@ -38,7 +38,7 @@ async function runCompleteTestSuite() {
  * Example 2: Run validation tests for specific languages
  */
 async function runLanguageSpecificTests() {
-  console.log('🔍 Running language-specific validation tests...');
+  console.error('🔍 Running language-specific validation tests...');
 
   const harness = new TestHarness({
     includeLanguages: ['javascript', 'python'],
@@ -50,7 +50,7 @@ async function runLanguageSpecificTests() {
 
   for (const [language, testResults] of results) {
     const passed = testResults.filter(r => r.success).length;
-    console.log(`${language}: ${passed}/${testResults.length} tests passed`);
+    console.error(`${language}: ${passed}/${testResults.length} tests passed`);
   }
 
   return results;
@@ -60,7 +60,7 @@ async function runLanguageSpecificTests() {
  * Example 3: Performance benchmarking
  */
 async function runPerformanceBenchmarks() {
-  console.log('⚡ Running performance benchmarks...');
+  console.error('⚡ Running performance benchmarks...');
 
   const benchmark = new PerformanceBenchmark({
     iterations: 20,
@@ -71,15 +71,15 @@ async function runPerformanceBenchmarks() {
   // This would typically be called by the TestHarness
   // but can be used standalone for focused performance testing
 
-  console.log('Performance benchmarking setup complete');
-  console.log('Use TestHarness.runBenchmarksOnly() for full execution');
+  console.error('Performance benchmarking setup complete');
+  console.error('Use TestHarness.runBenchmarksOnly() for full execution');
 }
 
 /**
  * Example 4: Golden file management
  */
 async function manageGoldenFiles() {
-  console.log('🏆 Managing golden files...');
+  console.error('🏆 Managing golden files...');
 
   const goldenManager = new GoldenFileManager({
     goldenDir: './test-fixtures/golden',
@@ -90,10 +90,10 @@ async function manageGoldenFiles() {
 
   // List existing golden files
   const goldenFiles = goldenManager.listGoldenFiles();
-  console.log(`Found ${goldenFiles.length} golden files`);
+  console.error(`Found ${goldenFiles.length} golden files`);
 
   for (const file of goldenFiles.slice(0, 5)) { // Show first 5
-    console.log(`  - ${file.language}/${file.testCase} (${file.lastModified.toISOString()})`);
+    console.error(`  - ${file.language}/${file.testCase} (${file.lastModified.toISOString()})`);
   }
 
   return goldenFiles;
@@ -103,7 +103,7 @@ async function manageGoldenFiles() {
  * Example 5: Custom regression testing
  */
 async function runCustomRegressionTests() {
-  console.log('🔄 Running custom regression tests...');
+  console.error('🔄 Running custom regression tests...');
 
   const regressionSuite = new RegressionSuite({
     includeEdgeCases: true,
@@ -126,11 +126,11 @@ async function runCustomRegressionTests() {
     totalImprovements += improvements;
 
     if (regressions > 0 || improvements > 0) {
-      console.log(`${language}: ${regressions} regressions, ${improvements} improvements`);
+      console.error(`${language}: ${regressions} regressions, ${improvements} improvements`);
     }
   }
 
-  console.log(`Total: ${totalRegressions} regressions, ${totalImprovements} improvements`);
+  console.error(`Total: ${totalRegressions} regressions, ${totalImprovements} improvements`);
   return results;
 }
 
@@ -138,7 +138,7 @@ async function runCustomRegressionTests() {
  * Example 6: Individual parser testing
  */
 async function testIndividualParser() {
-  console.log('🎯 Testing individual parser...');
+  console.error('🎯 Testing individual parser...');
 
   const testRunner = new ParserTestRunner({
     parallel: false,
@@ -157,15 +157,15 @@ async function testIndividualParser() {
   };
 
   // This would typically be part of a test suite
-  console.log('Individual parser test setup complete');
-  console.log('Test case created:', testCase.name);
+  console.error('Individual parser test setup complete');
+  console.error('Test case created:', testCase.name);
 }
 
 /**
  * Example 7: Generate test reports
  */
 async function generateCustomReports() {
-  console.log('📊 Generating custom reports...');
+  console.error('📊 Generating custom reports...');
 
   // Run a focused test suite
   const harness = new TestHarness({
@@ -178,18 +178,18 @@ async function generateCustomReports() {
   const results = await harness.runComplete();
 
   // Generate custom analysis
-  console.log('\n📈 Custom Analysis:');
-  console.log('==================');
+  console.error('\n📈 Custom Analysis:');
+  console.error('==================');
 
   for (const [language, testResults] of results.validationResults) {
     const totalDuration = testResults.reduce((sum, r) => sum + r.duration, 0);
     const avgDuration = totalDuration / testResults.length;
     const maxDuration = Math.max(...testResults.map(r => r.duration));
 
-    console.log(`${language} Performance:`);
-    console.log(`  - Average test duration: ${avgDuration.toFixed(2)}ms`);
-    console.log(`  - Slowest test: ${maxDuration.toFixed(2)}ms`);
-    console.log(`  - Total test time: ${totalDuration.toFixed(2)}ms`);
+    console.error(`${language} Performance:`);
+    console.error(`  - Average test duration: ${avgDuration.toFixed(2)}ms`);
+    console.error(`  - Slowest test: ${maxDuration.toFixed(2)}ms`);
+    console.error(`  - Total test time: ${totalDuration.toFixed(2)}ms`);
   }
 
   return results;
@@ -209,11 +209,11 @@ async function main() {
     { name: 'Custom Reports', fn: generateCustomReports }
   ];
 
-  console.log('🎮 Test Harness Examples');
-  console.log('========================');
-  console.log('Available examples:');
+  console.error('🎮 Test Harness Examples');
+  console.error('========================');
+  console.error('Available examples:');
   examples.forEach((example, index) => {
-    console.log(`${index + 1}. ${example.name}`);
+    console.error(`${index + 1}. ${example.name}`);
   });
 
   // Get example to run from command line argument
@@ -222,16 +222,16 @@ async function main() {
 
   if (!selectedExample) {
     console.error(`Invalid example index: ${exampleIndex}`);
-    console.log(`Please choose 1-${examples.length}`);
+    console.error(`Please choose 1-${examples.length}`);
     process.exit(1);
   }
 
-  console.log(`\n🏃‍♂️ Running: ${selectedExample.name}`);
-  console.log('='.repeat(50));
+  console.error(`\n🏃‍♂️ Running: ${selectedExample.name}`);
+  console.error('='.repeat(50));
 
   try {
     await selectedExample.fn();
-    console.log('\n✅ Example completed successfully!');
+    console.error('\n✅ Example completed successfully!');
   } catch (error) {
     console.error('\n❌ Example failed:', error);
     process.exit(1);

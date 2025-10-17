@@ -30,11 +30,11 @@ export async function initCommand(options: InitOptions): Promise<void> {
   // Check if config already exists
   if (existsSync(configPath) && !options.force) {
     console.error(`❌ Configuration file already exists at ${configPath}`);
-    console.log('Use --force to overwrite, or specify a different path with --config');
+    console.error('Use --force to overwrite, or specify a different path with --config');
     process.exit(1);
   }
   
-  console.log('🚀 Initializing Felix configuration...');
+  console.error('🚀 Initializing Felix configuration...');
   
   // Create configuration based on template
   let config: CLIConfig;
@@ -58,14 +58,14 @@ export async function initCommand(options: InitOptions): Promise<void> {
   // Save configuration
   saveConfig(config, configPath);
   
-  console.log(`✅ Configuration initialized at ${configPath}`);
-  console.log(`📋 Template: ${options.template}`);
-  console.log(`💾 Default storage: ${config.defaultStorage}`);
-  console.log(`📁 Excluded patterns: ${config.defaultExcludes.length} patterns`);
-  console.log(`📏 Max file size: ${Math.round(config.maxFileSize / 1024)}KB`);
+  console.error(`✅ Configuration initialized at ${configPath}`);
+  console.error(`📋 Template: ${options.template}`);
+  console.error(`💾 Default storage: ${config.defaultStorage}`);
+  console.error(`📁 Excluded patterns: ${config.defaultExcludes.length} patterns`);
+  console.error(`📏 Max file size: ${Math.round(config.maxFileSize / 1024)}KB`);
   
-  console.log('\n🎯 Next steps:');
-  console.log('  1. Review and customize the configuration file');
-  console.log('  2. Run "felix create-index" to create your first index');
-  console.log('  3. Use "felix search" to explore your codebase');
+  console.error('\n🎯 Next steps:');
+  console.error('  1. Review and customize the configuration file');
+  console.error('  2. Run "felix create-index" to create your first index');
+  console.error('  3. Use "felix search" to explore your codebase');
 }

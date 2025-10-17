@@ -119,15 +119,15 @@ export class PerformanceBenchmark {
     parser: ILanguageParser,
     testCases: TestCase[]
   ): Promise<BenchmarkResult[]> {
-    console.log(`Starting benchmark for ${parser.language} parser`);
-    console.log(`Test cases: ${testCases.length}`);
-    console.log(`Iterations per test: ${this.options.iterations}`);
-    console.log(`Warmup iterations: ${this.options.warmupIterations}`);
+    console.error(`Starting benchmark for ${parser.language} parser`);
+    console.error(`Test cases: ${testCases.length}`);
+    console.error(`Iterations per test: ${this.options.iterations}`);
+    console.error(`Warmup iterations: ${this.options.warmupIterations}`);
 
     const results: BenchmarkResult[] = [];
 
     for (const testCase of testCases) {
-      console.log(`Benchmarking: ${testCase.name}`);
+      console.error(`Benchmarking: ${testCase.name}`);
 
       const result = await this.benchmarkTestCase(parser, testCase);
       results.push(result);
@@ -135,7 +135,7 @@ export class PerformanceBenchmark {
       // Log progress
       const currentIndex = results.length;
       const progress = ((currentIndex / testCases.length) * 100).toFixed(1);
-      console.log(`Progress: ${progress}% (${currentIndex}/${testCases.length})`);
+      console.error(`Progress: ${progress}% (${currentIndex}/${testCases.length})`);
     }
 
     // Generate and save comprehensive report
@@ -234,7 +234,7 @@ export class PerformanceBenchmark {
 
     const baselineFile = join(this.options.baselineDir, `${parser.language}-baseline.json`);
     if (!existsSync(baselineFile)) {
-      console.log(`No baseline found for ${parser.language} parser`);
+      console.error(`No baseline found for ${parser.language} parser`);
       return [];
     }
 
@@ -259,7 +259,7 @@ export class PerformanceBenchmark {
     const baselineFile = join(this.options.baselineDir, `${parser.language}-baseline.json`);
     mkdirSync(this.options.baselineDir, { recursive: true });
     writeFileSync(baselineFile, JSON.stringify(results, null, 2));
-    console.log(`Saved baseline for ${parser.language} parser: ${baselineFile}`);
+    console.error(`Saved baseline for ${parser.language} parser: ${baselineFile}`);
   }
 
   /**
@@ -277,7 +277,7 @@ export class PerformanceBenchmark {
     const report = this.buildBenchmarkReport(parser, results);
     writeFileSync(reportPath, report);
 
-    console.log(`Benchmark report generated: ${reportPath}`);
+    console.error(`Benchmark report generated: ${reportPath}`);
     return reportPath;
   }
 

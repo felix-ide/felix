@@ -38,11 +38,11 @@ async function main() {
   const limit = Number(args.limit ?? 50) || 50;
   const threshold = Number(args.threshold ?? 0.0);
 
-  console.log('--- Debug Rule Semantic Search ---');
-  console.log('Project:', projectPath);
-  console.log('Query  :', args.query);
-  console.log('Limit  :', limit);
-  console.log('Thresh.:', threshold);
+  console.error('--- Debug Rule Semantic Search ---');
+  console.error('Project:', projectPath);
+  console.error('Query  :', args.query);
+  console.error('Limit  :', limit);
+  console.error('Thresh.:', threshold);
 
   // Initialize DB + Indexer bound to this project
   const db = DatabaseManager.getInstance(projectPath);
@@ -52,21 +52,21 @@ async function main() {
 
   // Print high-level stats
   const stats = await indexer.getStats();
-  console.log('\n[Stats] rules.total           =', stats.ruleCount);
-  console.log('[Stats] rules.with_embeddings =', stats.ruleEmbeddingCount);
+  console.error('\n[Stats] rules.total           =', stats.ruleCount);
+  console.error('[Stats] rules.with_embeddings =', stats.ruleEmbeddingCount);
 
   // Double-check raw embeddings by type directly from repository
   const embeddingRepo = db.getEmbeddingRepository();
   const rawEmbeds = await embeddingRepo.getEmbeddingsByType('rule');
-  console.log('[Raw]   embeddings(rule) rows =', rawEmbeds.length);
+  console.error('[Raw]   embeddings(rule) rows =', rawEmbeds.length);
 
   // Sanity-check that a few embedding IDs resolve to real rules
   const sampleIds = rawEmbeds.slice(0, 5).map(r => r.entity_id);
   if (sampleIds.length) {
-    console.log('[Raw]   sample entity_ids      =', sampleIds);
+    console.error('[Raw]   sample entity_ids      =', sampleIds);
     for (const id of sampleIds) {
       const r = await indexer.getRule(id);
-      console.log('         resolve', id, '->', r ? (r.name || 'OK') : 'NOT FOUND');
+      console.error('         resolve', id, '->', r ? (r.name || 'OK') : 'NOT FOUND');
     }
   }
 
@@ -78,16 +78,16 @@ async function main() {
   });
 
   const results = s.results || [];
-  console.log('\n[Search] results.count        =', results.length);
+  console.error('\n[Search] results.count        =', results.length);
   for (const r of results.slice(0, 5)) {
-    console.log('         -', r.entity?.id, '|', r.entity?.name, '| sim=', r.similarity?.toFixed?.(4));
+    console.error('         -', r.entity?.id, '|', r.entity?.name, '| sim=', r.similarity?.toFixed?.(4));
   }
 
   if (results.length === 0) {
-    console.log('\n[Diagnosis] 0 results. Based on the counters above, likely causes:');
-    console.log('- rules.with_embeddings == 0 or raw embedding rows == 0 for entity_type=rule');
-    console.log('- embeddings exist but do not resolve to rule IDs');
-    console.log('- semantic scores < threshold (try --threshold 0.0)');
+    console.error('\n[Diagnosis] 0 results. Based on the counters above, likely causes:');
+    console.error('- rules.with_embeddings == 0 or raw embedding rows == 0 for entity_type=rule');
+    console.error('- embeddings exist but do not resolve to rule IDs');
+    console.error('- semantic scores < threshold (try --threshold 0.0)');
   }
 }
 
