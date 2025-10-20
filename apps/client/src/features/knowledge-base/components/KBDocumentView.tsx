@@ -40,7 +40,7 @@ interface KBNodeRendererProps {
 
 function KBNodeRenderer({ node, level, configSchema, onSectionClick }: KBNodeRendererProps) {
   const { rules, updateRule } = useRulesStore();
-  const { updateNode, createNode, updateKBConfig, isLoading } = useKnowledgeBaseStore();
+  const { updateNode, createNode, updateKBConfig, isLoading, config } = useKnowledgeBaseStore();
   const [nodeRules, setNodeRules] = useState<RuleData[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(node.content || '');
@@ -148,7 +148,7 @@ function KBNodeRenderer({ node, level, configSchema, onSectionClick }: KBNodeRen
         <KBInlineConfig
           kbId={node.id}
           configSchema={configSchema}
-          existingConfig={node.metadata?.kb_config || {}}
+          existingConfig={config || {}}
           onSave={handleSaveConfig}
           isSaving={isLoading}
         />

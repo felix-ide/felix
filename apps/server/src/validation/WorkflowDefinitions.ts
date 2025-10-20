@@ -7,6 +7,7 @@ import { SimpleWorkflow as SIMPLE_WORKFLOW } from '../workflows/definitions/Simp
 import { FeatureDevelopmentWorkflow as FEATURE_DEVELOPMENT_WORKFLOW } from '../workflows/definitions/FeatureDevelopmentWorkflow.js';
 import { BugfixWorkflow as BUGFIX_WORKFLOW } from '../workflows/definitions/BugfixWorkflow.js';
 import { ResearchWorkflow as RESEARCH_WORKFLOW } from '../workflows/definitions/ResearchWorkflow.js';
+import { RefactorWorkflow as REFACTOR_WORKFLOW } from '../workflows/definitions/RefactorWorkflow.js';
 
 /**
  * All built-in workflows
@@ -15,7 +16,8 @@ export const BUILT_IN_WORKFLOWS: WorkflowDefinition[] = [
   SIMPLE_WORKFLOW,
   FEATURE_DEVELOPMENT_WORKFLOW,
   BUGFIX_WORKFLOW,
-  RESEARCH_WORKFLOW
+  RESEARCH_WORKFLOW,
+  REFACTOR_WORKFLOW
 ];
 
 /**

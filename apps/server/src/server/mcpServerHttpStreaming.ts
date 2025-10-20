@@ -146,10 +146,46 @@ export function setupMCPRoutesHttpStreaming(app: express.Application): void {
           return;
         }
       } else if (sessionId && !sessions.has(sessionId)) {
-        // Client presented a stale/unknown session ID (likely after a server restart)
-        logger.warn(`[Streamable HTTP] Unknown session ID '${sessionId}'. Handling based on method...`);
-        if (req.method === 'POST' && isInitializeRequest(req.body)) {
-          // Be forgiving: treat this as a fresh initialize and mint a new session
+        // Client presented a session ID that's not in memory
+        // Check if it's a persisted session from before server restart
+        const persistedSession = loadSession(sessionId);
+
+        if (persistedSession) {
+          // Valid persisted session - restore it
+          logger.info(`[Streamable HTTP] Restoring persisted session ${sessionId}`);
+
+          const server = createMCPServerInstance(sessionId);
+
+          transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: () => sessionId,
+            enableJsonResponse: false,
+            onsessioninitialized: (restoredSessionId: string) => {
+              logger.info(`[Streamable HTTP] Restored session ${restoredSessionId} with project ${persistedSession.lastProject || 'none'}`);
+
+              sessions.set(restoredSessionId, {
+                transport: transport!,
+                server,
+                lastActivity: Date.now(),
+                transportType: 'streamable',
+                lastProject: persistedSession.lastProject
+              });
+
+              res.setHeader('mcp-session-id', restoredSessionId);
+            }
+          });
+
+          transport.onclose = () => {
+            const sid = transport!.sessionId;
+            if (sid && sessions.has(sid)) {
+              logger.info(`[Streamable HTTP] Transport closed for session ${sid}`);
+              sessions.delete(sid);
+            }
+          };
+
+          await server.connect(transport);
+        } else if (req.method === 'POST' && isInitializeRequest(req.body)) {
+          // Unknown session but initialize request - create new session
+          logger.warn(`[Streamable HTTP] Unknown session ID '${sessionId}', creating new session for initialize request`);
           const server = createMCPServerInstance(sessionId || randomUUID());
 
           transport = new StreamableHTTPServerTransport({
@@ -158,7 +194,6 @@ export function setupMCPRoutesHttpStreaming(app: express.Application): void {
             onsessioninitialized: (newId: string) => {
               logger.info(`[Streamable HTTP] Replaced stale session ${sessionId} with new ID ${newId}`);
 
-              // Load persisted session data if available
               const persistedSession = loadSession(newId);
 
               sessions.set(newId, {
@@ -168,7 +203,6 @@ export function setupMCPRoutesHttpStreaming(app: express.Application): void {
                 transportType: 'streamable',
                 lastProject: persistedSession?.lastProject
               });
-              // Hint to clients to update
               res.setHeader('mcp-session-id', newId);
               res.setHeader('mcp-session-replaced', 'true');
               res.setHeader('mcp-previous-session-id', sessionId);
@@ -201,7 +235,7 @@ export function setupMCPRoutesHttpStreaming(app: express.Application): void {
           res.status(200).json({ ok: true, message: 'Session already closed' });
           return;
         } else {
-          // Non-initialize POST (or other) with bad session
+          // Non-initialize POST with unknown/expired session
           res.setHeader('mcp-session-expired', 'true');
           res.status(409).json({
             jsonrpc: '2.0',

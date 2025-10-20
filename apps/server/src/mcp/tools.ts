@@ -4,13 +4,15 @@ import { WORKFLOWS_TOOL } from './tool-definitions/workflows.js';
 import { NOTES_TOOL } from './tool-definitions/notes.js';
 import { TASKS_TOOL } from './tool-definitions/tasks.js';
 import { RULES_TOOL } from './tool-definitions/rules.js';
+import { KB_TOOL } from './tool-definitions/kb.js';
 
 const ORDERED_TOOLS: ReadonlyArray<McpToolDefinition> = [
   SEARCH_TOOL,
   NOTES_TOOL,
   TASKS_TOOL,
   RULES_TOOL,
-  WORKFLOWS_TOOL
+  WORKFLOWS_TOOL,
+  KB_TOOL
 ];
 
 export const TOOLS = ORDERED_TOOLS;
@@ -25,7 +27,8 @@ export function getToolsByName() {
     notes: NOTES_TOOL,
     tasks: TASKS_TOOL,
     rules: RULES_TOOL,
-    workflows: WORKFLOWS_TOOL
+    workflows: WORKFLOWS_TOOL,
+    kb: KB_TOOL
   } as const;
 }
 
@@ -34,7 +37,8 @@ export {
   NOTES_TOOL,
   TASKS_TOOL,
   RULES_TOOL,
-  WORKFLOWS_TOOL
+  WORKFLOWS_TOOL,
+  KB_TOOL
 };
 
 export type { McpToolDefinition };

@@ -334,13 +334,25 @@ export class RulesRepository {
   async getAllRules(includeInactive: boolean = false): Promise<IRule[]> {
     try {
       const query = this.ruleRepo.createQueryBuilder('rule');
-      
+
       if (!includeInactive) {
         query.where('rule.is_active = :active', { active: true });
       }
-      
+
       const rules = await query.getMany();
       logger.debug(`RulesRepository.getAllRules: Found ${rules.length} rules (includeInactive=${includeInactive})`);
+
+      // Debug: Check if entity_links are being fetched
+      if (rules.length > 0 && rules[0]) {
+        const sampleRule = rules[0];
+        logger.debug(`Sample rule raw data:`, {
+          id: sampleRule.id,
+          name: sampleRule.name,
+          has_entity_links: !!sampleRule.entity_links,
+          entity_links: sampleRule.entity_links
+        });
+      }
+
       return rules.map(row => mapEntityToRule(row));
     } catch (error) {
       logger.error('RulesRepository.getAllRules error:', error);
