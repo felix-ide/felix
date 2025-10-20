@@ -4,6 +4,7 @@ import { NotesRepository } from '../storage/repositories/NotesRepository.js';
 import { RulesRepository } from '../storage/repositories/RulesRepository.js';
 import { KBStructureDefinition, KBNodeDefinition } from './types.js';
 import { PROJECT_KB_STRUCTURE } from './templates/project-kb-structure.js';
+import { REFACTOR_KB_STRUCTURE } from './templates/refactor-kb-structure.js';
 import { processTemplate } from './templateProcessor.js';
 import { DataSource } from 'typeorm';
 import { KnowledgeBase } from '../storage/entities/metadata/KnowledgeBase.entity.js';
@@ -322,6 +323,8 @@ export class KBBuilder {
     switch (templateName) {
       case 'project':
         return PROJECT_KB_STRUCTURE;
+      case 'refactor':
+        return REFACTOR_KB_STRUCTURE;
       default:
         return null;
     }
