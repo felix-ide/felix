@@ -15,7 +15,6 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { getAllTools } from '../mcp/tools.js';
 import { handleToolCall as mcpHandleToolCall } from '../mcp/handlers.js';
 import { randomUUID } from 'crypto';
-import { saveSession, loadSession, cleanupOldSessions } from '../mcp/session-persistence.js';
 
 // Store transports and their associated MCP server instances by session ID
 interface SessionData {
@@ -23,12 +22,8 @@ interface SessionData {
   server: Server;
   lastActivity: number;
   transportType: 'sse' | 'streamable';
-  lastProject?: string;
 }
 const sessions = new Map<string, SessionData>();
-
-// Clean up old session files on startup
-cleanupOldSessions();
 
 // Session timeout in milliseconds (for display only - not enforced)
 const SESSION_TIMEOUT = 30 * 60 * 1000;
@@ -61,16 +56,6 @@ function createMCPServerInstance(sessionId: string): Server {
   server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
     const { name, arguments: args } = request.params;
     logger.info(`Tool call: ${name}`);
-
-    // Save project to session if it's a project set operation
-    if (name === 'projects' && args?.action === 'set' && args?.path && typeof args.path === 'string') {
-      const sessionData = sessions.get(sessionId);
-      if (sessionData) {
-        sessionData.lastProject = args.path;
-        saveSession(sessionId, args.path);
-        logger.info(`[Session] Saved project ${args.path} for session ${sessionId}`);
-      }
-    }
 
     return await mcpHandleToolCall(name, args);
   });
@@ -121,15 +106,6 @@ export function setupMCPRoutesHttpStreaming(app: express.Application): void {
             logger.warn(`[Streamable HTTP] Session ${sessionId} has no server, creating new one`);
             sessionData.server = createMCPServerInstance(sessionId);
             await sessionData.server.connect(transport);
-
-            // If we had a persisted project, restore it
-            if (!sessionData.lastProject) {
-              const persistedSession = loadSession(sessionId);
-              if (persistedSession?.lastProject) {
-                sessionData.lastProject = persistedSession.lastProject;
-                logger.info(`[Session] Restored project ${persistedSession.lastProject} for reconnected session ${sessionId}`);
-              }
-            }
           }
           // Update last activity
           sessionData.lastActivity = Date.now();
@@ -146,107 +122,19 @@ export function setupMCPRoutesHttpStreaming(app: express.Application): void {
           return;
         }
       } else if (sessionId && !sessions.has(sessionId)) {
-        // Client presented a session ID that's not in memory
-        // Check if it's a persisted session from before server restart
-        const persistedSession = loadSession(sessionId);
-
-        if (persistedSession) {
-          // Valid persisted session - restore it
-          logger.info(`[Streamable HTTP] Restoring persisted session ${sessionId}`);
-
-          const server = createMCPServerInstance(sessionId);
-
-          transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: () => sessionId,
-            enableJsonResponse: false,
-            onsessioninitialized: (restoredSessionId: string) => {
-              logger.info(`[Streamable HTTP] Restored session ${restoredSessionId} with project ${persistedSession.lastProject || 'none'}`);
-
-              sessions.set(restoredSessionId, {
-                transport: transport!,
-                server,
-                lastActivity: Date.now(),
-                transportType: 'streamable',
-                lastProject: persistedSession.lastProject
-              });
-
-              res.setHeader('mcp-session-id', restoredSessionId);
-            }
-          });
-
-          transport.onclose = () => {
-            const sid = transport!.sessionId;
-            if (sid && sessions.has(sid)) {
-              logger.info(`[Streamable HTTP] Transport closed for session ${sid}`);
-              sessions.delete(sid);
-            }
-          };
-
-          await server.connect(transport);
-        } else if (req.method === 'POST' && isInitializeRequest(req.body)) {
-          // Unknown session but initialize request - create new session
-          logger.warn(`[Streamable HTTP] Unknown session ID '${sessionId}', creating new session for initialize request`);
-          const server = createMCPServerInstance(sessionId || randomUUID());
-
-          transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: () => randomUUID(),
-            enableJsonResponse: false,
-            onsessioninitialized: (newId: string) => {
-              logger.info(`[Streamable HTTP] Replaced stale session ${sessionId} with new ID ${newId}`);
-
-              const persistedSession = loadSession(newId);
-
-              sessions.set(newId, {
-                transport: transport!,
-                server,
-                lastActivity: Date.now(),
-                transportType: 'streamable',
-                lastProject: persistedSession?.lastProject
-              });
-              res.setHeader('mcp-session-id', newId);
-              res.setHeader('mcp-session-replaced', 'true');
-              res.setHeader('mcp-previous-session-id', sessionId);
-            }
-          });
-
-          transport.onclose = () => {
-            const sid = transport!.sessionId;
-            if (sid && sessions.has(sid)) {
-              logger.info(`[Streamable HTTP] Transport closed for session ${sid}`);
-              sessions.delete(sid);
-            }
-          };
-
-          await server.connect(transport);
-        } else if (req.method === 'GET') {
-          // Client tried to open SSE for a dead session; instruct re-initialize
-          res.setHeader('mcp-session-expired', 'true');
-          res.status(410).json({
-            jsonrpc: '2.0',
-            error: {
-              code: -32001,
-              message: 'Session expired or invalid. Please reinitialize with POST /mcp.'
-            },
-            id: null
-          });
-          return;
-        } else if (req.method === 'DELETE') {
-          // Idempotent close; treat as success
-          res.status(200).json({ ok: true, message: 'Session already closed' });
-          return;
-        } else {
-          // Non-initialize POST with unknown/expired session
-          res.setHeader('mcp-session-expired', 'true');
-          res.status(409).json({
-            jsonrpc: '2.0',
-            error: {
-              code: -32002,
-              message: 'Invalid session. Reinitialize with POST /mcp (initialize).'
-            },
-            id: null
-          });
-          return;
-        }
+        // Client presented a session ID that's not in memory (stale after server restart)
+        // Tell client to reinitialize
+        logger.warn(`[Streamable HTTP] Stale session ${sessionId} - client needs to reinitialize`);
+        res.setHeader('mcp-session-expired', 'true');
+        res.status(410).json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32001,
+            message: 'Session expired. Please reconnect.'
+          },
+          id: null
+        });
+        return;
       } else if (!sessionId && req.method === 'POST' && isInitializeRequest(req.body)) {
         // Create new transport for initialization request
         // Create the server instance first
@@ -259,23 +147,16 @@ export function setupMCPRoutesHttpStreaming(app: express.Application): void {
           onsessioninitialized: (sessionId: string) => {
             logger.info(`[Streamable HTTP] Session initialized with ID: ${sessionId}`);
 
-            // Load persisted session data if available
-            const persistedSession = loadSession(sessionId);
-            if (persistedSession?.lastProject) {
-              logger.info(`[Session] Restored project ${persistedSession.lastProject} for session ${sessionId}`);
-            }
-
             // Store the session when it's initialized
             sessions.set(sessionId, {
               transport: transport!,
               server,
               lastActivity: Date.now(),
-              transportType: 'streamable',
-              lastProject: persistedSession?.lastProject
+              transportType: 'streamable'
             });
             logger.debug(`[Streamable HTTP] Session ${sessionId} stored with server instance`);
             logger.debug(`[Streamable HTTP] Total active sessions: ${sessions.size}`);
-            
+
             // Log session ID in response for debugging
             res.setHeader('mcp-session-id', sessionId);
           }
@@ -478,12 +359,6 @@ async function handleSSEConnection(req: express.Request, res: express.Response):
 
   logger.info(`[SSE] New session connected: ${sessionId}`);
 
-  // Load persisted session data if available
-  const persistedSession = loadSession(sessionId);
-  if (persistedSession?.lastProject) {
-    logger.info(`[Session] Restored project ${persistedSession.lastProject} for session ${sessionId}`);
-  }
-
   try {
     // Create a new server instance for this connection
     const server = createMCPServerInstance(sessionId);
@@ -496,8 +371,7 @@ async function handleSSEConnection(req: express.Request, res: express.Response):
       transport,
       server,
       lastActivity: Date.now(),
-      transportType: 'sse',
-      lastProject: persistedSession?.lastProject
+      transportType: 'sse'
     });
     
     // Send initial connection event

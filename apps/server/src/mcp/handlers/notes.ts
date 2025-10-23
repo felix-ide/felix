@@ -22,7 +22,7 @@ export async function handleNotesTools(request: any) {
         const { KBBuilder } = await import('../../features/knowledge-base/KBBuilder.js');
         const { DatabaseManager } = await import('../../features/storage/DatabaseManager.js');
 
-        const dbManager = DatabaseManager.getInstance(request.project);
+        const dbManager = DatabaseManager.getInstance(projectInfo.fullPath);
         await dbManager.initialize();
         const notesRepo = dbManager.getNotesRepository();
         const rulesRepo = dbManager.getRulesRepository();
@@ -31,7 +31,7 @@ export async function handleNotesTools(request: any) {
 
         // Create KB from template
         const result = await kbBuilder.buildFromTemplate(
-          request.project,
+          projectInfo.fullPath,
           kb_template,
           parent_id,
           title // Use title as custom KB name if provided

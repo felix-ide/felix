@@ -119,7 +119,7 @@ const MermaidDiagram = ({ code }: { code: string }) => {
     );
   }
 
-  return <div ref={containerRef} className="my-3 overflow-x-auto mermaid-diagram" />;
+  return <div ref={containerRef} className="my-3 max-w-full overflow-x-auto mermaid-diagram" />;
 };
 
 // CodeBlock component with CodeMirror
@@ -173,7 +173,7 @@ const ExcalidrawDiagram = ({ content }: { content: string }) => {
     };
 
     return (
-      <div className="my-3 border border-border rounded-lg overflow-hidden" style={{ height: '400px' }}>
+      <div className="my-3 max-w-full border border-border rounded-lg overflow-hidden" style={{ height: '400px' }}>
         <Excalidraw
           initialData={initialData}
           viewModeEnabled={true}
@@ -297,7 +297,7 @@ export const MarkdownRenderer = memo(({ content, className, prose = true }: Mark
 
         // Tables - use theme colors
         table: ({ children }) => (
-          <div className="overflow-x-auto my-3">
+          <div className="max-w-full overflow-x-auto my-3">
             <table className="min-w-full divide-y divide-border">
               {children}
             </table>

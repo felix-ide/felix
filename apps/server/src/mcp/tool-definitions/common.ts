@@ -11,7 +11,7 @@ export interface McpToolDefinition {
 export const PROJECT_PROPERTY = {
   project: {
     type: 'string',
-    description: 'Project name or path'
+    description: 'Absolute path to the project directory'
   }
 } as const;
 
