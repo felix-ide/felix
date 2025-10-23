@@ -112,15 +112,39 @@ router.get('/kb/structure', async (req: ProjectRequest, res: Response): Promise<
     const metadataDataSource = dbManager.getMetadataDataSource();
     const kbBuilder = new KBBuilder(notesRepo, rulesRepo, metadataDataSource);
 
-    // Get KB tree
+    // Match MCP handler logic - handle kb_id that could be KB ID, root_note_id, or node_id
+    const kbRepo = metadataDataSource.getRepository('KnowledgeBase');
+    let targetNodeId: string;
+    let kb: any = null;
+
+    // Check if it's a KB ID
+    kb = await kbRepo.findOne({ where: { id: kb_id } });
+    if (kb) {
+      targetNodeId = kb.root_note_id;
+    } else {
+      // Try treating kb_id as root_note_id
+      const kbByRoot = await kbRepo.findOne({ where: { root_note_id: kb_id } });
+      if (kbByRoot) {
+        targetNodeId = kbByRoot.root_note_id;
+        kb = kbByRoot;
+      } else {
+        // Maybe it's already a node ID - use it directly
+        targetNodeId = kb_id as string;
+        // Try to find the KB by this node being the root
+        kb = await kbRepo.findOne({ where: { root_note_id: targetNodeId } });
+      }
+    }
+
+    // Get KB tree using the resolved node ID
     const tree = await kbBuilder.getKBTree(
       projectPath,
-      kb_id as string
+      targetNodeId
     );
 
     res.json({
       success: true,
-      structure: tree
+      structure: tree,
+      config: kb?.config || null
     });
   } catch (error) {
     res.status(500).json({

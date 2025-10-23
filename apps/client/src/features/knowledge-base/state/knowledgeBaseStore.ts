@@ -6,6 +6,7 @@ interface KnowledgeBaseState {
   knowledgeBases: KBListItem[];
   currentKB: KBNode | null;
   currentKBId: string | null;
+  config: Record<string, any> | null;
   templates: KBTemplate[];
 
   // UI State
@@ -28,6 +29,7 @@ interface KnowledgeBaseState {
 export const useKnowledgeBaseStore = create<KnowledgeBaseState>((set, get) => ({
   // Initial state
   knowledgeBases: [],
+  config: null,
   currentKB: null,
   currentKBId: null,
   templates: [],
@@ -53,9 +55,10 @@ export const useKnowledgeBaseStore = create<KnowledgeBaseState>((set, get) => ({
   loadKBStructure: async (kbId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const structure = await knowledgeBaseApi.getStructure(kbId);
+      const response = await knowledgeBaseApi.getStructure(kbId);
       set({
-        currentKB: structure,
+        currentKB: response.structure,
+        config: response.config || null,
         currentKBId: kbId,
         isLoading: false
       });

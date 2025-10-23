@@ -10,6 +10,7 @@ import { handleSearchTools as searchHandler } from './handlers/search.js';
 import { handleTasksTools as tasksHandler } from './handlers/tasks.js';
 import { handleNotesTools as notesHandler } from './handlers/notes.js';
 import { handleRulesTools as rulesHandler } from './handlers/rules.js';
+import { handleKBTools as kbHandler } from './handlers/kb.js';
 
 /**
  * Main handler router for consolidated MCP tools.
@@ -27,6 +28,8 @@ export async function handleToolCall(name: string, args: any): Promise<any> {
         return await tasksHandler(args);
       case 'rules':
         return await rulesHandler(args);
+      case 'kb':
+        return await kbHandler(args);
       case 'workflows': {
         const { project } = args;
         if (!project) {

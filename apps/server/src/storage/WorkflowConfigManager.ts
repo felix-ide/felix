@@ -184,7 +184,7 @@ export class WorkflowConfigManager {
       chore: 'simple',
       documentation: 'simple',
       doc: 'simple',
-      refactor: 'feature_development'
+      refactor: 'refactor'
     };
 
     // Default metadata for task types with emojis, colors, and priorities

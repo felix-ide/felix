@@ -120,7 +120,7 @@ export async function handleSearchTools(request: SearchToolRequest) {
         const { DatabaseManager } = await import('../../features/storage/DatabaseManager.js');
         const { KnowledgeBase } = await import('../../features/storage/entities/metadata/KnowledgeBase.entity.js');
 
-        const dbManager = DatabaseManager.getInstance(request.project);
+        const dbManager = DatabaseManager.getInstance(projectInfo.fullPath);
         await dbManager.initialize();
         const kbRepo = dbManager.getMetadataDataSource().getRepository(KnowledgeBase);
         const notesRepo = dbManager.getNotesRepository();

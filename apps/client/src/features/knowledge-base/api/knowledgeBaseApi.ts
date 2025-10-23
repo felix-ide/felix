@@ -27,7 +27,10 @@ export const knowledgeBaseApi = {
    */
   async getStructure(kbId: string) {
     const response = await kbClient.getKBStructure(kbId);
-    return response.structure;
+    return {
+      structure: response.structure,
+      config: response.config
+    };
   },
 
   /**
