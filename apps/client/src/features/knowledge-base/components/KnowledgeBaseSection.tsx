@@ -185,7 +185,7 @@ export function KnowledgeBaseSection() {
           </div>
 
           {/* Document View - Full width */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <KBDocumentView
               rootNode={currentKB}
               configSchema={configSchema}
